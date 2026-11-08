@@ -1,0 +1,16 @@
+## Interface: 16001, 11508, 11507, 20505, 20504
+## Title: |cff0070deTotemWatch|r
+## Notes: Zeigt im Kampf fehlende Totems und empfiehlt passende Totems je nach Situation, Boss (DBM/BigWigs) und Gruppe.
+## Notes-deDE: Zeigt im Kampf fehlende Totems und empfiehlt passende Totems je nach Situation, Boss (DBM/BigWigs) und Gruppe.
+## Notes-enUS: Shows missing totems in combat and recommends totems based on situation, boss (DBM/BigWigs) and group.
+## Author: donbloko
+## Version: @project-version@
+## IconTexture: Interface\Icons\Spell_Nature_TremorTotem
+## SavedVariables: TotemWatchDB
+## OptionalDeps: DBM-Core, BigWigs, BigWigs_Core
+## X-Category: Combat
+## X-License: MIT
+
+Data.lua
+Core.lua
+Options.lua

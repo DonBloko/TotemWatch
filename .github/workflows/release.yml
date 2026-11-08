@@ -1,0 +1,32 @@
+# Baut bei jedem Tag "v..." (z.B. v1.0.1) automatisch das Addon-ZIP,
+# erstellt ein GitHub-Release und lädt die Datei bei CurseForge hoch.
+#
+# Einmalig im GitHub-Repository einrichten (Settings -> Secrets and variables -> Actions):
+#   Secret   CF_API_KEY     = CurseForge-API-Token (https://authors.curseforge.com/account/api-tokens)
+#   Variable CF_PROJECT_ID  = Projekt-ID deines CurseForge-Projekts (steht auf der Projektseite rechts)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # für das GitHub-Release
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Paketieren und hochladen
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -p ${{ vars.CF_PROJECT_ID }}

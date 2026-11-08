@@ -1,0 +1,9 @@
+<Bindings>
+  <Binding name="CLICK TotemWatchCastAll:LeftButton" header="TOTEMWATCH"></Binding>
+  <Binding name="CLICK TotemWatchFire:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchEarth:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchWater:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchAir:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchWeapon:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchShield:LeftButton"></Binding>
+</Bindings>
