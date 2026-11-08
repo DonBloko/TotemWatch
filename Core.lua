@@ -1289,8 +1289,14 @@ function ns.ApplyHintFont()
     fs:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
     fs:SetShadowOffset(1, -1)
     fs:SetShadowColor(0, 0, 0, 1)
+    fs:SetWordWrap(true)
     fs:ClearAllPoints()
-    fs:SetPoint("TOPLEFT", hintBg, "TOPLEFT", 6, -5 - (i - 1) * hintLineHeight)
+    -- fortlaufend: jeder Hinweis direkt unter dem vorherigen (auch wenn dieser umbricht)
+    if i == 1 then
+      fs:SetPoint("TOPLEFT", hintBg, "TOPLEFT", 6, -5)
+    else
+      fs:SetPoint("TOPLEFT", hints[i - 1], "BOTTOMLEFT", 0, -2)
+    end
   end
 end
 ns.ApplyHintFont()
@@ -1479,7 +1485,7 @@ function ns.ApplySkin()
     hintBg:SetBackdropColor(unpack(S.hintBg))
     hintBg:SetBackdropBorderColor(unpack(S.hintEdge))
   end
-  hintBg:SetWidth(math.max(frame:GetWidth(), 300))
+  hintBg:SetWidth(math.max(frame:GetWidth(), 380))
   for _, fs in ipairs(hints) do fs:SetWidth(hintBg:GetWidth() - 12) end
 end
 
@@ -2051,7 +2057,10 @@ local function Refresh()
   for i = hintLine, MAX_HINTS do hints[i]:SetText("") end
   -- Hintergrund an die Zeilenzahl anpassen (unsichtbar ohne Hinweise)
   local shownLines = hintLine - 1
-  hintBg:SetHeight(10 + math.max(1, shownLines) * hintLineHeight)
+  -- Höhe aus der echten Texthöhe (umgebrochene Hinweise brauchen mehr Platz)
+  local h = 10
+  for i = 1, shownLines do h = h + math.max(hints[i]:GetStringHeight() or 0, hintLineHeight - 4) + 2 end
+  hintBg:SetHeight(math.max(h, hintLineHeight + 8))
   hintBg:SetAlpha(shownLines > 0 and 1 or 0)
 
   if not alertText and state.destroyMsg and now < state.destroyUntil then
