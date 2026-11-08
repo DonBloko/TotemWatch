@@ -1442,16 +1442,18 @@ function ns.ApplySkin()
     -- Bars: Zusatzknöpfe in einer Reihe unter den Balken
     local y = -top - 4 * (size + gap) - 3
     local x = pad
+    local esize = S.extraBtn or size          -- Zusatzknöpfe dürfen größer sein als die Zeilen-Icons
     for _, b in ipairs(extras) do
-      b:SetSize(size, size)
-      if b.glow then b.glow:SetSize(size * 1.85, size * 1.85) end
+      b:SetSize(esize, esize)
+      if b.glow then b.glow:SetSize(esize * 1.85, esize * 1.85) end
       if b:IsShown() then
         b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
-        x = x + size + gap
+        x = x + esize + 4
       end
     end
     width = math.max(pad + size + 3 + (S.barWidth or 200) + pad, x + pad)
-    height = top + 4 * (size + gap) + ((x > pad) and (size + 6) or 0) + 4
+    -- Platz für die Restzeit unter Waffe/Schild einplanen
+    height = top + 4 * (size + gap) + ((x > pad) and (esize + 18) or 0) + 4
   else
     local x = pad + 4 * (size + gap) + 6
     for _, b in ipairs(extras) do

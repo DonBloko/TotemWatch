@@ -220,6 +220,7 @@ ns.SKINS = {
   },
   bars = {
     name = "Bars", btn = 24, gap = 3, inset = 1, title = false, timer = "none", bar = "right", barWidth = 200,
+    extraBtn = 34,   -- Größe der Zusatzknöpfe (ALLE, Call, Recall, Waffe, Schild) unter den Balken
     bg = { 0, 0, 0, 0.55 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
   },
