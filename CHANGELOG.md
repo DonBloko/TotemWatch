@@ -10,7 +10,7 @@
   - **Totemic Call** – moves your totems to you; TotemWatch keeps their timers and updates their position. When you are out of range, TotemWatch compares mana: Totemic Call is only recommended if it costs less than the remaining time you would waste by re-dropping (totem cost × remaining share of its duration). Otherwise it tells you to re-drop.
   - **Totemic Recall** – removes your totems; no false "totem destroyed" warnings afterwards.
 - Key bindings for the new buttons; `/tw probe` shows which of these spells your client knows.
-- Call of the Elements bar: TotemWatch checks whether its sync worked. If the game does not allow it, TotemWatch shows which totems on the bar differ from your buttons so you can change them yourself. New diagnostics: `/tw bar`.
+- Call of the Elements bar: synced to the slots the game actually uses (read from its totem bar buttons). In combat the game does not allow automatic changes – right-click a totem in the selection menu to put it on the bar (works in combat). TotemWatch checks whether its sync worked. If the game does not allow it, TotemWatch shows which totems on the bar differ from your buttons so you can change them yourself. New diagnostics: `/tw bar`.
 - **Readability:** hint texts below the bar now have a dark background and an outlined, larger font (size adjustable).
 - **Messages in the middle of the screen** for missing totems, fear and destroyed totems – each only once (size adjustable, can be turned off).
 - **Glow:** the button you should press glows; in the selection menu the recommended totem glows.

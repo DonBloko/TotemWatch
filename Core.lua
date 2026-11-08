@@ -1053,6 +1053,9 @@ local function BuildFlyout(main, ids)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if self.spellId then GameTooltip:SetSpellByID(self.spellId) end
         GameTooltip:AddLine(L["Click: cast and set as default"], 0.6, 1, 0.6)
+        if self.canMultispell then
+          GameTooltip:AddLine(L["Right-click: put it on the Call of the Elements bar without casting (works in combat)"], 1, 0.82, 0, true)
+        end
         GameTooltip:Show()
       end)
       fb:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1371,6 +1374,37 @@ function ns.MultiCastActions()
   return { ns.MULTICAST_BASE + 1, ns.MULTICAST_BASE + 2, ns.MULTICAST_BASE + 3, ns.MULTICAST_BASE + 4 }
 end
 
+-- Rechtsklick auf ein Totem im Auswahlmenü legt es auf die Leiste von Call of the Elements.
+-- Das nutzt Blizzards sicheren Knopf-Typ "multispell" und funktioniert deshalb auch im Kampf.
+-- Einrichten (Attribute setzen) geht nur außerhalb des Kampfes.
+function ns.UpdateFlyoutMultispell()
+  if InCombatLockdown() then return end
+  local active = callBtn:IsShown() and ns.multicastActionForSlot
+  for s = 1, 4 do
+    local fly = slots[s].flyout
+    local action = active and ns.multicastActionForSlot[s]
+    if fly and fly.buttons then
+      for _, fb in ipairs(fly.buttons) do
+        local id = action and fb.spellId and fb:IsShown() and SpellIdFromName(SpellName(fb.spellId))
+        if id then
+          -- Blizzard: type "multispell" ruft SetMultiCastSpell(action, spell) auf
+          fb:SetAttribute("type2", "multispell")
+          fb:SetAttribute("action2", action)
+          fb:SetAttribute("spell2", id)
+          fb:SetAttribute("multispell2", id)
+          fb.canMultispell = true
+        else
+          fb:SetAttribute("type2", nil)
+          fb:SetAttribute("action2", nil)
+          fb:SetAttribute("spell2", nil)
+          fb:SetAttribute("multispell2", nil)
+          fb.canMultispell = false
+        end
+      end
+    end
+  end
+end
+
 function ns.SyncMultiCast()
   ns.multicastKeys = ns.multicastKeys or {}
   ns.multicastMismatch = nil
@@ -1396,6 +1430,10 @@ function ns.SyncMultiCast()
   local failed, mismatch = 0, {}
   for i = 1, 4 do
     local action, slot = actions[i], slotOf[i]
+    if slot then
+      ns.multicastActionForSlot = ns.multicastActionForSlot or {}
+      ns.multicastActionForSlot[slot] = action
+    end
     local assigned = slot and slots[slot]:GetAttribute("spell1")
     local want = assigned and KeyFromName(assigned)
     -- 1) setzen (wenn gewünscht und möglich)
@@ -1412,6 +1450,7 @@ function ns.SyncMultiCast()
     end
   end
   ns.multicastMismatch = (#mismatch > 0) and mismatch or nil
+  ns.UpdateFlyoutMultispell()
   ns.syncResult = (failed == 0) and "ok" or (SetMultiCastSpell and "set, but not applied" or "SetMultiCastSpell missing")
 
   if failed > 0 and TotemWatchDB.syncCall and not ns.syncWarned then
