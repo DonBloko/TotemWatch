@@ -22,6 +22,10 @@ local DEFAULTS = {
   showRecall = true,    -- Knopf Totemic Recall (wenn gelernt)
   showMove = true,      -- Knopf Totemic Call (wenn gelernt)
   syncCall = true,      -- Totem-Leiste von Call of the Elements mit den Knöpfen abgleichen
+  glow = true,          -- empfohlene Totems leuchten
+  messages = true,      -- Meldungen in der Bildschirmmitte
+  hintSize = 13,        -- Schriftgröße der Hinweise
+  messageSize = 24,     -- Schriftgröße der Meldungen
 }
 
 ---------------------------------------------------------------------------
@@ -343,6 +347,7 @@ local state = {
   preWarned = {},        -- schon vorgewarnte Totems (Slot:Start)
   expireMsg = nil, expireUntil = 0,
   far = {},              -- [slot] = Abstand in Metern, wenn zu weit weg
+  slotMsg = {},          -- [slot] = zuletzt gemeldetes Problem (keine Wiederholung)
   others = {},           -- [totemGUID] = { key, slot, caster, src, expires }
   partyShamans = {},     -- [GUID] = Name
   lastRec = {},          -- letzte Empfehlung je Slot (für automatische Belegung)
@@ -833,6 +838,32 @@ local alert = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
 alert:SetPoint("BOTTOM", frame, "TOP", 0, 6)
 alert:SetTextColor(1, 0.2, 0.2)
 
+-- Goldenes, pulsierendes Leuchten um einen Knopf (zeigt: das hier ist empfohlen / jetzt drücken)
+local function MakeGlow(parent, size)
+  local g = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+  g:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+  g:SetBlendMode("ADD")
+  g:SetVertexColor(1, 0.85, 0.2)
+  g:SetSize(size * 1.85, size * 1.85)
+  g:SetPoint("CENTER", parent, "CENTER", 0, 0)
+  g:Hide()
+  local ag = g:CreateAnimationGroup()
+  ag:SetLooping("BOUNCE")
+  local a = ag:CreateAnimation("Alpha")
+  a:SetFromAlpha(1); a:SetToAlpha(0.35); a:SetDuration(0.6)
+  g.anim = ag
+  return g
+end
+
+local function SetGlow(g, on)
+  if not g then return end
+  if on then
+    if not g:IsShown() then g:Show(); g.anim:Play() end
+  elseif g:IsShown() then
+    g.anim:Stop(); g:Hide()
+  end
+end
+
 -- Mausklicks passend zur Einstellung "Aktionen bei Tastendruck"
 local function RegisterClicks(b)
   local keyDown = GetCVarBool and GetCVarBool("ActionButtonUseKeyDown")
@@ -876,6 +907,11 @@ local function CreateCastButton(name, x)
 
   b.label = over:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
   b.label:SetPoint("BOTTOMLEFT", 2, 2)
+
+  b.glow = MakeGlow(over, BTN)
+  b.recGlow = MakeGlow(over, 18)            -- Leuchten um das kleine Empfehlungs-Symbol
+  b.recGlow:ClearAllPoints()
+  b.recGlow:SetPoint("CENTER", b.rec, "CENTER", 0, 0)
 
   b.timer = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
   b.timer:SetPoint("TOP", b, "BOTTOM", 0, -1)
@@ -953,6 +989,7 @@ local function BuildFlyout(main, ids)
       fb.icon:SetAllPoints()
       fb.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
       fb:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+      fb.glow = MakeGlow(fb, 32)   -- leuchtet, wenn dieses Totem empfohlen ist
       SecureHandlerSetFrameRef(fb, "main", main)
       SecureHandlerWrapScript(fb, "OnClick", frame, FLYOUT_SNIPPET)
       fb:SetScript("OnEnter", function(self)
@@ -1067,11 +1104,15 @@ callBtn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine(self:GetAttribute("spell1") or "Call of the Elements", 1, 1, 1)
   GameTooltip:AddLine(L["Drops all 4 totems at once."], 0.8, 0.8, 0.8, true)
-  if TotemWatchDB.syncCall then
-    GameTooltip:AddLine(L["Uses the totems on your TotemWatch buttons (synced out of combat):"], 0.6, 1, 0.6, true)
-    for s = 1, 4 do
-      local key = ns.multicastKeys and ns.multicastKeys[s]
-      if key then GameTooltip:AddLine("  " .. TotemName(key), 0.6, 1, 0.6) end
+  GameTooltip:AddLine(L["Totems on its bar:"], 1, 0.82, 0)
+  for s = 1, 4 do
+    local key = ns.multicastKeys and ns.multicastKeys[s]
+    local assigned = slots[s]:GetAttribute("spell1")
+    local want = assigned and KeyFromName(assigned)
+    if key then
+      local ok = (key == want)
+      GameTooltip:AddLine("  " .. TotemName(key) .. (ok and "" or ("  |cffff6060(" .. L["TotemWatch: "] .. (want and TotemName(want) or "-") .. ")|r")),
+        ok and 0.6 or 1, ok and 1 or 0.6, ok and 0.6 or 0.4)
     end
   end
   GameTooltip:Show()
@@ -1098,15 +1139,73 @@ end
 SimpleTooltip(weaponBtn, L["Weapon"], L["Note: oils/stones also count as an enchant."])
 SimpleTooltip(shieldBtn, L["Shield"])
 
+-- Meldungen in der Bildschirmmitte (groß, mit Umrandung, blenden aus)
+local msgFrame = CreateFrame("MessageFrame", "TotemWatchMessages", UIParent)
+msgFrame:SetSize(800, 120)
+msgFrame:SetPoint("TOP", UIParent, "TOP", 0, -170)
+msgFrame:SetFrameStrata("HIGH")
+pcall(msgFrame.SetInsertMode, msgFrame, "TOP")
+msgFrame:SetFading(true)
+msgFrame:SetFadeDuration(1.5)
+msgFrame:SetTimeVisible(3)
+msgFrame:SetJustifyH("CENTER")
+function ns.ApplyMessageFont()
+  local size = (TotemWatchDB and TotemWatchDB.messageSize) or 24
+  msgFrame:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+  msgFrame:SetShadowOffset(2, -2)
+  msgFrame:SetShadowColor(0, 0, 0, 1)
+end
+ns.ApplyMessageFont()
+
+local lastMessage = {}
+-- Zeigt eine Meldung, aber dieselbe höchstens alle 8 Sekunden
+function ns.ShowMessage(text, r, g, b)
+  if not text or text == "" or not TotemWatchDB or not TotemWatchDB.messages then return end
+  local now = GetTime()
+  if lastMessage[text] and now - lastMessage[text] < 8 then return end
+  lastMessage[text] = now
+  msgFrame:AddMessage(text, r or 1, g or 0.82, b or 0)
+end
+
+-- Hinweise unter der Leiste: dunkler Hintergrund + Schrift mit Umrandung (im Kampf gut lesbar)
 local MAX_HINTS = 8
+local HINT_WIDTH = 460
+local hintBg = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+hintBg:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, -2)
+hintBg:SetSize(HINT_WIDTH + 12, 20)
+if hintBg.SetBackdrop then
+  hintBg:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 16, edgeSize = 10,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+  })
+  hintBg:SetBackdropColor(0, 0, 0, 0.8)
+  hintBg:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.9)
+end
+hintBg:SetAlpha(0)
+
 local hints = {}
 for i = 1, MAX_HINTS do
-  local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  local fs = hintBg:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   fs:SetJustifyH("LEFT")
-  fs:SetWidth(9 + 7 * GAP + 120)
-  fs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 4, -2 - (i - 1) * 13)
+  fs:SetWidth(HINT_WIDTH)
   hints[i] = fs
 end
+
+local hintLineHeight = 16
+function ns.ApplyHintFont()
+  local size = (TotemWatchDB and TotemWatchDB.hintSize) or 13
+  hintLineHeight = size + 4
+  for i, fs in ipairs(hints) do
+    fs:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+    fs:SetShadowOffset(1, -1)
+    fs:SetShadowColor(0, 0, 0, 1)
+    fs:ClearAllPoints()
+    fs:SetPoint("TOPLEFT", hintBg, "TOPLEFT", 6, -5 - (i - 1) * hintLineHeight)
+  end
+end
+ns.ApplyHintFont()
 
 local STATUS_COLOR = {
   OK        = { 0.1, 0.9, 0.1 },
@@ -1185,27 +1284,61 @@ local function RebuildCastAll()
 end
 
 -- Totem-Leiste von "Call of the Elements" mit den TotemWatch-Knöpfen abgleichen (nur außerhalb des Kampfes)
+-- Welches Totem liegt auf einer Aktion der Leiste? (nil = leer/unbekannt)
+local function ActionTotemKey(action)
+  if not GetActionInfo then return nil end
+  local ok, kind, id = pcall(GetActionInfo, action)
+  if not ok or kind ~= "spell" or not id or IsSecret(id) then return nil end
+  local nm = SpellName(id)
+  return nm and KeyFromName(nm)
+end
+ns.ActionTotemKey = ActionTotemKey
+
 function ns.SyncMultiCast()
   ns.multicastKeys = ns.multicastKeys or {}
+  ns.multicastMismatch = nil
   if InCombatLockdown() or not callBtn:IsShown() then return end
-  local order = TOTEM_PRIORITIES or { 2, 1, 3, 4 }   -- Reihenfolge der Leiste: Erde, Feuer, Wasser, Luft
-  for i, slot in ipairs(order) do
-    local assigned = slots[slot] and slots[slot]:GetAttribute("spell1")
-    local key = assigned and KeyFromName(assigned)
-    local synced = false
-    if key and TotemWatchDB.syncCall and SetMultiCastSpell then
-      local id = SpellIdFromName(assigned)
-      if id and pcall(SetMultiCastSpell, ns.MULTICAST_BASE + i, id) then
-        ns.multicastKeys[slot] = key
-        synced = true
+
+  -- Welche Aktion gehört zu welchem Element? Zuerst aus dem, was schon auf der Leiste liegt,
+  -- für leere Plätze die Standard-Reihenfolge (Erde, Feuer, Wasser, Luft).
+  local slotOf, used = {}, {}
+  for i = 1, 4 do
+    local k = ActionTotemKey(ns.MULTICAST_BASE + i)
+    if k then slotOf[i] = ns.TOTEMS[k].slot; used[slotOf[i]] = true end
+  end
+  local order = TOTEM_PRIORITIES or { 2, 1, 3, 4 }
+  for i = 1, 4 do
+    if not slotOf[i] then
+      for _, s in ipairs(order) do
+        if not used[s] then slotOf[i] = s; used[s] = true; break end
       end
     end
-    if not synced and GetActionInfo then
-      -- nicht abgeglichen: auslesen, was im Spiel auf der Leiste liegt
-      local ok, kind, id = pcall(GetActionInfo, ns.MULTICAST_BASE + i)
-      local nm = ok and kind == "spell" and id and SpellName(id)
-      ns.multicastKeys[slot] = nm and KeyFromName(nm) or nil
+  end
+
+  local failed, mismatch = 0, {}
+  for i = 1, 4 do
+    local action, slot = ns.MULTICAST_BASE + i, slotOf[i]
+    local assigned = slot and slots[slot]:GetAttribute("spell1")
+    local want = assigned and KeyFromName(assigned)
+    -- 1) setzen (wenn gewünscht und möglich)
+    if want and TotemWatchDB.syncCall and SetMultiCastSpell and ActionTotemKey(action) ~= want then
+      local id = SpellIdFromName(assigned)
+      if id then pcall(SetMultiCastSpell, action, id) end
     end
+    -- 2) Kontrolle: was liegt jetzt wirklich auf der Leiste?
+    local have = ActionTotemKey(action)
+    if slot then ns.multicastKeys[slot] = have end
+    if want and have ~= want then
+      failed = failed + 1
+      mismatch[#mismatch + 1] = { slot = slot, have = have, want = want }
+    end
+  end
+  ns.multicastMismatch = (#mismatch > 0) and mismatch or nil
+  ns.syncResult = (failed == 0) and "ok" or (SetMultiCastSpell and "set, but not applied" or "SetMultiCastSpell missing")
+
+  if failed > 0 and TotemWatchDB.syncCall and not ns.syncWarned then
+    ns.syncWarned = true
+    print("|cff0070deTotemWatch|r: " .. L["Could not update the Call of the Elements bar automatically. Please set the totems on the bar yourself – TotemWatch shows which ones differ. (/tw bar for details)"])
   end
 end
 
@@ -1360,6 +1493,33 @@ local function Refresh()
       SetBorder(b, "COVERED", false)
     else
       SetBorder(b, status == "MISSING" and "NONE" or "OK", false)
+    end
+
+    -- Leuchten: Empfohlenes Totem muss gestellt werden
+    local needAction = key and (status == "MISSING" or status == "WRONG" or status == "DUPLICATE")
+    local glowOn = TotemWatchDB.glow
+    -- Knopf selbst leuchtet, wenn ein Klick genau das empfohlene Totem stellt
+    SetGlow(b.glow, glowOn and needAction and key == assignedKey)
+    -- Meldung in der Bildschirmmitte, sobald im Kampf ein neues Problem an diesem Slot auftaucht
+    if needAction and state.inCombat then
+      local msgKey = status .. ":" .. key
+      if state.slotMsg[s] ~= msgKey then
+        state.slotMsg[s] = msgKey
+        local what = (status == "MISSING") and L["missing"] or (status == "DUPLICATE") and L["duplicate, better"] or L["better"]
+        local c = STATUS_COLOR[status]
+        ns.ShowMessage(format("%s: %s – %s", ns.SLOT_NAMES[s], TotemName(key), what), c[1], c[2], c[3])
+      end
+    elseif not needAction then
+      state.slotMsg[s] = nil
+    end
+    -- Sonst leuchtet das kleine Empfehlungs-Symbol (Rechtsklick -> auswählen)
+    SetGlow(b.recGlow, glowOn and key and key ~= assignedKey)
+    -- Im Auswahlmenü leuchtet das empfohlene Totem
+    if b.flyout and b.flyout.buttons then
+      local recId = key and ns.TOTEMS[key].id
+      for _, fb in ipairs(b.flyout.buttons) do
+        SetGlow(fb.glow, glowOn and recId ~= nil and fb.spellId == recId and fb:IsShown())
+      end
     end
 
     UpdateCooldown(b, assigned)
@@ -1522,15 +1682,31 @@ local function Refresh()
       end
     end
   end
+  -- Leiste von Call of the Elements weicht von den TotemWatch-Knöpfen ab (außerhalb des Kampfes)
+  if ns.multicastMismatch and callBtn:IsShown() and not InCombatLockdown() then
+    for _, m in ipairs(ns.multicastMismatch) do
+      hint(format(L["|cffffd100Call of the Elements bar:|r %s instead of %s – change it on the totem bar"],
+        m.have and TotemName(m.have) or L["empty"], TotemName(m.want)))
+    end
+  end
+  if callBtn:IsShown() then
+    SetBorder(callBtn, ns.multicastMismatch and "WRONG" or "COVERED", false)
+  end
+
   -- Knopf Totemic Call nur hervorheben, wenn er sich lohnt
   if moveBtn:IsShown() then
     local worth = adv and adv.useCall
-    SetBorder(moveBtn, worth and "EXPIRING" or "COVERED", worth and true or false)
+    SetBorder(moveBtn, worth and "EXPIRING" or "COVERED", false)
+    SetGlow(moveBtn.glow, TotemWatchDB.glow and worth)
   end
 
   if TotemWatchDB.useBoss and state.boss and state.boss.note then hint(L["|cffaaaaaaNote: "] .. state.boss.note .. "|r") end
   if not TotemWatchDB.showHints then hintLine = 1 end
   for i = hintLine, MAX_HINTS do hints[i]:SetText("") end
+  -- Hintergrund an die Zeilenzahl anpassen (unsichtbar ohne Hinweise)
+  local shownLines = hintLine - 1
+  hintBg:SetHeight(10 + math.max(1, shownLines) * hintLineHeight)
+  hintBg:SetAlpha(shownLines > 0 and 1 or 0)
 
   if not alertText and state.destroyMsg and now < state.destroyUntil then
     alertText = state.destroyMsg
@@ -1542,7 +1718,11 @@ local function Refresh()
     alert:SetTextColor(1, 0.2, 0.2)
   end
   if alertText then
-    if alert:GetText() ~= alertText then PlayAlert() end
+    if alert:GetText() ~= alertText then
+      PlayAlert()
+      local r, g, b = alert:GetTextColor()
+      ns.ShowMessage(alertText, r, g, b)   -- zusätzlich groß in der Bildschirmmitte
+    end
     alert:SetText(alertText)
   else
     alert:SetText("")
@@ -1724,6 +1904,8 @@ frame:SetScript("OnUpdate", function(_, elapsed)
     pcall(ScanRange)   -- pcall: falls der Client Aura-Daten im Kampf sperrt
     if not ns.combatLogAllowed then pcall(ScanOtherBuffs) end
     pcall(ScanDistance)
+    -- Leiste von Call of the Elements regelmäßig prüfen (du kannst sie auch selbst umstellen)
+    if not InCombatLockdown() and ns.SyncMultiCast then pcall(ns.SyncMultiCast) end
     UpdateVisibility()
   end
   if elapsedAcc > 0.2 then
@@ -1896,6 +2078,8 @@ ev:SetScript("OnEvent", function(_, event, ...)
     SafeCall(L["group"], ScanGroup)
     SafeCall("Bossmods", HookBossMods)
     SafeCall("Position", ApplyPosition)
+    SafeCall("Fonts", ns.ApplyHintFont)       -- gespeicherte Schriftgrößen anwenden
+    SafeCall("Fonts", ns.ApplyMessageFont)
     SafeCall(L["Visibility"], ApplyVisibilityDriver)
     SafeCall(L["Buttons"], SetupSecure)
     for s = 1, 4 do SafeCall("Totems", CheckDestroyed, s) end
@@ -1917,6 +2101,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
     state.fearUntil, state.poison, state.disease = 0, 0, 0
     if not IsEncounterInProgress or not IsEncounterInProgress() then ClearBoss() end
     wipe(state.lastRec)   -- Empfehlungen neu auf die Knöpfe legen
+    wipe(state.slotMsg)   -- im nächsten Kampf wieder melden
     if state.pendingSecure then ApplyPosition(); SetupSecure(); ApplyVisibilityDriver() end
     UpdateVisibility()
   elseif event == "GROUP_ROSTER_UPDATE" then
@@ -2074,6 +2259,38 @@ SlashCmdList.TOTEMWATCH = function(msg)
     else
       print(L["  No errors so far."])
     end
+  elseif cmd == "bar" then
+    -- Diagnose der Totem-Leiste von Call of the Elements
+    p("Call of the Elements – " .. L["totem bar diagnostics"])
+    print("  Call of the Elements: " .. tostring(ns.callName or "-"))
+    print("  SetMultiCastSpell: " .. (SetMultiCastSpell and L["yes"] or L["no"]) ..
+          ", GetMultiCastTotemSpells: " .. (GetMultiCastTotemSpells and L["yes"] or L["no"]) ..
+          ", TOTEM_PRIORITIES: " .. (TOTEM_PRIORITIES and table.concat(TOTEM_PRIORITIES, ",") or "-"))
+    print("  " .. L["Last sync: "] .. tostring(ns.syncResult or "-"))
+    -- Alle Aktions-Plätze mit Totem-Zaubern auflisten (zeigt, wo die Leiste wirklich liegt)
+    local found = 0
+    for a = 1, 200 do
+      local ok, kind, id = pcall(GetActionInfo, a)
+      if ok and kind == "spell" and id and not IsSecret(id) then
+        local nm = SpellName(id)
+        local k = nm and KeyFromName(nm)
+        if k then
+          found = found + 1
+          print(format("  " .. L["action %d: %s (spell ID %d)"], a, nm, id))
+        end
+      end
+    end
+    if found == 0 then print("  " .. L["No totems found on any action slot."]) end
+    if GetMultiCastTotemSpells then
+      for s = 1, 4 do
+        local ok, list = pcall(function() return { GetMultiCastTotemSpells(s) } end)
+        if ok and list then
+          local names = {}
+          for _, id in ipairs(list) do names[#names + 1] = tostring(SpellName(id) or id) end
+          print(format("  GetMultiCastTotemSpells(%d): %s", s, table.concat(names, ", ")))
+        end
+      end
+    end
   elseif cmd == "check" then
     if InCombatLockdown() then p(L["The pull check only works out of combat."]) return end
     local old = TotemWatchDB.prePull
@@ -2192,6 +2409,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw reset – reset position"])
     print(L["  /tw check – show the pull check now (otherwise automatic on pull timer / ready check)"])
     print(L["  /tw probe – test in combat which data the game allows"])
+    print(L["  /tw bar – Call of the Elements bar diagnostics"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
     print(L["  Keys: Esc → Key Bindings → AddOns → TotemWatch"])

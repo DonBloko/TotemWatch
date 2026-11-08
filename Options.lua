@@ -101,12 +101,13 @@ local function AddSlider(parent, x, y, label, minV, maxV, step, getter, setter)
   return s
 end
 
-local scaleSlider, warnSlider
+local scaleSlider, warnSlider, hintSlider, msgSlider
 
 local function RefreshPanel()
   for _, c in ipairs(checks) do c.cb:SetChecked(TotemWatchDB[c.key] and true or false) end
-  if scaleSlider then scaleSlider.Refresh() end
-  if warnSlider then warnSlider.Refresh() end
+  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider }) do
+    if s then s.Refresh() end
+  end
 end
 
 function ns.CreateOptions()
@@ -136,6 +137,10 @@ function ns.CreateOptions()
     L["Detect totems of other shamans in your group and avoid duplicates."])
   AddCheck(panel, LX, y - 98, "showHints", L["Show hint texts"],
     L["Explanations below the bar: what is missing and why."])
+  AddCheck(panel, LX, y - 124, "glow", L["Glow recommended totems"],
+    L["The button (or the totem in the selection) that you should press glows."])
+  AddCheck(panel, LX, y - 150, "messages", L["Messages in the middle of the screen"],
+    L["Large messages for missing totems, fear and destroyed totems. Each message is shown only once."])
 
   AddHeader(panel, RX, y, L["Warnings"])
   AddCheck(panel, RX, y - 20, "sound", L["Warning sound"],
@@ -195,8 +200,20 @@ function ns.CreateOptions()
     function() return TotemWatchDB.warnBefore or 0 end,
     function(v) TotemWatchDB.warnBefore = v end)
 
+  hintSlider = AddSlider(panel, RX, y - 180, L["Hint text size"], 9, 20, 1,
+    function() return TotemWatchDB.hintSize or 13 end,
+    function(v) TotemWatchDB.hintSize = v; if ns.ApplyHintFont then ns.ApplyHintFont() end end)
+
+  msgSlider = AddSlider(panel, RX, y - 225, L["Message size"], 14, 40, 1,
+    function() return TotemWatchDB.messageSize or 24 end,
+    function(v)
+      TotemWatchDB.messageSize = v
+      if ns.ApplyMessageFont then ns.ApplyMessageFont() end
+      if ns.ShowMessage then ns.ShowMessage(L["TotemWatch test message"] .. " " .. v, 1, 0.82, 0) end
+    end)
+
   local help = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", LX, y - 280)
+  help:SetPoint("TOPLEFT", LX, y - 300)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..
