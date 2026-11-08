@@ -134,6 +134,11 @@ end
 
 local function TotemName(key) return SpellName(ns.TOTEMS[key].id) or key end
 
+-- Gesperrte ("geheime") Werte erkennen: neuere Clients sperren manche Daten im Kampf
+local function IsSecret(v)
+  return issecretvalue ~= nil and issecretvalue(v) or false
+end
+
 -- Gelernten Zauber finden: erst über IDs, dann über Namen im Zauberbuch. Liefert den Namen.
 local function FindKnownSpell(ids, names)
   for _, id in ipairs(ids) do
@@ -143,6 +148,29 @@ local function FindKnownSpell(ids, names)
     if knownNames[n] then return n end
   end
 end
+
+-- Manakosten eines Zaubers (höchster Rang). Werden zwischengespeichert, falls der
+-- Client sie im Kampf sperrt.
+ns.costCache = {}
+local function ManaCost(name)
+  if not name then return nil end
+  local ok, value = pcall(function()
+    local costs
+    if C_Spell and C_Spell.GetSpellPowerCost then costs = C_Spell.GetSpellPowerCost(name)
+    elseif GetSpellPowerCost then costs = GetSpellPowerCost(name) end
+    if type(costs) ~= "table" then return nil end
+    for _, c in ipairs(costs) do
+      local t, v, n = c.type, c.cost, c.name
+      if not IsSecret(t) and not IsSecret(v) and not IsSecret(n)
+         and (t == 0 or n == "MANA") and type(v) == "number" then
+        return v
+      end
+    end
+  end)
+  if ok and value then ns.costCache[name] = value; return value end
+  return ns.costCache[name]
+end
+ns.ManaCost = ManaCost
 
 -- Zauber-ID des höchsten gelernten Rangs zu einem Namen (für die Totem-Leiste)
 local function SpellIdFromName(name)
@@ -170,10 +198,7 @@ local function KeyFromName(n)
   return n and nameToKey[n]
 end
 
--- Gesperrte ("geheime") Werte erkennen: neuere Clients sperren manche Daten im Kampf
-local function IsSecret(v)
-  return issecretvalue ~= nil and issecretvalue(v) or false
-end
+-- (IsSecret steht weiter oben, bei den Zauber-Helfern)
 
 -- Eigene Position in Metern (nil, wenn der Client sie sperrt, z.B. in Instanzen)
 local function PlayerPos()
@@ -567,6 +592,49 @@ local function ScanDistance()
       end
     end
   end
+  ns.EvaluateTotemicCall()
+end
+
+-- Lohnt sich Totemic Call oder ist Neustellen besser?
+-- Neustellen wirft die bezahlte Restzeit weg: Wert = Kosten des Totems * (Restzeit / Laufzeit).
+-- Totemic Call lohnt sich, wenn er weniger kostet als dieser verlorene Wert.
+function ns.EvaluateTotemicCall()
+  state.moveAdvice = nil
+  if not ns.moveName then return end
+  local now = GetTime()
+  local callCost = ManaCost(ns.moveName)
+  local redrop, lost, fracSum, count, names = 0, 0, 0, 0, {}
+  local costsKnown = callCost ~= nil
+  for s = 1, 4 do
+    local f, t = state.far[s], tracked[s]
+    if f and t then
+      local have, _, st, du = TotemData(s)
+      if have and du and du > 0 then
+        local frac = math.max(0, math.min(1, (st + du - now) / du))
+        local c = ManaCost(TotemName(t.key))
+        if c then
+          redrop = redrop + c
+          lost = lost + c * frac
+        else
+          costsKnown = false
+        end
+        fracSum, count = fracSum + frac, count + 1
+        names[#names + 1] = TotemName(t.key)
+      end
+    end
+  end
+  if count == 0 then return end
+  local useCall
+  if costsKnown then
+    useCall = callCost < lost
+  else
+    useCall = (fracSum / count) > 0.30   -- Ersatzregel ohne Manakosten
+  end
+  state.moveAdvice = {
+    useCall = useCall, costsKnown = costsKnown, callCost = callCost,
+    redrop = floor(redrop + 0.5), lost = floor(lost + 0.5),
+    avgPct = floor(fracSum / count * 100 + 0.5), names = table.concat(names, ", "),
+  }
 end
 
 -- Totem zerstört? (Slot wird leer, obwohl die Laufzeit noch nicht um ist)
@@ -982,6 +1050,16 @@ moveBtn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine(self:GetAttribute("spell1") or "Totemic Call", 1, 1, 1)
   GameTooltip:AddLine(L["Moves your totems to your position. They keep their remaining time."], 0.8, 0.8, 0.8, true)
+  local cost = ManaCost(self:GetAttribute("spell1"))
+  if cost then GameTooltip:AddLine(format(L["Cost: %d mana"], cost), 0.6, 0.8, 1) end
+  local adv = state.moveAdvice
+  if adv then
+    if adv.useCall then
+      GameTooltip:AddLine(L["Worth it now – cheaper than re-dropping."], 0.4, 1, 0.4, true)
+    else
+      GameTooltip:AddLine(L["Not worth it now – re-drop the totems instead."], 1, 0.8, 0.2, true)
+    end
+  end
   GameTooltip:Show()
 end)
 moveBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1164,6 +1242,11 @@ local function SetupSecure()
   ns.callName = FindKnownSpell(ns.CALL_IDS, ns.CALL_NAMES)
   ns.moveName = FindKnownSpell({}, ns.MOVE_NAMES)
   ns.recallName = FindKnownSpell({}, ns.RECALL_NAMES)
+  -- Manakosten jetzt einlesen (außerhalb des Kampfes lesbar), für den Vergleich im Kampf
+  for key in pairs(ns.TOTEMS) do
+    if IsKnown(key) then ManaCost(TotemName(key)) end
+  end
+  ManaCost(ns.moveName)
   for _, pair in ipairs({ { callBtn, ns.callName, TotemWatchDB.showCall },
                           { moveBtn, ns.moveName, TotemWatchDB.showMove },
                           { recallBtn, ns.recallName, TotemWatchDB.showRecall } }) do
@@ -1285,9 +1368,8 @@ local function Refresh()
     -- Abstand zum eigenen Totem
     local far = state.far[s]
     if far then
-      local tip = (ns.moveName and moveBtn:IsShown()) and format(L[" – use %s"], ns.moveName) or ""
       hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d m from %s (range %d m)"],
-        col, ns.SLOT_NAMES[s], far.dist, far.name, far.range) .. tip)
+        col, ns.SLOT_NAMES[s], far.dist, far.name, far.range))
     end
     local rng = state.range[s]
     if rng then
@@ -1421,10 +1503,29 @@ local function Refresh()
   for _, b in ipairs({ callBtn, moveBtn, recallBtn }) do
     if b:IsShown() then SafeCall("Totem spells", UpdateCooldown, b, b:GetAttribute("spell1")) end
   end
-  -- Totemic Call hervorheben, wenn du zu weit von deinen Totems weg bist
+  -- Zu weit weg: Totemic Call oder neu stellen? (Mana-Vergleich, siehe EvaluateTotemicCall)
+  local adv = state.moveAdvice
+  if adv then
+    if adv.useCall then
+      if adv.costsKnown then
+        hint(format(L["|cff40ff40Use %s:|r %d mana – re-dropping would cost %d mana and waste %d mana of remaining time"],
+          ns.moveName, adv.callCost, adv.redrop, adv.lost))
+      else
+        hint(format(L["|cff40ff40Use %s:|r about %d%% of the totems' time is left"], ns.moveName, adv.avgPct))
+      end
+    else
+      if adv.costsKnown then
+        hint(format(L["|cffffd100Re-drop %s:|r %s (%d mana) is not worth it – only %d mana of remaining time left"],
+          adv.names, ns.moveName, adv.callCost, adv.lost))
+      else
+        hint(format(L["|cffffd100Re-drop %s:|r only about %d%% of their time is left"], adv.names, adv.avgPct))
+      end
+    end
+  end
+  -- Knopf Totemic Call nur hervorheben, wenn er sich lohnt
   if moveBtn:IsShown() then
-    local anyFar = state.far[1] or state.far[2] or state.far[3] or state.far[4]
-    SetBorder(moveBtn, anyFar and "EXPIRING" or "COVERED", anyFar and true or false)
+    local worth = adv and adv.useCall
+    SetBorder(moveBtn, worth and "EXPIRING" or "COVERED", worth and true or false)
   end
 
   if TotemWatchDB.useBoss and state.boss and state.boss.note then hint(L["|cffaaaaaaNote: "] .. state.boss.note .. "|r") end

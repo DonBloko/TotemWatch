@@ -7,7 +7,7 @@
 - New English command names: `/tw other <totem>`, `/tw combatlog`, `/tw options` (the German ones still work).
 - **New buttons** (only shown if you know the spell):
   - **Call of the Elements** – drops all 4 totems at once; its totem bar is synced with your TotemWatch buttons out of combat.
-  - **Totemic Call** – moves your totems to you; TotemWatch keeps their timers and updates their position. The distance warning suggests it and the button lights up when you are out of range.
+  - **Totemic Call** – moves your totems to you; TotemWatch keeps their timers and updates their position. When you are out of range, TotemWatch compares mana: Totemic Call is only recommended if it costs less than the remaining time you would waste by re-dropping (totem cost × remaining share of its duration). Otherwise it tells you to re-drop.
   - **Totemic Recall** – removes your totems; no false "totem destroyed" warnings afterwards.
 - Key bindings for the new buttons; `/tw probe` shows which of these spells your client knows.
 
