@@ -1245,6 +1245,52 @@ function ns.ApplyMessageFont()
 end
 ns.ApplyMessageFont()
 
+-- Meldungsbereich verschiebbar (nicht geschützt -> geht auch im Kampf)
+msgFrame:SetMovable(true)
+msgFrame:SetClampedToScreen(true)
+msgFrame:EnableMouse(false)
+msgFrame.anchorBg = msgFrame:CreateTexture(nil, "BACKGROUND")
+msgFrame.anchorBg:SetAllPoints()
+msgFrame.anchorBg:SetColorTexture(0.1, 0.4, 0.9, 0.35)
+msgFrame.anchorBg:Hide()
+msgFrame.anchorText = msgFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+msgFrame.anchorText:SetPoint("BOTTOM", msgFrame, "BOTTOM", 0, 6)
+msgFrame.anchorText:SetText(L["TotemWatch messages – drag to move, right-click to lock"])
+msgFrame.anchorText:Hide()
+
+function ns.ApplyMessagePosition()
+  local db = TotemWatchDB or {}
+  msgFrame:ClearAllPoints()
+  msgFrame:SetPoint(db.msgPoint or "TOP", UIParent, db.msgPoint or "TOP", db.msgX or 0, db.msgY or -170)
+end
+
+function ns.ToggleMessageMove(on)
+  if on == nil then on = not ns.msgMoving end
+  ns.msgMoving = on
+  msgFrame:EnableMouse(on)
+  if on then
+    msgFrame.anchorBg:Show(); msgFrame.anchorText:Show()
+    msgFrame:AddMessage(L["Example: Earth: Tremor Totem – missing"], 1, 0.1, 0.1)
+  else
+    msgFrame.anchorBg:Hide(); msgFrame.anchorText:Hide()
+  end
+  return on
+end
+
+msgFrame:SetScript("OnMouseDown", function(self, button)
+  if button == "LeftButton" then
+    self:StartMoving()
+  elseif button == "RightButton" then
+    ns.ToggleMessageMove(false)
+    print("|cff0070deTotemWatch|r: " .. L["Message position saved."])
+  end
+end)
+msgFrame:SetScript("OnMouseUp", function(self)
+  self:StopMovingOrSizing()
+  local p, _, _, x, y = self:GetPoint()
+  if TotemWatchDB then TotemWatchDB.msgPoint, TotemWatchDB.msgX, TotemWatchDB.msgY = p, x, y end
+end)
+
 local lastMessage = {}
 -- Zeigt eine Meldung, aber dieselbe höchstens alle 8 Sekunden
 function ns.ShowMessage(text, r, g, b)
@@ -2412,6 +2458,9 @@ end
 ns.ResetPosition = function()
   TotemWatchDB.point, TotemWatchDB.x, TotemWatchDB.y, TotemWatchDB.scale = "CENTER", 0, -180, 1
   ApplyPosition()
+  -- Meldungen zurück in die Bildschirmmitte
+  TotemWatchDB.msgPoint, TotemWatchDB.msgX, TotemWatchDB.msgY = nil, nil, nil
+  if ns.ApplyMessagePosition then ns.ApplyMessagePosition() end
 end
 
 ev:SetScript("OnEvent", function(_, event, ...)
@@ -2438,6 +2487,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
     end
     SafeCall("Fonts", ns.ApplyHintFont)       -- gespeicherte Schriftgrößen anwenden
     SafeCall("Fonts", ns.ApplyMessageFont)
+    SafeCall("Messages", ns.ApplyMessagePosition)   -- gespeicherte Position der Meldungen
     SafeCall(L["Visibility"], ApplyVisibilityDriver)
     SafeCall(L["Buttons"], SetupSecure)
     for s = 1, 4 do SafeCall("Totems", CheckDestroyed, s) end
@@ -2624,6 +2674,9 @@ SlashCmdList.TOTEMWATCH = function(msg)
     else
       print(L["  No errors so far."])
     end
+  elseif cmd == "msg" or cmd == "messages" then
+    local on = ns.ToggleMessageMove()
+    p(on and L["Messages unlocked – drag them, right-click or /tw msg to lock."] or L["Message position saved."])
   elseif cmd == "skin" or cmd == "design" then
     if arg ~= "" and ns.SKINS[arg] then
       if InCombatLockdown() then p(L["Not possible in combat."]) return end
@@ -2808,6 +2861,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw probe – test in combat which data the game allows"])
     print(L["  /tw bar – Call of the Elements bar diagnostics"])
     print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
+    print(L["  /tw msg – move the messages in the middle of the screen"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
     print(L["  Keys: Esc → Key Bindings → AddOns → TotemWatch"])

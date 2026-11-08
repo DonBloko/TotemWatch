@@ -236,8 +236,15 @@ function ns.CreateOptions()
       if ns.ShowMessage then ns.ShowMessage(L["TotemWatch test message"] .. " " .. v, 1, 0.82, 0) end
     end)
 
+  -- Meldungen in der Bildschirmmitte verschieben (blau hinterlegt, ziehen, Rechtsklick = fixieren)
+  local moveMsg
+  moveMsg = AddButton(panel, RX, y - 268, L["Move messages"], 180, function()
+    local on = ns.ToggleMessageMove and ns.ToggleMessageMove()
+    moveMsg:SetText(on and L["Lock messages"] or L["Move messages"])
+  end)
+
   local help = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", LX, y - 275)
+  help:SetPoint("TOPLEFT", LX, y - 305)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..

@@ -7,7 +7,8 @@
   - **Minimal** – flat and compact; status as a colored strip, time inside the icon
   - **Pillars** – round icons, element color strip on top, time bar below
   - **Bars** – one row per element with totem name, status and a time bar (like boss mod bars)
-- Hint texts match the chosen design.
+- Hint texts match the chosen design and no longer overlap when a hint wraps.
+- The messages in the middle of the screen can be moved (options menu → Move messages, or `/tw msg`).
 
 ## 1.1.0
 
