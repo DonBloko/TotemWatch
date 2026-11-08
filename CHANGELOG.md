@@ -15,7 +15,7 @@
 - **Messages in the middle of the screen** for missing totems, fear and destroyed totems – each only once (size adjustable, can be turned off).
 - **Glow:** the button you should press glows; in the selection menu the recommended totem glows.
 - **Totemic Call vs. Totemic Recall:** when you are out of range, the better choice glows and the other one is greyed out (mana comparison in the tooltip).
-- **Distance warning** now runs independently of the bar (twice per second) and shows a message in the middle of the screen when you leave the range of your totems. `/tw debug` shows the distance per totem.
+- **Distance warning** uses the range from the spell's own tooltip ("within 30 yards"), shown in yards, with 2 yards tolerance; it runs independently of the bar (twice per second) and shows a message in the middle of the screen when you leave the range of your totems. `/tw debug` shows the distance per totem.
 
 *Deutsch:* Englische Oberfläche – die Sprache richtet sich nach dem Spiel-Client (deutscher Client = Deutsch).
 

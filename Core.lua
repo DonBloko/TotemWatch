@@ -577,6 +577,35 @@ local function ScanOtherBuffs()
   end
 end
 
+-- Reichweite eines Totems in Yards: aus der Zauberbeschreibung im Spiel ("within 30 yards"),
+-- sonst aus der Tabelle in Data.lua. false = nicht prüfen. Liefert range, quelle.
+ns.rangeCache = {}
+local RANGE_UNITS = { yard = true, yards = true, yd = true, meter = true, metern = true, metre = true, metres = true }
+local function TotemRange(key)
+  local fixed = ns.TOTEM_RANGE[key]
+  if fixed == false then return false, "not checked" end
+  if ns.rangeCache[key] then return ns.rangeCache[key], "spell" end
+  local name = TotemName(key)
+  local id = SpellIdFromName(name) or ns.TOTEMS[key].id
+  local ok, desc = pcall(function()
+    if C_Spell and C_Spell.GetSpellDescription then return C_Spell.GetSpellDescription(id) end
+    if GetSpellDescription then return GetSpellDescription(id) end
+  end)
+  if ok and type(desc) == "string" and not IsSecret(desc) and desc ~= "" then
+    for num, unit in desc:gmatch("(%d+)%s*%-?%s*(%a+)") do
+      if RANGE_UNITS[lower(unit)] then
+        local r = tonumber(num)
+        if r and r >= 5 and r <= 100 then
+          ns.rangeCache[key] = r       -- erst merken, wenn die Beschreibung geladen war
+          return r, "spell"
+        end
+      end
+    end
+  end
+  return fixed or ns.TOTEM_RANGE_DEFAULT, "table"
+end
+ns.TotemRange = TotemRange
+
 -- Abstand zu den eigenen Totems (Position beim Wirken gemerkt)
 -- Läuft über einen eigenen Takt (zweimal pro Sekunde), auch wenn die Leiste ausgeblendet ist.
 ns.distInfo = {}   -- für /tw debug: [slot] = Text
@@ -599,11 +628,12 @@ local function ScanDistance()
     elseif t.inst ~= pinst then
       ns.distInfo[s] = "other zone/instance"
     else
-      local range = ns.TOTEM_RANGE[t.key]
-      if range == nil then range = ns.TOTEM_RANGE_DEFAULT end
+      local range, source = TotemRange(t.key)
+      local tol = ns.TOTEM_RANGE_TOLERANCE or 0
       local dist = math.sqrt((px - t.x) ^ 2 + (py - t.y) ^ 2)
-      ns.distInfo[s] = format("%.0f m (range %s)", dist, range and tostring(range) or "not checked")
-      if range and dist > range then
+      ns.distInfo[s] = format("%.0f yd (range %s, from %s, +%d tolerance)", dist,
+        range and tostring(range) or "-", source, tol)
+      if range and dist > range + tol then
         state.far[s] = { dist = floor(dist + 0.5), range = range, name = TotemName(t.key) }
         maxDist = math.max(maxDist, dist)
       end
@@ -614,7 +644,7 @@ local function ScanDistance()
   -- Meldung in der Bildschirmmitte, sobald du aus der Reichweite läufst (einmal pro Mal)
   local isFar = maxDist > 0
   if isFar and not state.wasFar and ns.ShowMessage then
-    ns.ShowMessage(format(L["Out of range of your totems (%d m)"], floor(maxDist + 0.5)), 1, 0.6, 0.2)
+    ns.ShowMessage(format(L["Out of range of your totems (%d yd)"], floor(maxDist + 0.5)), 1, 0.6, 0.2)
   end
   state.wasFar = isFar
 end
@@ -1556,7 +1586,7 @@ local function Refresh()
     -- Abstand zum eigenen Totem
     local far = state.far[s]
     if far then
-      hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d m from %s (range %d m)"],
+      hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d yd from %s (range %d yd)"],
         col, ns.SLOT_NAMES[s], far.dist, far.name, far.range))
     end
     local rng = state.range[s]
@@ -1566,12 +1596,12 @@ local function Refresh()
       hint(format(L["|cff%s%s|r |cffff6060Range:|r %d out of range (%s)"], col, ns.SLOT_NAMES[s], rng.count, rng.names))
     else
       b.label:SetText("")
-      b.rangeInfo = far and format(L["You are %d m away (range %d m)"], far.dist, far.range) or nil
+      b.rangeInfo = far and format(L["You are %d yd away (range %d yd)"], far.dist, far.range) or nil
     end
 
     -- Zu weit weg: deutlich am Knopf zeigen (oranger, pulsierender Rahmen + große Meterzahl)
     if far then
-      b.farText:SetText(far.dist .. "m")
+      b.farText:SetText(far.dist .. L["yd"])
       b.farText:Show()
       SetBorder(b, "FAR", true)
       -- Leuchten, wenn Neustellen die Lösung ist (Totemic Call lohnt sich nicht oder fehlt)

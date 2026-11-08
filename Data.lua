@@ -91,9 +91,13 @@ ns.TOTEM_BUFFS = {
   TRANQUIL_AIR = 25909, WINDWALL = 15108,
 }
 
--- Wirkungsradius der Totems in Metern (für die Abstands-Warnung). Feuertotems ohne Eintrag
--- werden nicht geprüft (sie greifen Gegner an, dein Abstand ist egal). Bei Bedarf anpassen.
+-- Wirkungsradius der Totems in Yards (für die Abstands-Warnung).
+-- Vorrang hat die Reichweite aus der Zauberbeschreibung im Spiel ("within 30 yards");
+-- diese Tabelle ist nur der Ersatz, falls die Beschreibung keine Zahl liefert.
+-- false = nicht prüfen (Feuertotems greifen Gegner an, dein Abstand ist egal).
 ns.TOTEM_RANGE_DEFAULT = 20
+-- Toleranz in Yards: Totems erscheinen ein Stück neben dir, nicht genau auf deiner Position.
+ns.TOTEM_RANGE_TOLERANCE = 2
 ns.TOTEM_RANGE = {
   TREMOR = 30, SEARING = false, MAGMA = false, FIRE_NOVA = false, STONECLAW = false, EARTHBIND = false,
 }
