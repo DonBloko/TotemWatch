@@ -188,3 +188,39 @@ ns.BOSSES = {
   [1114] = { name = L["Kel'Thuzad"], fire = { T("FROST_RES", "Frostbolts / Frost Blast") } },
   [1120] = { name = L["Thaddius"],  air   = { T("NATURE_RES", "Chain Lightning / Polarity") } },
 }
+
+-- Designs (Skins) der Leiste. Auswahl im Menü oder mit /tw skin <name>.
+--   btn      Knopfgröße          gap      Abstand zwischen Knöpfen
+--   inset    Rahmenbreite um das Icon
+--   title    Titel "TotemWatch" oben anzeigen
+--   timer    Restzeit: "below" (unter dem Knopf), "inside" (im Icon), "none"
+--   strip    Status als Farbstreifen unten im Icon (statt farbigem Rahmen)
+--   round    runde Icons             elemStrip  Element-Farbleiste über dem Knopf
+--   bar      Zeitbalken: "below" (unter dem Knopf) oder "right" (Balken mit Name rechts)
+--   bg/edge  Hintergrund- und Rahmenfarbe der Leiste, edgeFile/edgeSize = Rahmenart
+local WHITE = "Interface\Buttons\WHITE8X8"
+local TOOLTIP_EDGE = "Interface\Tooltips\UI-Tooltip-Border"
+ns.SKIN_ORDER = { "classic", "minimal", "pillars", "bars" }
+ns.SKINS = {
+  classic = {
+    name = "Classic", btn = 40, gap = 6, inset = 2, title = true, timer = "below",
+    bg = { 0.106, 0.086, 0.067, 0.95 }, edge = { 0.72, 0.57, 0.25, 1 }, edgeFile = TOOLTIP_EDGE, edgeSize = 12,
+    hintBg = { 0.106, 0.086, 0.067, 0.92 }, hintEdge = { 0.72, 0.57, 0.25, 1 },
+  },
+  minimal = {
+    name = "Minimal", btn = 36, gap = 2, inset = 1, title = false, timer = "inside", strip = true,
+    bg = { 0, 0, 0, 0.85 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
+  },
+  pillars = {
+    name = "Pillars", btn = 34, gap = 12, inset = 2, title = false, timer = "below", round = true,
+    elemStrip = true, bar = "below",
+    bg = { 0.08, 0.10, 0.12, 0.92 }, edge = { 0.22, 0.26, 0.30, 1 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0.08, 0.10, 0.12, 0.90 }, hintEdge = { 0.22, 0.26, 0.30, 1 },
+  },
+  bars = {
+    name = "Bars", btn = 24, gap = 3, inset = 1, title = false, timer = "none", bar = "right", barWidth = 200,
+    bg = { 0, 0, 0, 0.55 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
+  },
+}

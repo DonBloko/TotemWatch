@@ -102,12 +102,21 @@ local function AddSlider(parent, x, y, label, minV, maxV, step, getter, setter)
 end
 
 local scaleSlider, warnSlider, hintSlider, msgSlider
+local skinButtons = {}
+
+-- Gewähltes Design im Menü hervorheben
+local function RefreshSkinButtons()
+  for key, btn in pairs(skinButtons) do
+    if TotemWatchDB.skin == key then btn:LockHighlight() else btn:UnlockHighlight() end
+  end
+end
 
 local function RefreshPanel()
   for _, c in ipairs(checks) do c.cb:SetChecked(TotemWatchDB[c.key] and true or false) end
   for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider }) do
     if s then s.Refresh() end
   end
+  RefreshSkinButtons()
 end
 
 function ns.CreateOptions()
@@ -125,7 +134,22 @@ function ns.CreateOptions()
   sub:SetText(L["Totem recommendations, warnings and the totem bar. Some changes only work out of combat."])
 
   local LX, RX = 16, 300   -- Spalten-Positionen (nicht L = Übersetzung!)
-  local y = -70
+
+  -- Design-Auswahl (oben, gut sichtbar)
+  AddHeader(panel, LX, -62, L["Design"])
+  for i, key in ipairs(ns.SKIN_ORDER) do
+    local b = AddButton(panel, LX + 60 + (i - 1) * 128, -58, L[ns.SKINS[key].name], 124, function()
+      OutOfCombat(function()
+        TotemWatchDB.skin = key
+        if ns.ApplySkin then ns.ApplySkin() end
+        if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end
+        RefreshSkinButtons()
+      end)
+    end)
+    skinButtons[key] = b
+  end
+
+  local y = -100
 
   AddHeader(panel, LX, y, L["Recommendations"])
   AddCheck(panel, LX, y - 20, "auto", L["Auto-assign buttons"],
@@ -156,7 +180,7 @@ function ns.CreateOptions()
   AddCheck(panel, RX, y - 150, "distanceWarn", L["Distance to your totems"],
     L["Warns when you are farther from your totems than their range."])
 
-  y = -260
+  y = -290
   AddHeader(panel, LX, y, L["Bar"])
   AddCheck(panel, LX, y - 20, "showAll", L["Cast-all button"], nil,
     function() ns.SetupSecure() end, true)
@@ -213,7 +237,7 @@ function ns.CreateOptions()
     end)
 
   local help = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", LX, y - 300)
+  help:SetPoint("TOPLEFT", LX, y - 275)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..

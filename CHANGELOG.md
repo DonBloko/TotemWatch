@@ -1,5 +1,14 @@
 # TotemWatch – Changelog
 
+## 1.2.0
+
+- **Four designs to choose from** (options menu → Design, or `/tw skin <name>`):
+  - **Classic** – Blizzard look with a gold frame and title
+  - **Minimal** – flat and compact; status as a colored strip, time inside the icon
+  - **Pillars** – round icons, element color strip on top, time bar below
+  - **Bars** – one row per element with totem name, status and a time bar (like boss mod bars)
+- Hint texts match the chosen design.
+
 ## 1.1.0
 
 - **English interface.** The language follows your game client: English by default, German on German clients.

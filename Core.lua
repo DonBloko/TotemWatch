@@ -26,6 +26,7 @@ local DEFAULTS = {
   messages = true,      -- Meldungen in der Bildschirmmitte
   hintSize = 13,        -- Schriftgröße der Hinweise
   messageSize = 24,     -- Schriftgröße der Meldungen
+  skin = "classic",     -- Design: classic, minimal, pillars, bars
 }
 
 ---------------------------------------------------------------------------
@@ -973,6 +974,33 @@ local function CreateCastButton(name, x)
   b.timer = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
   b.timer:SetPoint("TOP", b, "BOTTOM", 0, -1)
 
+  -- Bausteine für die Designs (Skins); welche sichtbar sind, entscheidet ApplySkin
+  b.strip = over:CreateTexture(nil, "OVERLAY", nil, 2)   -- Status-Farbstreifen (Minimal)
+  b.strip:SetHeight(3); b.strip:Hide()
+  b.elemStrip = b:CreateTexture(nil, "OVERLAY")          -- Element-Farbleiste (Pillars)
+  b.elemStrip:SetHeight(3); b.elemStrip:Hide()
+  b.timeBar = CreateFrame("StatusBar", nil, frame)        -- Zeitbalken (Pillars / Bars)
+  b.timeBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  b.timeBar:SetMinMaxValues(0, 1); b.timeBar:SetValue(0)
+  b.timeBar.bg = b.timeBar:CreateTexture(nil, "BACKGROUND")
+  b.timeBar.bg:SetAllPoints(); b.timeBar.bg:SetColorTexture(0.12, 0.12, 0.12, 0.9)
+  b.barName = b.timeBar:CreateFontString(nil, "OVERLAY")
+  b.barName:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")
+  b.barName:SetPoint("LEFT", 5, 0); b.barName:SetJustifyH("LEFT")
+  b.barTime = b.timeBar:CreateFontString(nil, "OVERLAY")
+  b.barTime:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")
+  b.barTime:SetPoint("RIGHT", -4, 0)
+  b.timeBar:Hide()
+  -- runde Maske (Pillars), falls der Client Masken kann
+  if b.CreateMaskTexture then
+    b.maskBorder = b:CreateMaskTexture()
+    b.maskBorder:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    b.maskBorder:SetAllPoints(b)
+    b.maskIcon = b:CreateMaskTexture()
+    b.maskIcon:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    b.maskIcon:SetAllPoints(b.icon)
+  end
+
   local ag = b.border:CreateAnimationGroup()
   ag:SetLooping("BOUNCE")
   local a = ag:CreateAnimation("Alpha")
@@ -1278,15 +1306,179 @@ local STATUS_COLOR = {
   NONE      = { 0.4, 0.4, 0.4 },
 }
 
+local function CurrentSkin()
+  return ns.SKINS[(TotemWatchDB and TotemWatchDB.skin) or "classic"] or ns.SKINS.classic
+end
+ns.CurrentSkin = CurrentSkin
+
 local function SetBorder(b, status, pulse)
   local c = STATUS_COLOR[status] or STATUS_COLOR.NONE
-  b.border:SetColorTexture(c[1], c[2], c[3], 1)
+  b.statusColor = c
+  local skin = CurrentSkin()
+  if skin.strip and b.slot then
+    -- Minimal: schwarzer Rahmen, Status als Farbstreifen
+    b.border:SetColorTexture(0, 0, 0, 1)
+    b.strip:SetColorTexture(c[1], c[2], c[3], 1)
+  else
+    b.border:SetColorTexture(c[1], c[2], c[3], 1)
+  end
+  local target = (skin.strip and b.slot) and b.strip or b.border
   if pulse then
     if not b.pulse:IsPlaying() then b.pulse:Play() end
   else
     if b.pulse:IsPlaying() then b.pulse:Stop() end
     b.border:SetAlpha(1)
   end
+  target:SetAlpha(1)
+end
+
+-- Hex-Farbe "ff7f3f" -> r, g, b
+local function HexColor(hex)
+  return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
+end
+
+-- Runde Maske an/aus (Pillars)
+local function SetRound(b, on)
+  if not b.maskBorder then return end
+  if on and not b.isRound then
+    pcall(b.border.AddMaskTexture, b.border, b.maskBorder)
+    pcall(b.icon.AddMaskTexture, b.icon, b.maskIcon)
+    b.isRound = true
+  elseif not on and b.isRound then
+    pcall(b.border.RemoveMaskTexture, b.border, b.maskBorder)
+    pcall(b.icon.RemoveMaskTexture, b.icon, b.maskIcon)
+    b.isRound = false
+  end
+end
+
+-- Design anwenden: Rahmen, Knopfgrößen, Anordnung, Restzeit, Balken, Hinweise.
+-- Nur außerhalb des Kampfes (die Knöpfe sind geschützt).
+function ns.ApplySkin()
+  if InCombatLockdown() then state.pendingSecure = true; return end
+  local S = CurrentSkin()
+  local size, gap, inset = S.btn, S.gap, S.inset
+  local pad = 6
+
+  -- Leiste
+  if frame.SetBackdrop then
+    local edgeSize = S.edgeSize or 12
+    local ins = (edgeSize >= 8) and 3 or edgeSize
+    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = S.edgeFile, tile = false,
+      edgeSize = edgeSize, insets = { left = ins, right = ins, top = ins, bottom = ins } })
+    frame:SetBackdropColor(unpack(S.bg))
+    frame:SetBackdropBorderColor(unpack(S.edge))
+  end
+  if S.title then
+    title:Show()
+    if not pcall(title.SetFont, title, "Fonts\\MORPHEUS.TTF", 13, "") then title:SetFontObject("GameFontNormal") end
+    title:SetText("TotemWatch")
+    title:SetTextColor(0.91, 0.77, 0.42)
+  else
+    title:Hide()
+  end
+  local top = S.title and 22 or 8                 -- oben: Titel bzw. schmaler Streifen zum Ziehen
+  if S.elemStrip then top = top + 6 end
+
+  -- Totem-Knöpfe
+  for s = 1, 4 do
+    local b = slots[s]
+    b:SetSize(size, size)
+    b.icon:ClearAllPoints()
+    b.icon:SetPoint("TOPLEFT", inset, -inset); b.icon:SetPoint("BOTTOMRIGHT", -inset, inset)
+    b.glow:SetSize(size * 1.85, size * 1.85)
+    SetRound(b, S.round)
+    -- Restzeit
+    b.timer:ClearAllPoints()
+    if S.timer == "inside" then
+      b.timer:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 4); b.timer:Show()
+    elseif S.timer == "below" then
+      b.timer:SetPoint("TOP", b, "BOTTOM", 0, S.bar == "below" and -8 or -1); b.timer:Show()
+    else
+      b.timer:Hide()
+    end
+    -- Status-Farbstreifen (Minimal)
+    b.strip:ClearAllPoints()
+    if S.strip then
+      b.strip:SetPoint("BOTTOMLEFT", inset, inset); b.strip:SetPoint("BOTTOMRIGHT", -inset, inset); b.strip:Show()
+    else
+      b.strip:Hide()
+    end
+    -- Element-Farbleiste (Pillars)
+    b.elemStrip:ClearAllPoints()
+    if S.elemStrip then
+      b.elemStrip:SetColorTexture(HexColor(ns.SLOT_COLORS[s]))
+      b.elemStrip:SetPoint("BOTTOMLEFT", b, "TOPLEFT", -3, 4); b.elemStrip:SetPoint("BOTTOMRIGHT", b, "TOPRIGHT", 3, 4)
+      b.elemStrip:Show()
+    else
+      b.elemStrip:Hide()
+    end
+    -- Zeitbalken
+    b.timeBar:ClearAllPoints()
+    if S.bar == "below" then
+      b.timeBar:SetSize(size + 6, 4)
+      b.timeBar:SetPoint("TOP", b, "BOTTOM", 0, -2)
+      b.barName:Hide(); b.barTime:Hide(); b.timeBar:Show()
+    elseif S.bar == "right" then
+      b.timeBar:SetSize(S.barWidth or 200, size)
+      b.timeBar:SetPoint("LEFT", b, "RIGHT", 3, 0)
+      b.barName:Show(); b.barTime:Show(); b.timeBar:Show()
+    else
+      b.timeBar:Hide()
+    end
+    -- Position
+    b:ClearAllPoints()
+    if S.bar == "right" then
+      b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -top - (s - 1) * (size + gap))
+    else
+      b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad + (s - 1) * (size + gap), -top)
+    end
+    SetBorder(b, "NONE", false)
+  end
+
+  -- Zusatzknöpfe (ALLE, Call, Totemic Call, Recall, Waffe, Schild)
+  local extras = { castAll, callBtn, moveBtn, recallBtn, weaponBtn, shieldBtn }
+  local width, height
+  if S.bar == "right" then
+    -- Bars: Zusatzknöpfe in einer Reihe unter den Balken
+    local y = -top - 4 * (size + gap) - 3
+    local x = pad
+    for _, b in ipairs(extras) do
+      b:SetSize(size, size)
+      if b.glow then b.glow:SetSize(size * 1.85, size * 1.85) end
+      if b:IsShown() then
+        b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
+        x = x + size + gap
+      end
+    end
+    width = math.max(pad + size + 3 + (S.barWidth or 200) + pad, x + pad)
+    height = top + 4 * (size + gap) + ((x > pad) and (size + 6) or 0) + 4
+  else
+    local x = pad + 4 * (size + gap) + 6
+    for _, b in ipairs(extras) do
+      b:SetSize(size, size)
+      if b.glow then b.glow:SetSize(size * 1.85, size * 1.85) end
+      if b:IsShown() then
+        b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -top)
+        x = x + size + gap
+      end
+    end
+    width = x - gap + pad
+    local below = (S.timer == "below" and 16 or 4) + (S.bar == "below" and 8 or 0)
+    height = top + size + below + 2
+  end
+  frame:SetSize(math.max(width, 120), height)
+
+  -- Hinweise im passenden Stil
+  if hintBg.SetBackdrop then
+    local edgeSize = (S.edgeSize and S.edgeSize >= 8) and 10 or 1
+    hintBg:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = S.edgeFile, tile = false,
+      edgeSize = edgeSize, insets = { left = (edgeSize > 1) and 2 or 1, right = (edgeSize > 1) and 2 or 1,
+      top = (edgeSize > 1) and 2 or 1, bottom = (edgeSize > 1) and 2 or 1 } })
+    hintBg:SetBackdropColor(unpack(S.hintBg))
+    hintBg:SetBackdropBorderColor(unpack(S.hintEdge))
+  end
+  hintBg:SetWidth(math.max(frame:GetWidth(), 300))
+  for _, fs in ipairs(hints) do fs:SetWidth(hintBg:GetWidth() - 12) end
 end
 
 local function UpdateCooldown(b, spellName)
@@ -1511,15 +1703,8 @@ local function SetupSecure()
     end
   end
 
-  -- sichtbare Knöpfe nebeneinander anordnen
-  local x = 9 + 4 * GAP + 6
-  for _, b in ipairs({ castAll, callBtn, moveBtn, recallBtn, weaponBtn, shieldBtn }) do
-    if b:IsShown() then
-      b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -20)
-      x = x + GAP
-    end
-  end
-  frame:SetWidth(math.max(x, 9 + 4 * GAP) + 3)
+  -- Design anwenden: ordnet alle sichtbaren Knöpfe an und setzt Rahmen/Größen
+  ns.ApplySkin()
 
   RebuildCastAll()
   state.setupDone = true
@@ -1681,6 +1866,37 @@ local function Refresh()
     if otherHint then
       hint(format(L["|cff%s%s|r |cff80c0ff(group)|r %s"], col, ns.SLOT_NAMES[s], otherHint))
     end
+
+    -- Zeitbalken je Design (Pillars: unter dem Knopf, Bars: mit Name und Restzeit)
+    local S = CurrentSkin()
+    if S.bar then
+      local tb = b.timeBar
+      tb:SetMinMaxValues(0, (tDur and tDur > 0) and tDur or 1)
+      tb:SetValue((tLeft and tLeft > 0) and tLeft or 0)
+      local missing = key and status == "MISSING"
+      if S.bar == "right" then
+        local r, g, bl = HexColor(ns.SLOT_COLORS[s])
+        tb:SetStatusBarColor(r * 0.65, g * 0.65, bl * 0.65)
+        tb.bg:SetColorTexture(missing and 0.30 or 0.12, missing and 0.08 or 0.12, missing and 0.08 or 0.12, 0.9)
+        local text
+        if missing then
+          text = "|cffff8080" .. TotemName(key) .. " – " .. L["missing"] .. "|r"
+        elseif key and (status == "WRONG" or status == "DUPLICATE") then
+          text = (BaseName(curName) or "?") .. " → |cffffd100" .. TotemName(key) .. "|r"
+        elseif tHave and tName and tName ~= "" and tName ~= "?" then
+          text = BaseName(tName) or tName
+        else
+          text = key and TotemName(key) or "-"
+        end
+        if far then text = text .. " |cffffa040(" .. far.dist .. L["yd"] .. ")|r" end
+        b.barName:SetText(text)
+        b.barTime:SetText(FormatTime(tLeft))
+      else
+        local c = b.statusColor or STATUS_COLOR.NONE
+        tb:SetStatusBarColor(c[1], c[2], c[3])
+      end
+    end
+
     if urgent and status ~= "OK" and status ~= "EXPIRING" then
       alertText = TotemName(key) .. L[" now!"]
     end
@@ -2397,6 +2613,15 @@ SlashCmdList.TOTEMWATCH = function(msg)
     else
       print(L["  No errors so far."])
     end
+  elseif cmd == "skin" or cmd == "design" then
+    if arg ~= "" and ns.SKINS[arg] then
+      if InCombatLockdown() then p(L["Not possible in combat."]) return end
+      TotemWatchDB.skin = arg
+      ns.ApplySkin(); SafeCall("Display", Refresh)
+      p(L["Design: "] .. ns.SKINS[arg].name)
+    else
+      p(L["Designs: "] .. table.concat(ns.SKIN_ORDER, ", ") .. "  (" .. L["current: "] .. tostring(TotemWatchDB.skin) .. ")")
+    end
   elseif cmd == "bar" then
     -- Diagnose der Totem-Leiste von Call of the Elements
     p("Call of the Elements – " .. L["totem bar diagnostics"])
@@ -2571,6 +2796,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw check – show the pull check now (otherwise automatic on pull timer / ready check)"])
     print(L["  /tw probe – test in combat which data the game allows"])
     print(L["  /tw bar – Call of the Elements bar diagnostics"])
+    print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
     print(L["  Keys: Esc → Key Bindings → AddOns → TotemWatch"])
