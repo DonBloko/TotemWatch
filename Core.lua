@@ -928,6 +928,13 @@ local function CreateCastButton(name, x)
   b.label = over:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
   b.label:SetPoint("BOTTOMLEFT", 2, 2)
 
+  -- Große Entfernungsanzeige mitten auf dem Knopf (wenn du zu weit vom Totem weg bist)
+  b.farText = over:CreateFontString(nil, "OVERLAY")
+  b.farText:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
+  b.farText:SetPoint("CENTER", b, "CENTER", 0, 0)
+  b.farText:SetTextColor(1, 0.55, 0.1)
+  b.farText:Hide()
+
   b.glow = MakeGlow(over, BTN)
   b.recGlow = MakeGlow(over, 18)            -- Leuchten um das kleine Empfehlungs-Symbol
   b.recGlow:ClearAllPoints()
@@ -1234,6 +1241,7 @@ local STATUS_COLOR = {
   DUPLICATE = { 1.0, 0.5, 0.0 },
   MISSING   = { 1.0, 0.1, 0.1 },
   COVERED   = { 0.2, 0.6, 1.0 },
+  FAR       = { 1.0, 0.55, 0.1 },
   NONE      = { 0.4, 0.4, 0.4 },
 }
 
@@ -1557,8 +1565,23 @@ local function Refresh()
       b.rangeInfo = format(L["Out of range: %s"], rng.names)
       hint(format(L["|cff%s%s|r |cffff6060Range:|r %d out of range (%s)"], col, ns.SLOT_NAMES[s], rng.count, rng.names))
     else
-      b.label:SetText(far and ("|cffffa040" .. far.dist .. "m|r") or "")
+      b.label:SetText("")
       b.rangeInfo = far and format(L["You are %d m away (range %d m)"], far.dist, far.range) or nil
+    end
+
+    -- Zu weit weg: deutlich am Knopf zeigen (oranger, pulsierender Rahmen + große Meterzahl)
+    if far then
+      b.farText:SetText(far.dist .. "m")
+      b.farText:Show()
+      SetBorder(b, "FAR", true)
+      -- Leuchten, wenn Neustellen die Lösung ist (Totemic Call lohnt sich nicht oder fehlt)
+      -- und ein Klick genau dieses Totem neu stellt
+      local adv = state.moveAdvice
+      local t = tracked[s]
+      local redropBetter = not (adv and adv.useCall)
+      SetGlow(b.glow, TotemWatchDB.glow and redropBetter and t and t.key == assignedKey)
+    else
+      b.farText:Hide()
     end
     if key and status ~= "OK" then
       local what = (status == "MISSING" and L["missing"] or status == "WRONG" and L["better"]
