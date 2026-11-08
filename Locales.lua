@@ -308,3 +308,8 @@ L["Large messages for missing totems, fear and destroyed totems. Each message is
 L["Hint text size"] = "Schriftgröße Hinweise"
 L["Message size"] = "Schriftgröße Meldungen"
 L["TotemWatch test message"] = "TotemWatch Testmeldung"
+L["Out of range of your totems (%d m)"] = "Außer Reichweite deiner Totems (%d m)"
+L["  Distance check: "] = "  Abstandsprüfung: "
+L["running, position readable"] = "läuft, Position lesbar"
+L["running, position NOT readable here"] = "läuft, Position hier NICHT lesbar"
+L["not started"] = "nicht gestartet"

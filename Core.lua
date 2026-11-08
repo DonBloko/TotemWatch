@@ -578,27 +578,47 @@ local function ScanOtherBuffs()
 end
 
 -- Abstand zu den eigenen Totems (Position beim Wirken gemerkt)
+-- Läuft über einen eigenen Takt (zweimal pro Sekunde), auch wenn die Leiste ausgeblendet ist.
+ns.distInfo = {}   -- für /tw debug: [slot] = Text
 local function ScanDistance()
-  for s = 1, 4 do state.far[s] = nil end
-  if not TotemWatchDB.distanceWarn then return end
+  for s = 1, 4 do state.far[s] = nil; ns.distInfo[s] = nil end
+  if not TotemWatchDB or not TotemWatchDB.distanceWarn then return end
   local px, py, pinst = PlayerPos()
+  ns.posReadable = px ~= nil
   if not px then return end
+  local maxDist = 0
   for s = 1, 4 do
     local t = tracked[s]
     local have = TotemData(s)
-    if have and t and t.x and t.inst == pinst then
+    if not have then
+      ns.distInfo[s] = "no totem"
+    elseif not t then
+      ns.distInfo[s] = "not tracked (cast it again)"
+    elseif not t.x then
+      ns.distInfo[s] = "no position stored"
+    elseif t.inst ~= pinst then
+      ns.distInfo[s] = "other zone/instance"
+    else
       local range = ns.TOTEM_RANGE[t.key]
       if range == nil then range = ns.TOTEM_RANGE_DEFAULT end
-      if range then
-        local dist = math.sqrt((px - t.x) ^ 2 + (py - t.y) ^ 2)
-        if dist > range then
-          state.far[s] = { dist = floor(dist + 0.5), range = range, name = TotemName(t.key) }
-        end
+      local dist = math.sqrt((px - t.x) ^ 2 + (py - t.y) ^ 2)
+      ns.distInfo[s] = format("%.0f m (range %s)", dist, range and tostring(range) or "not checked")
+      if range and dist > range then
+        state.far[s] = { dist = floor(dist + 0.5), range = range, name = TotemName(t.key) }
+        maxDist = math.max(maxDist, dist)
       end
     end
   end
   ns.EvaluateTotemicCall()
+
+  -- Meldung in der Bildschirmmitte, sobald du aus der Reichweite läufst (einmal pro Mal)
+  local isFar = maxDist > 0
+  if isFar and not state.wasFar and ns.ShowMessage then
+    ns.ShowMessage(format(L["Out of range of your totems (%d m)"], floor(maxDist + 0.5)), 1, 0.6, 0.2)
+  end
+  state.wasFar = isFar
 end
+ns.ScanDistance = ScanDistance
 
 -- Lohnt sich Totemic Call oder ist Neustellen besser?
 -- Neustellen wirft die bezahlte Restzeit weg: Wert = Kosten des Totems * (Restzeit / Laufzeit).
@@ -1664,24 +1684,8 @@ local function Refresh()
     if b:IsShown() then SafeCall("Totem spells", UpdateCooldown, b, b:GetAttribute("spell1")) end
   end
   -- Zu weit weg: Totemic Call oder neu stellen? (Mana-Vergleich, siehe EvaluateTotemicCall)
+  -- Keine Textzeile: der schlechtere Knopf wird ausgegraut, der bessere leuchtet.
   local adv = state.moveAdvice
-  if adv then
-    if adv.useCall then
-      if adv.costsKnown then
-        hint(format(L["|cff40ff40Use %s:|r %d mana – re-dropping would cost %d mana and waste %d mana of remaining time"],
-          ns.moveName, adv.callCost, adv.redrop, adv.lost))
-      else
-        hint(format(L["|cff40ff40Use %s:|r about %d%% of the totems' time is left"], ns.moveName, adv.avgPct))
-      end
-    else
-      if adv.costsKnown then
-        hint(format(L["|cffffd100Re-drop %s:|r %s (%d mana) is not worth it – only %d mana of remaining time left"],
-          adv.names, ns.moveName, adv.callCost, adv.lost))
-      else
-        hint(format(L["|cffffd100Re-drop %s:|r only about %d%% of their time is left"], adv.names, adv.avgPct))
-      end
-    end
-  end
   -- Leiste von Call of the Elements weicht von den TotemWatch-Knöpfen ab (außerhalb des Kampfes)
   if ns.multicastMismatch and callBtn:IsShown() and not InCombatLockdown() then
     for _, m in ipairs(ns.multicastMismatch) do
@@ -1693,11 +1697,23 @@ local function Refresh()
     SetBorder(callBtn, ns.multicastMismatch and "WRONG" or "COVERED", false)
   end
 
-  -- Knopf Totemic Call nur hervorheben, wenn er sich lohnt
+  -- Totemic Call / Totemic Recall: lohnt sich Call -> Call leuchtet, Recall grau;
+  -- lohnt sich Neustellen -> Call grau, Recall normal. Ohne Abstand: beide normal.
+  local callWorth = adv and adv.useCall
+  local callGrey  = adv and not adv.useCall
+  local recallGrey = adv and adv.useCall
+  local function Dim(b, grey)
+    b.icon:SetDesaturated(grey and true or false)
+    b.icon:SetAlpha(grey and 0.45 or 1)
+  end
   if moveBtn:IsShown() then
-    local worth = adv and adv.useCall
-    SetBorder(moveBtn, worth and "EXPIRING" or "COVERED", false)
-    SetGlow(moveBtn.glow, TotemWatchDB.glow and worth)
+    Dim(moveBtn, callGrey)
+    SetBorder(moveBtn, callWorth and "OK" or (callGrey and "NONE" or "COVERED"), false)
+    SetGlow(moveBtn.glow, TotemWatchDB.glow and callWorth)
+  end
+  if recallBtn:IsShown() then
+    Dim(recallBtn, recallGrey)
+    SetBorder(recallBtn, recallGrey and "NONE" or "COVERED", false)
   end
 
   if TotemWatchDB.useBoss and state.boss and state.boss.note then hint(L["|cffaaaaaaNote: "] .. state.boss.note .. "|r") end
@@ -1903,7 +1919,6 @@ frame:SetScript("OnUpdate", function(_, elapsed)
     ScanGroup()
     pcall(ScanRange)   -- pcall: falls der Client Aura-Daten im Kampf sperrt
     if not ns.combatLogAllowed then pcall(ScanOtherBuffs) end
-    pcall(ScanDistance)
     -- Leiste von Call of the Elements regelmäßig prüfen (du kannst sie auch selbst umstellen)
     if not InCombatLockdown() and ns.SyncMultiCast then pcall(ns.SyncMultiCast) end
     UpdateVisibility()
@@ -2078,6 +2093,10 @@ ev:SetScript("OnEvent", function(_, event, ...)
     SafeCall(L["group"], ScanGroup)
     SafeCall("Bossmods", HookBossMods)
     SafeCall("Position", ApplyPosition)
+    -- Abstand zu den Totems: eigener Takt, unabhängig davon, ob die Leiste sichtbar ist
+    if not ns.distanceTicker and C_Timer and C_Timer.NewTicker then
+      ns.distanceTicker = C_Timer.NewTicker(0.5, function() SafeCall("Distance", ScanDistance) end)
+    end
     SafeCall("Fonts", ns.ApplyHintFont)       -- gespeicherte Schriftgrößen anwenden
     SafeCall("Fonts", ns.ApplyMessageFont)
     SafeCall(L["Visibility"], ApplyVisibilityDriver)
@@ -2253,6 +2272,13 @@ SlashCmdList.TOTEMWATCH = function(msg)
       print(format(L["  Slot %d (%s): active=%s, left=%ds, source=%s, assigned=%s"], s, ns.SLOT_NAMES[s],
         (have and n and n ~= "") and n or "-", left, fromTracked and L["own tracking"] or L["game"],
         tostring(slots[s]:GetAttribute("spell1"))))
+    end
+    -- Abstand zu den Totems
+    print(L["  Distance check: "] .. (not TotemWatchDB.distanceWarn and L["off"]
+      or (ns.distanceTicker and (ns.posReadable and L["running, position readable"] or L["running, position NOT readable here"]))
+      or L["not started"]))
+    for s = 1, 4 do
+      if ns.distInfo[s] then print(format("    %s: %s", ns.SLOT_NAMES[s], ns.distInfo[s])) end
     end
     if ns.lastErrors then
       for label, err in pairs(ns.lastErrors) do print(L["  |cffff4040Error "] .. label .. ":|r " .. err) end

@@ -13,7 +13,9 @@
 - Call of the Elements bar: TotemWatch checks whether its sync worked. If the game does not allow it, TotemWatch shows which totems on the bar differ from your buttons so you can change them yourself. New diagnostics: `/tw bar`.
 - **Readability:** hint texts below the bar now have a dark background and an outlined, larger font (size adjustable).
 - **Messages in the middle of the screen** for missing totems, fear and destroyed totems – each only once (size adjustable, can be turned off).
-- **Glow:** the button you should press glows; in the selection menu the recommended totem glows; Totemic Call glows when it is worth it.
+- **Glow:** the button you should press glows; in the selection menu the recommended totem glows.
+- **Totemic Call vs. Totemic Recall:** when you are out of range, the better choice glows and the other one is greyed out (mana comparison in the tooltip).
+- **Distance warning** now runs independently of the bar (twice per second) and shows a message in the middle of the screen when you leave the range of your totems. `/tw debug` shows the distance per totem.
 
 *Deutsch:* Englische Oberfläche – die Sprache richtet sich nach dem Spiel-Client (deutscher Client = Deutsch).
 
