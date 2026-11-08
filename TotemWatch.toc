@@ -11,6 +11,7 @@
 ## X-Category: Combat
 ## X-License: MIT
 
+Locales.lua
 Data.lua
 Core.lua
 Options.lua

@@ -4,7 +4,9 @@
 
 Totem-Helfer für Schamanen in **WoW Forever**: zeigt im Kampf fehlende Totems und empfiehlt automatisch die passenden – nach Boss (Blizzard/DBM/BigWigs), Gruppe und Situation.
 
-*Totem helper for Shamans in WoW Forever: shows missing totems in combat and recommends the right ones based on boss (DBM/BigWigs), group and situation. UI language: German.*
+*Totem helper for Shamans in WoW Forever: shows missing totems in combat and recommends the right ones based on boss (DBM/BigWigs), group and situation. UI language: English or German, following your game client.*
+
+**Übersetzungen** stehen in `Locales.lua` (Schlüssel = englischer Text). Weitere Sprachen können dort ergänzt werden.
 
 ## Funktionen
 

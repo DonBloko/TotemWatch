@@ -1,5 +1,6 @@
 -- TotemWatch - Kernlogik, Empfehlungen, klickbare Totem-Leiste
 local ADDON, ns = ...
+local L = ns.L   -- Übersetzungen (Locales.lua)
 
 local _, playerClass = UnitClass("player")
 if playerClass ~= "SHAMAN" then return end
@@ -60,7 +61,7 @@ local function SafeCall(label, fn, ...)
   if not ok then ns.lastErrors = ns.lastErrors or {}; ns.lastErrors[label] = tostring(err) end
   if not ok and not shownErrors[label] then
     shownErrors[label] = true
-    print("|cffff4040TotemWatch-Fehler (" .. label .. "):|r " .. tostring(err))
+    print(L["|cffff4040TotemWatch error ("] .. label .. "):|r " .. tostring(err))
   end
   return ok
 end
@@ -489,7 +490,7 @@ local function ScanOtherBuffs()
   if not TotemWatchDB.useOthers or next(state.partyShamans) == nil then return end
   local count, onlyName = 0, nil
   for _, n in pairs(state.partyShamans) do count = count + 1; onlyName = n end
-  local who = (count == 1 and onlyName) or "anderer Schamane"
+  local who = (count == 1 and onlyName) or L["another shaman"]
   CollectBuffNames("player", buffScratch)
   for key, buffId in pairs(ns.TOTEM_BUFFS) do
     local slot = ns.TOTEMS[key].slot
@@ -541,9 +542,9 @@ local function CheckDestroyed(slot)
     if h and n and n ~= "" then return end
     local key = KeyFromName(prev.name)
     if key == "GROUNDING" then
-      state.destroyMsg = "Erdung hat einen Zauber abgefangen – neu stellen!"
+      state.destroyMsg = L["Grounding absorbed a spell – recast it!"]
     else
-      state.destroyMsg = format("%s zerstört!", BaseName(prev.name) or ns.SLOT_NAMES[slot])
+      state.destroyMsg = format(L["%s destroyed!"], BaseName(prev.name) or ns.SLOT_NAMES[slot])
     end
     state.destroyUntil = GetTime() + 4
   end)
@@ -561,16 +562,16 @@ local function Recommend(slot)
   -- 1) Akute Situationen
   if slot == ns.EARTH then
     if state.fearUntil > now then
-      add("TREMOR", "Gruppe wird gefürchtet!", true)
+      add("TREMOR", L["Group is being feared!"], true)
     elseif state.fearAt then
       local dt = state.fearAt - now
       if dt > -3 and dt < 15 then
-        add("TREMOR", format("Fear in %ds (Bossmod)", math.max(0, floor(dt))), dt < 6)
+        add("TREMOR", format(L["Fear in %ds (boss mod)"], math.max(0, floor(dt))), dt < 6)
       end
     end
   elseif slot == ns.WATER then
-    if state.poison >= 2 then add("POISON_CLEANSE", format("%d Gift-Debuffs in der Gruppe", state.poison), true) end
-    if state.disease >= 2 then add("DISEASE_CLEANSE", format("%d Krankheiten in der Gruppe", state.disease), true) end
+    if state.poison >= 2 then add("POISON_CLEANSE", format(L["%d poison debuffs in group"], state.poison), true) end
+    if state.disease >= 2 then add("DISEASE_CLEANSE", format(L["%d diseases in group"], state.disease), true) end
   end
 
   -- 2) Boss-spezifisch
@@ -585,33 +586,33 @@ local function Recommend(slot)
   local melee, caster, solo = state.melee, state.caster, state.groupSize <= 1
   if slot == ns.FIRE then
     if state.enemies >= 3 then
-      add("MAGMA", format("%d Gegner – AoE", state.enemies))
-      add("FIRE_NOVA", format("%d Gegner – AoE", state.enemies))
+      add("MAGMA", format(L["%d enemies – AoE"], state.enemies))
+      add("FIRE_NOVA", format(L["%d enemies – AoE"], state.enemies))
     end
-    if caster >= melee and not solo then add("TOTEM_OF_WRATH", "Zauberkrit für Caster") end
-    if melee >= 2 then add("FLAMETONGUE", "Waffenproc für Nahkämpfer") end
-    add("SEARING", "Zusätzlicher Schaden")
+    if caster >= melee and not solo then add("TOTEM_OF_WRATH", L["Spell crit for casters"]) end
+    if melee >= 2 then add("FLAMETONGUE", L["Weapon proc for melee"]) end
+    add("SEARING", L["Extra damage"])
   elseif slot == ns.EARTH then
-    if melee >= 1 or solo then add("STRENGTH", "Stärke für Nahkämpfer") end
-    add("STONESKIN", "Weniger Nahkampfschaden")
+    if melee >= 1 or solo then add("STRENGTH", L["Strength for melee"]) end
+    add("STONESKIN", L["Less melee damage taken"])
   elseif slot == ns.WATER then
     local okHp, lowHp = pcall(function() return UnitHealth("player") / math.max(1, UnitHealthMax("player")) < 0.6 end)
     if solo and okHp and lowHp then
-      add("HEALING_STREAM", "Wenig Leben")
+      add("HEALING_STREAM", L["Low health"])
     end
-    add("MANA_SPRING", "Mana-Regeneration")
-    add("HEALING_STREAM", "Heilung")
+    add("MANA_SPRING", L["Mana regeneration"])
+    add("HEALING_STREAM", L["Healing"])
   elseif slot == ns.AIR then
     if melee >= 2 or solo then
-      add("WINDFURY", "Nahkämpfer in der Gruppe")
-      add("GRACE_OF_AIR", "Beweglichkeit für Nahkämpfer")
+      add("WINDFURY", L["Melee in group"])
+      add("GRACE_OF_AIR", L["Agility for melee"])
     end
     if caster > melee then
-      add("WRATH_OF_AIR", "Zaubermacht für Caster")
-      add("TRANQUIL_AIR", "Weniger Bedrohung für Caster")
+      add("WRATH_OF_AIR", L["Spell power for casters"])
+      add("TRANQUIL_AIR", L["Less threat for casters"])
     end
-    add("GRACE_OF_AIR", "Beweglichkeit")
-    add("WINDFURY", "Nahkampf-Buff")
+    add("GRACE_OF_AIR", L["Agility"])
+    add("WINDFURY", L["Melee buff"])
   end
 
   local avoid = boss and boss.avoid
@@ -625,9 +626,9 @@ local function Recommend(slot)
   local otherHint
   for k, who in pairs(others) do
     if avoid and avoid[k] then
-      otherHint = format("%s stellt %s – %s", who, TotemName(k), avoid[k])
+      otherHint = format(L["%s has %s – %s"], who, TotemName(k), avoid[k])
     elseif best and k ~= best and not others[best] then
-      otherHint = format("%s stellt %s – %s wäre besser", who, TotemName(k), TotemName(best))
+      otherHint = format(L["%s has %s – %s would be better"], who, TotemName(k), TotemName(best))
     end
   end
 
@@ -636,7 +637,7 @@ local function Recommend(slot)
     local k = c[1]
     if not (avoid and avoid[k]) then
       if others[k] then
-        covered = covered or format("%s kommt von %s", TotemName(k), others[k])
+        covered = covered or format(L["%s comes from %s"], TotemName(k), others[k])
       elseif IsKnown(k) then
         local reason = c[2]
         if covered then reason = reason .. " (" .. covered .. ")" end
@@ -711,7 +712,7 @@ end)
 
 local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 title:SetPoint("TOPLEFT", 8, -6)
-title:SetText("|cff0070deTotemWatch|r  |cff888888(hier ziehen)|r")
+title:SetText(L["|cff0070deTotemWatch|r  |cff888888(drag here)|r"])
 
 local alert = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
 alert:SetPoint("BOTTOM", frame, "TOP", 0, 6)
@@ -840,7 +841,7 @@ local function BuildFlyout(main, ids)
       fb:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if self.spellId then GameTooltip:SetSpellByID(self.spellId) end
-        GameTooltip:AddLine("Klick: stellen und als Standard belegen", 0.6, 1, 0.6)
+        GameTooltip:AddLine(L["Click: cast and set as default"], 0.6, 1, 0.6)
         GameTooltip:Show()
       end)
       fb:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -867,14 +868,14 @@ for s = 1, 4 do
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
     local assigned = self:GetAttribute("spell1")
-    GameTooltip:AddLine(ns.SLOT_NAMES[s] .. ": " .. (assigned or "nicht belegt"), 1, 1, 1)
+    GameTooltip:AddLine(ns.SLOT_NAMES[s] .. ": " .. (assigned or L["not set"]), 1, 1, 1)
     if self.recKey then
-      GameTooltip:AddLine("Empfohlen: " .. TotemName(self.recKey), 1, 0.82, 0)
+      GameTooltip:AddLine(L["Recommended: "] .. TotemName(self.recKey), 1, 0.82, 0)
       if self.reason then GameTooltip:AddLine(self.reason, 0.8, 0.8, 0.8, true) end
     elseif self.reason then
       GameTooltip:AddLine(self.reason, 0.8, 0.8, 0.8, true)
     end
-    if self.curName then GameTooltip:AddLine("Aktiv: " .. self.curName, 0.6, 1, 0.6) end
+    if self.curName then GameTooltip:AddLine(L["Active: "] .. self.curName, 0.6, 1, 0.6) end
     if self.others then
       for k, who in pairs(self.others) do
         GameTooltip:AddLine(format("%s: %s", who, TotemName(k)), 0.5, 0.8, 1)
@@ -882,7 +883,7 @@ for s = 1, 4 do
     end
     if self.otherHint then GameTooltip:AddLine(self.otherHint, 1, 0.6, 0.2, true) end
     if self.rangeInfo then GameTooltip:AddLine(self.rangeInfo, 1, 0.3, 0.3, true) end
-    GameTooltip:AddLine("Linksklick: stellen  ·  Rechtsklick: Auswahl", 0.5, 0.5, 0.5)
+    GameTooltip:AddLine(L["Left-click: cast  ·  Right-click: choose"], 0.5, 0.5, 0.5)
     GameTooltip:Show()
   end)
   slots[s] = b
@@ -898,13 +899,13 @@ do
   local bg = castAll:CreateTexture(nil, "BACKGROUND")
   bg:SetAllPoints(); bg:SetColorTexture(0.05, 0.25, 0.55, 1)
   local t = castAll:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  t:SetPoint("CENTER"); t:SetText("ALLE")
+  t:SetPoint("CENTER"); t:SetText(L["ALL"])
   castAll:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 end
 castAll:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
-  GameTooltip:AddLine("Alle Totems stellen", 1, 1, 1)
-  GameTooltip:AddLine("Mehrmals klicken / Taste drücken – stellt nacheinander:", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine(L["Cast all totems"], 1, 1, 1)
+  GameTooltip:AddLine(L["Click / press repeatedly – casts in order:"], 0.8, 0.8, 0.8, true)
   for s = 1, 4 do
     local sp = slots[s]:GetAttribute("spell1")
     if sp then GameTooltip:AddLine("  " .. sp, 0.6, 1, 0.6) end
@@ -926,15 +927,15 @@ shieldBtn.dbKey = "shield"
 local function SimpleTooltip(b, titleText, extra)
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:AddLine(titleText .. ": " .. (self:GetAttribute("spell1") or "nicht belegt"), 1, 1, 1)
+    GameTooltip:AddLine(titleText .. ": " .. (self:GetAttribute("spell1") or L["not set"]), 1, 1, 1)
     if self.info then GameTooltip:AddLine(self.info, 0.8, 0.8, 0.8, true) end
     if extra then GameTooltip:AddLine(extra, 0.6, 0.6, 0.6, true) end
-    GameTooltip:AddLine("Linksklick: wirken  ·  Rechtsklick: Auswahl", 0.5, 0.5, 0.5)
+    GameTooltip:AddLine(L["Left-click: use  ·  Right-click: choose"], 0.5, 0.5, 0.5)
     GameTooltip:Show()
   end)
 end
-SimpleTooltip(weaponBtn, "Waffe", "Hinweis: Auch Öle/Steine zählen als Verzauberung.")
-SimpleTooltip(shieldBtn, "Schild")
+SimpleTooltip(weaponBtn, L["Weapon"], L["Note: oils/stones also count as an enchant."])
+SimpleTooltip(shieldBtn, L["Shield"])
 
 local MAX_HINTS = 8
 local hints = {}
@@ -1111,7 +1112,7 @@ local function Refresh()
       if not state.preWarned[id] then
         state.preWarned[id] = true
         local shown = (tName and tName ~= "" and tName ~= "?") and (BaseName(tName) or tName) or (ns.SLOT_NAMES[s] .. "totem")
-        state.expireMsg = format("%s läuft in %d s ab!", shown, ceil(tLeft))
+        state.expireMsg = format(L["%s expires in %d s!"], shown, ceil(tLeft))
         state.expireUntil = now + 3
       end
     end
@@ -1140,7 +1141,7 @@ local function Refresh()
     if status ~= "MISSING" and status ~= "OK" and curIcon then b.cur:SetTexture(curIcon); b.cur:Show() else b.cur:Hide() end
 
     if status == "DUPLICATE" then
-      reason = format("%s stellt schon %s – %s", dupWho or "?", curName or "?", reason or "")
+      reason = format(L["%s already has %s – %s"], dupWho or "?", curName or "?", reason or "")
     end
 
     if key then
@@ -1157,42 +1158,42 @@ local function Refresh()
     -- Abstand zum eigenen Totem
     local far = state.far[s]
     if far then
-      hint(format("|cff%s%s|r |cffffa040Abstand:|r du bist %d m von %s entfernt (Reichweite %d m)",
+      hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d m from %s (range %d m)"],
         col, ns.SLOT_NAMES[s], far.dist, far.name, far.range))
     end
     local rng = state.range[s]
     if rng then
       b.label:SetText("|cffff3030" .. rng.count .. "|r")
-      b.rangeInfo = format("Außer Reichweite: %s", rng.names)
-      hint(format("|cff%s%s|r |cffff6060Reichweite:|r %d nicht im Bereich (%s)", col, ns.SLOT_NAMES[s], rng.count, rng.names))
+      b.rangeInfo = format(L["Out of range: %s"], rng.names)
+      hint(format(L["|cff%s%s|r |cffff6060Range:|r %d out of range (%s)"], col, ns.SLOT_NAMES[s], rng.count, rng.names))
     else
       b.label:SetText(far and ("|cffffa040" .. far.dist .. "m|r") or "")
-      b.rangeInfo = far and format("Du bist %d m entfernt (Reichweite %d m)", far.dist, far.range) or nil
+      b.rangeInfo = far and format(L["You are %d m away (range %d m)"], far.dist, far.range) or nil
     end
     if key and status ~= "OK" then
-      local what = (status == "MISSING" and "fehlt" or status == "WRONG" and "besser"
-                    or status == "DUPLICATE" and "doppelt, besser" or "läuft ab")
-      local pick = (key ~= assignedKey) and " |cffffff00[Rechtsklick: wählen]|r" or ""
+      local what = (status == "MISSING" and L["missing"] or status == "WRONG" and L["better"]
+                    or status == "DUPLICATE" and L["duplicate, better"] or L["expiring"])
+      local pick = (key ~= assignedKey) and L[" |cffffff00[right-click: choose]|r"] or ""
       hint(format("|cff%s%s|r %s: |cffffffff%s|r – %s%s", col, ns.SLOT_NAMES[s], what, TotemName(key), reason or "", pick))
     end
     if otherHint then
-      hint(format("|cff%s%s|r |cff80c0ff(Gruppe)|r %s", col, ns.SLOT_NAMES[s], otherHint))
+      hint(format(L["|cff%s%s|r |cff80c0ff(group)|r %s"], col, ns.SLOT_NAMES[s], otherHint))
     end
     if urgent and status ~= "OK" and status ~= "EXPIRING" then
-      alertText = TotemName(key) .. " stellen!"
+      alertText = TotemName(key) .. L[" now!"]
     end
   end
   for s = 1, 4 do SafeCall("Totem", doSlot, s) end
 
   -- Waffenverzauberung
-  SafeCall("Waffe", function() if weaponBtn:IsShown() then
+  SafeCall(L["Weapon"], function() if weaponBtn:IsShown() then
     local assigned = weaponBtn:GetAttribute("spell1")
     weaponBtn.icon:SetTexture(assigned and SpellIcon(idByName[assigned] or assigned) or "Interface\\Icons\\INV_Misc_QuestionMark")
     local hasMH, mhExp, _, _, hasOH, ohExp
     if GetWeaponEnchantInfo then hasMH, mhExp, _, _, hasOH, ohExp = GetWeaponEnchantInfo() end
     if IsSecret(hasMH) or IsSecret(mhExp) or IsSecret(hasOH) or IsSecret(ohExp) then
       -- im Kampf gesperrt: Zustand unbekannt, nichts falsch anzeigen
-      weaponBtn.info = "Im Kampf vom Spiel gesperrt – Status nach dem Kampf"
+      weaponBtn.info = L["Locked by the game in combat – status after combat"]
       SetBorder(weaponBtn, "NONE", false)
       weaponBtn.timer:SetText("")
       UpdateCooldown(weaponBtn, assigned)
@@ -1203,16 +1204,16 @@ local function Refresh()
     local left = hasMH and (mhExp or 0) / 1000 or 0
     if needOH then left = math.min(left, hasOH and (ohExp or 0) / 1000 or 0) end
     local missing = (not hasMH) or (needOH and not hasOH)
-    weaponBtn.info = missing and "Keine Verzauberung aktiv" or ("Restzeit: " .. FormatTime(left))
+    weaponBtn.info = missing and L["No enchant active"] or (L["Time left: "] .. FormatTime(left))
     SetBorder(weaponBtn, missing and "MISSING" or (left < 60 and "EXPIRING" or "OK"), missing and state.inCombat)
     weaponBtn.timer:SetText(FormatTime(left))
     weaponBtn.label:SetText("")
     UpdateCooldown(weaponBtn, assigned)
-    if missing and assigned then hint("|cffffd100Waffe|r fehlt: |cffffffff" .. assigned .. "|r") end
+    if missing and assigned then hint(L["|cffffd100Weapon|r missing: |cffffffff"] .. assigned .. "|r") end
   end end)
 
   -- Schild
-  SafeCall("Schild", function() if shieldBtn:IsShown() then
+  SafeCall(L["Shield"], function() if shieldBtn:IsShown() then
     local assigned = shieldBtn:GetAttribute("spell1")
     shieldBtn.icon:SetTexture(assigned and SpellIcon(idByName[assigned] or assigned) or "Interface\\Icons\\INV_Misc_QuestionMark")
     wipe(shieldNames)
@@ -1254,7 +1255,7 @@ local function Refresh()
         if last and last.expires > now then
           name, count, expires, estimated = last.name, nil, last.expires, true
         else
-          shieldBtn.info = "Im Kampf vom Spiel gesperrt – Status nach dem Kampf"
+          shieldBtn.info = L["Locked by the game in combat – status after combat"]
           SetBorder(shieldBtn, "NONE", false)
           shieldBtn.label:SetText("")
           shieldBtn.timer:SetText("")
@@ -1267,7 +1268,7 @@ local function Refresh()
     end
     local left = (expires and expires > 0) and (expires - now) or 0
     if estimated then
-      shieldBtn.info = format("%s: ca. %s (im Kampf geschätzt, Aufladungen unbekannt)", name, FormatTime(left))
+      shieldBtn.info = format(L["%s: approx. %s (estimated in combat, charges unknown)"], name, FormatTime(left))
       SetBorder(shieldBtn, left < 60 and "EXPIRING" or "OK", false)
       shieldBtn.label:SetText("")
       shieldBtn.timer:SetText(FormatTime(left))
@@ -1275,20 +1276,20 @@ local function Refresh()
       return
     end
     if name then
-      shieldBtn.info = format("%s: %d Aufladungen, %s", name, count or 0, FormatTime(left))
+      shieldBtn.info = format(L["%s: %d charges, %s"], name, count or 0, FormatTime(left))
       SetBorder(shieldBtn, left > 0 and left < 60 and "EXPIRING" or "OK", false)
       shieldBtn.label:SetText((count and count > 0) and count or "")
     else
-      shieldBtn.info = "Kein Schild aktiv"
+      shieldBtn.info = L["No shield active"]
       SetBorder(shieldBtn, "MISSING", state.inCombat)
       shieldBtn.label:SetText("")
-      if assigned then hint("|cffffd100Schild|r fehlt: |cffffffff" .. assigned .. "|r") end
+      if assigned then hint(L["|cffffd100Shield|r missing: |cffffffff"] .. assigned .. "|r") end
     end
     shieldBtn.timer:SetText(FormatTime(left))
     UpdateCooldown(shieldBtn, assigned)
   end end)
 
-  if TotemWatchDB.useBoss and state.boss and state.boss.note then hint("|cffaaaaaaHinweis: " .. state.boss.note .. "|r") end
+  if TotemWatchDB.useBoss and state.boss and state.boss.note then hint(L["|cffaaaaaaNote: "] .. state.boss.note .. "|r") end
   if not TotemWatchDB.showHints then hintLine = 1 end
   for i = hintLine, MAX_HINTS do hints[i]:SetText("") end
 
@@ -1332,7 +1333,7 @@ end
 local function ShowForPull(seconds)
   state.pullUntil = GetTime() + (tonumber(seconds) or 10) + 2
   if not InCombatLockdown() then frame:Show() end
-  if ns.RunPrePullCheck then SafeCall("Pull-Check", ns.RunPrePullCheck, "Pull-Timer", seconds) end
+  if ns.RunPrePullCheck then SafeCall(L["Pull check"], ns.RunPrePullCheck, L["pull timer"], seconds) end
 end
 
 ---------------------------------------------------------------------------
@@ -1382,7 +1383,7 @@ end
 
 local function BuildCheck()
   local now = GetTime()
-  SafeCall("Gruppe", ScanGroup); pcall(ScanRange)
+  SafeCall(L["group"], ScanGroup); pcall(ScanRange)
   GuessBossFromTarget()
   local lines, problems = {}, 0
   local function add(ok, text)
@@ -1398,17 +1399,17 @@ local function BuildCheck()
     if key then
       local nm = format("|cff%s%s|r: %s", ns.SLOT_COLORS[s], ns.SLOT_NAMES[s], TotemName(key))
       if status == "MISSING" then
-        add(false, nm .. " stellen")
+        add(false, nm .. L[" – drop it"])
       elseif status == "WRONG" or status == "DUPLICATE" then
-        add(false, nm .. " statt " .. (BaseName(curName) or "?"))
+        add(false, nm .. L[" instead of "] .. (BaseName(curName) or "?"))
       elseif remaining < 60 then
-        add(false, format("%s läuft in %s ab – kurz vor dem Pull neu stellen", nm, FormatTime(remaining)))
+        add(false, format(L["%s expires in %s – recast shortly before the pull"], nm, FormatTime(remaining)))
       else
         add(true, format("%s (%s)", nm, FormatTime(remaining)))
       end
     end
     local rng = state.range[s]
-    if rng then add(false, format("%s: %d außer Reichweite (%s)", ns.SLOT_NAMES[s], rng.count, rng.names)) end
+    if rng then add(false, format(L["%s: %d out of range (%s)"], ns.SLOT_NAMES[s], rng.count, rng.names)) end
   end
 
   -- Schild
@@ -1417,15 +1418,15 @@ local function BuildCheck()
     for _, id in ipairs(ns.SHIELD_SPELLS) do local n = SpellName(id); if n then names[n] = true end end
     local n, c, e = FindPlayerBuff(names)
     if not n or n == "SECRET" then
-      add(false, "Schild fehlt – wirken")
+      add(false, L["Shield missing – cast it"])
     else
       local left = (e and e > 0) and (e - now) or 0
       if left > 0 and left < 180 then
-        add(false, format("%s läuft in %s ab – erneuern", n, FormatTime(left)))
+        add(false, format(L["%s expires in %s – refresh it"], n, FormatTime(left)))
       elseif c and c > 0 and c < 3 then
-        add(false, format("%s: nur %d Aufladungen – erneuern", n, c))
+        add(false, format(L["%s: only %d charges – refresh it"], n, c))
       else
-        add(true, format("%s: %s Aufladungen%s", n, c or "?", left > 0 and (", " .. FormatTime(left)) or ""))
+        add(true, format(L["%s: %s charges%s"], n, c or "?", left > 0 and (", " .. FormatTime(left)) or ""))
       end
     end
   end
@@ -1436,20 +1437,20 @@ local function BuildCheck()
     if not IsSecret(hasMH) and not IsSecret(mhExp) then
       local _, ohClass = ItemEquipInfo(GetInventoryItemLink("player", 17))
       if not hasMH or (ohClass == 2 and not hasOH) then
-        add(false, "Waffenverzauberung fehlt")
+        add(false, L["Weapon enchant missing"])
       else
         local left = (mhExp or 0) / 1000
         if ohClass == 2 then left = math.min(left, (ohExp or 0) / 1000) end
         if left < 180 then
-          add(false, "Waffenverzauberung läuft in " .. FormatTime(left) .. " ab")
+          add(false, format(L["Weapon enchant expires in %s"], FormatTime(left)))
         else
-          add(true, "Waffenverzauberung (" .. FormatTime(left) .. ")")
+          add(true, L["Weapon enchant ("] .. FormatTime(left) .. ")")
         end
       end
     end
   end
 
-  if #lines == 0 then add(true, "Alles bereit") end
+  if #lines == 0 then add(true, L["All set"]) end
   for i, fs in ipairs(check.lines) do fs:SetText(lines[i] or "") end
   check:SetHeight(30 + math.min(#lines, #check.lines) * 14)
   return problems
@@ -1458,7 +1459,7 @@ end
 function ns.RunPrePullCheck(reason, seconds)
   if InCombatLockdown() or not TotemWatchDB.prePull then return end
   local problems = BuildCheck()
-  check.title:SetText(format("Pull-Check |cffaaaaaa(%s)|r", reason or "manuell"))
+  check.title:SetText(format(L["Pull check |cffaaaaaa(%s)|r"], reason or L["manual"]))
   check.untilT = GetTime() + (tonumber(seconds) or 15) + 2
   check:Show()
   if problems > 0 then PlayAlert() end
@@ -1470,7 +1471,7 @@ check:SetScript("OnUpdate", function(self, elapsed)
   if checkAcc < 1 then return end
   checkAcc = 0
   if InCombatLockdown() or GetTime() > (self.untilT or 0) then self:Hide(); return end
-  SafeCall("Pull-Check", BuildCheck)   -- jede Sekunde neu, damit Behobenes sofort grün wird
+  SafeCall(L["Pull check"], BuildCheck)   -- jede Sekunde neu, damit Behobenes sofort grün wird
 end)
 
 local elapsedAcc, slowAcc = 0, 0
@@ -1488,7 +1489,7 @@ frame:SetScript("OnUpdate", function(_, elapsed)
   end
   if elapsedAcc > 0.2 then
     elapsedAcc = 0
-    SafeCall("Anzeige", Refresh)
+    SafeCall(L["Display"], Refresh)
   end
 end)
 
@@ -1500,7 +1501,7 @@ local function SetBoss(encounterID, name)
   state.boss = data
   state.bossName = (data and data.name) or name
   if data then
-    print(format("|cff0070deTotemWatch|r: Boss erkannt – %s", state.bossName or "?"))
+    print(format(L["|cff0070deTotemWatch|r: boss detected – %s"], state.bossName or "?"))
   end
 end
 
@@ -1651,16 +1652,16 @@ ev:SetScript("OnEvent", function(_, event, ...)
     HookBossMods()
   elseif event == "PLAYER_LOGIN" then
     -- jeder Schritt einzeln abgesichert: ein Fehler darf den Rest nicht verhindern
-    SafeCall("Zauberbuch", ScanSpellbook)
-    SafeCall("Namen", BuildNameLookup)
-    SafeCall("Gruppe", ScanGroup)
+    SafeCall(L["Spellbook"], ScanSpellbook)
+    SafeCall(L["Names"], BuildNameLookup)
+    SafeCall(L["group"], ScanGroup)
     SafeCall("Bossmods", HookBossMods)
     SafeCall("Position", ApplyPosition)
-    SafeCall("Sichtbarkeit", ApplyVisibilityDriver)
-    SafeCall("Knöpfe", SetupSecure)
+    SafeCall(L["Visibility"], ApplyVisibilityDriver)
+    SafeCall(L["Buttons"], SetupSecure)
     for s = 1, 4 do SafeCall("Totems", CheckDestroyed, s) end
-    if ns.CreateOptions then SafeCall("Optionen", ns.CreateOptions) end
-    print("|cff0070deTotemWatch|r geladen – /tw für Optionen, /tw debug bei Problemen.")
+    if ns.CreateOptions then SafeCall(L["Options"], ns.CreateOptions) end
+    print(L["|cff0070deTotemWatch|r loaded – /tw for options, /tw debug if something is wrong."])
   elseif event == "SPELLS_CHANGED" then
     ScanSpellbook(); BuildNameLookup()
     if state.setupDone then SetupSecure() end
@@ -1670,7 +1671,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
     state.inCombat = true
     -- Dieses Ereignis kommt kurz VOR der Kampfsperre: Anzeigen ist hier noch erlaubt.
     if not InCombatLockdown() and not frame:IsShown() then frame:Show() end
-    SafeCall("Gruppe", ScanGroup); pcall(ScanDebuffs); SafeCall("Anzeige", Refresh)
+    SafeCall(L["group"], ScanGroup); pcall(ScanDebuffs); SafeCall(L["Display"], Refresh)
   elseif event == "PLAYER_REGEN_ENABLED" then
     state.inCombat = false
     state.aurasBlocked = false   -- nach dem Kampf dürfen Auren wieder gelesen werden
@@ -1694,14 +1695,14 @@ ev:SetScript("OnEvent", function(_, event, ...)
       if fromTracked and not exact and t and GetTime() - t.start > 1 then tracked[slot] = nil end
       SafeCall("Totems", CheckDestroyed, slot)
     end
-    if frame:IsShown() then SafeCall("Anzeige", Refresh) end
+    if frame:IsShown() then SafeCall(L["Display"], Refresh) end
   elseif event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" then
     local unit, _, spellID = ...
     if type(unit) == "string" and unit ~= "player" then
       pcall(ns.OnEnemyCast, unit, spellID, event == "UNIT_SPELLCAST_CHANNEL_START")
     end
   elseif event == "READY_CHECK" then
-    if ns.RunPrePullCheck then SafeCall("Pull-Check", ns.RunPrePullCheck, "Bereitschaftscheck", 20) end
+    if ns.RunPrePullCheck then SafeCall(L["Pull check"], ns.RunPrePullCheck, L["ready check"], 20) end
   elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
     local unit, _, spellID = ...
     if unit == "player" then
@@ -1753,13 +1754,13 @@ end
 -- Tastenbelegung (Bindings.xml)
 ---------------------------------------------------------------------------
 BINDING_HEADER_TOTEMWATCH = "TotemWatch"
-_G["BINDING_NAME_CLICK TotemWatchCastAll:LeftButton"] = "Alle Totems stellen (mehrfach drücken)"
-_G["BINDING_NAME_CLICK TotemWatchFire:LeftButton"]    = "Feuertotem stellen"
-_G["BINDING_NAME_CLICK TotemWatchEarth:LeftButton"]   = "Erdtotem stellen"
-_G["BINDING_NAME_CLICK TotemWatchWater:LeftButton"]   = "Wassertotem stellen"
-_G["BINDING_NAME_CLICK TotemWatchAir:LeftButton"]     = "Lufttotem stellen"
-_G["BINDING_NAME_CLICK TotemWatchWeapon:LeftButton"]  = "Waffenverzauberung wirken"
-_G["BINDING_NAME_CLICK TotemWatchShield:LeftButton"]  = "Schild wirken"
+_G["BINDING_NAME_CLICK TotemWatchCastAll:LeftButton"] = L["Cast all totems (press repeatedly)"]
+_G["BINDING_NAME_CLICK TotemWatchFire:LeftButton"]    = L["Cast fire totem"]
+_G["BINDING_NAME_CLICK TotemWatchEarth:LeftButton"]   = L["Cast earth totem"]
+_G["BINDING_NAME_CLICK TotemWatchWater:LeftButton"]   = L["Cast water totem"]
+_G["BINDING_NAME_CLICK TotemWatchAir:LeftButton"]     = L["Cast air totem"]
+_G["BINDING_NAME_CLICK TotemWatchWeapon:LeftButton"]  = L["Cast weapon enchant"]
+_G["BINDING_NAME_CLICK TotemWatchShield:LeftButton"]  = L["Cast shield"]
 
 ---------------------------------------------------------------------------
 -- Slash-Befehle
@@ -1769,73 +1770,73 @@ SlashCmdList.TOTEMWATCH = function(msg)
   local cmd, arg = (msg or ""):lower():match("^(%S*)%s*(.-)$")
   local p = function(t) print("|cff0070deTotemWatch|r: " .. t) end
   local needsOOC = { test = true, ooc = true, scale = true, reset = true }
-  if needsOOC[cmd] and InCombatLockdown() then p("Im Kampf nicht möglich.") return end
+  if needsOOC[cmd] and InCombatLockdown() then p(L["Not possible in combat."]) return end
 
   if cmd == "test" then
     ns.ToggleTest()
-    p("Testmodus " .. (state.test and "an" or "aus"))
+    p(L["Test mode "] .. (state.test and L["on"] or L["off"]))
   elseif cmd == "lock" then
-    TotemWatchDB.locked = true; p("Fixiert")
+    TotemWatchDB.locked = true; p(L["Locked"])
   elseif cmd == "unlock" then
-    TotemWatchDB.locked = false; p("Verschiebbar (an der Titelzeile ziehen)")
+    TotemWatchDB.locked = false; p(L["Unlocked (drag the title bar)"])
   elseif cmd == "scale" and tonumber(arg) then
     TotemWatchDB.scale = math.max(0.5, math.min(2.5, tonumber(arg)))
-    frame:SetScale(TotemWatchDB.scale); p("Skalierung " .. TotemWatchDB.scale)
+    frame:SetScale(TotemWatchDB.scale); p(L["Scale "] .. TotemWatchDB.scale)
   elseif cmd == "sound" then
-    TotemWatchDB.sound = not TotemWatchDB.sound; p("Sound " .. (TotemWatchDB.sound and "an" or "aus"))
+    TotemWatchDB.sound = not TotemWatchDB.sound; p("Sound " .. (TotemWatchDB.sound and L["on"] or L["off"]))
   elseif cmd == "auto" then
     TotemWatchDB.auto = not TotemWatchDB.auto; wipe(state.lastRec)
-    p("Knöpfe automatisch mit Empfehlung belegen: " .. (TotemWatchDB.auto and "an" or "aus"))
+    p(L["Auto-assign recommended totems to buttons: "] .. (TotemWatchDB.auto and L["on"] or L["off"]))
   elseif cmd == "ooc" then
     TotemWatchDB.showOOC = not TotemWatchDB.showOOC; ApplyVisibilityDriver(); UpdateVisibility()
-    p("Außerhalb des Kampfes anzeigen: " .. (TotemWatchDB.showOOC and "an" or "aus"))
+    p(L["Show out of combat: "] .. (TotemWatchDB.showOOC and L["on"] or L["off"]))
   elseif cmd == "reset" then
     TotemWatchDB.point, TotemWatchDB.x, TotemWatchDB.y, TotemWatchDB.scale = "CENTER", 0, -180, 1
-    ApplyPosition(); p("Position zurückgesetzt")
-  elseif cmd == "fremd" then
+    ApplyPosition(); p(L["Position reset"])
+  elseif cmd == "other" or cmd == "fremd" then
     local key = arg ~= "" and arg:upper() or nil
     if key and ns.TOTEMS[key] then
-      AddOtherTotem("TEST-" .. key, "TEST", "Test-Schamane", key)
-      p("Simuliert: Test-Schamane stellt " .. TotemName(key))
+      AddOtherTotem("TEST-" .. key, "TEST", L["Test shaman"], key)
+      p(L["Simulated: test shaman has "] .. TotemName(key))
     else
       for g, t in pairs(state.others) do if t.src == "TEST" then state.others[g] = nil end end
       local list = {}
       for k in pairs(ns.TOTEMS) do list[#list + 1] = k:lower() end
       table.sort(list)
-      p("Simulierte Totems entfernt. Mögliche Werte: " .. table.concat(list, ", "))
+      p(L["Simulated totems removed. Possible values: "] .. table.concat(list, ", "))
     end
   elseif cmd == "boss" then
     local id = tonumber(arg)
     if id then SetBoss(id) else ClearBoss() end
-    p("Boss: " .. (state.bossName or "keiner"))
+    p("Boss: " .. (state.bossName or L["none"]))
   elseif cmd == "debug" then
     local known = {}
     for key in pairs(ns.TOTEMS) do if IsKnown(key) then known[#known + 1] = TotemName(key) end end
-    p("Diagnose:")
+    p(L["Diagnostics:"])
     print("  Client-Interface: " .. tostring(select(4, GetBuildInfo())))
-    print("  Kampflog aktiv: " .. (ns.combatLogAllowed and "ja" or "nein"))
-    print("  Knöpfe eingerichtet: " .. (state.setupDone and "ja" or "NEIN"))
-    print("  Fenster sichtbar: " .. (frame:IsShown() and "ja" or "nein") ..
-          ", im Kampf: " .. (InCombatLockdown() and "ja" or "nein"))
-    print(format("  Bekannte Totems (%d): %s", #known, table.concat(known, ", ")))
-    print("  DBM: " .. (DBM and "ja" or "nein") .. ", BigWigs: " .. (BigWigsLoader and "ja" or "nein"))
+    print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no"]))
+    print(L["  Buttons set up: "] .. (state.setupDone and L["yes"] or L["NO"]))
+    print(L["  Window visible: "] .. (frame:IsShown() and L["yes"] or L["no"]) ..
+          L[", in combat: "] .. (InCombatLockdown() and L["yes"] or L["no"]))
+    print(format(L["  Known totems (%d): %s"], #known, table.concat(known, ", ")))
+    print("  DBM: " .. (DBM and L["yes"] or L["no"]) .. ", BigWigs: " .. (BigWigsLoader and L["yes"] or L["no"]))
     for s = 1, 4 do
       local have, n, st, du, _, fromTracked = TotemData(s)
       local left = (du and du > 0) and floor(st + du - GetTime()) or 0
-      print(format("  Slot %d (%s): aktiv=%s, Rest=%ds, Quelle=%s, belegt=%s", s, ns.SLOT_NAMES[s],
-        (have and n and n ~= "") and n or "-", left, fromTracked and "eigene Aufzeichnung" or "Spiel",
+      print(format(L["  Slot %d (%s): active=%s, left=%ds, source=%s, assigned=%s"], s, ns.SLOT_NAMES[s],
+        (have and n and n ~= "") and n or "-", left, fromTracked and L["own tracking"] or L["game"],
         tostring(slots[s]:GetAttribute("spell1"))))
     end
     if ns.lastErrors then
-      for label, err in pairs(ns.lastErrors) do print("  |cffff4040Fehler " .. label .. ":|r " .. err) end
+      for label, err in pairs(ns.lastErrors) do print(L["  |cffff4040Error "] .. label .. ":|r " .. err) end
     else
-      print("  Keine Fehler aufgetreten.")
+      print(L["  No errors so far."])
     end
   elseif cmd == "check" then
-    if InCombatLockdown() then p("Der Pull-Check geht nur außerhalb des Kampfes.") return end
+    if InCombatLockdown() then p(L["The pull check only works out of combat."]) return end
     local old = TotemWatchDB.prePull
     TotemWatchDB.prePull = true
-    ns.RunPrePullCheck("manuell", 20)
+    ns.RunPrePullCheck(L["manual"], 20)
     TotemWatchDB.prePull = old
   elseif cmd == "probe" then
     -- Welche Daten liefert der Client gerade (im Kampf testen!)?
@@ -1843,11 +1844,11 @@ SlashCmdList.TOTEMWATCH = function(msg)
     local function probe(label, fn)
       local r = pack(pcall(fn))
       if not r[1] then
-        print(format("  %s: |cffff4040gesperrt (Fehler)|r %s", label, tostring(r[2])))
+        print(format(L["  %s: |cffff4040blocked (error)|r %s"], label, tostring(r[2])))
         return
       end
       if r.n < 2 or (r.n == 2 and r[2] == nil) then
-        print(format("  %s: |cffaaaaaakeine Daten|r", label))
+        print(format(L["  %s: |cffaaaaaano data|r"], label))
         return
       end
       local secret = false
@@ -1858,86 +1859,86 @@ SlashCmdList.TOTEMWATCH = function(msg)
           for _, fv in pairs(v) do if IsSecret(fv) then secret = true end end
         end
       end
-      print(format("  %s: %s", label, secret and "|cffff8000gesperrt (geheimer Wert)|r" or "|cff40ff40lesbar|r"))
+      print(format("  %s: %s", label, secret and L["|cffff8000blocked (secret value)|r"] or L["|cff40ff40readable|r"]))
     end
     local earthSpell = slots[2]:GetAttribute("spell1") or SpellName(8075)
-    p(format("Datentest – im Kampf: %s, Client %s", InCombatLockdown() and "|cff40ff40ja|r" or
-      "|cffff4040NEIN (bitte im Kampf wiederholen)|r", tostring(select(4, GetBuildInfo()))))
-    print("  Geheime Werte im Client: " .. (issecretvalue and "ja" or "nein"))
+    p(format(L["Data test – in combat: %s, client %s"], InCombatLockdown() and L["|cff40ff40yes|r"] or
+      L["|cffff4040NO (please repeat in combat)|r"], tostring(select(4, GetBuildInfo()))))
+    print(L["  Secret values in client: "] .. (issecretvalue and L["yes"] or L["no"]))
     for s = 1, 4 do probe("Totem " .. ns.SLOT_NAMES[s] .. " (GetTotemInfo)", function() return GetTotemInfo(s) end) end
-    if GetTotemTimeLeft then probe("Totem-Restzeit (GetTotemTimeLeft)", function() return GetTotemTimeLeft(1) end) end
-    probe("Abklingzeit Zauber", function()
+    if GetTotemTimeLeft then probe(L["Totem time left (GetTotemTimeLeft)"], function() return GetTotemTimeLeft(1) end) end
+    probe(L["Spell cooldown"], function()
       if C_Spell and C_Spell.GetSpellCooldown then return C_Spell.GetSpellCooldown(earthSpell) end
       return GetSpellCooldown(earthSpell)
     end)
-    probe("Eigene Buffs", function()
+    probe(L["Own buffs"], function()
       if C_UnitAuras and C_UnitAuras.GetBuffDataByIndex then return C_UnitAuras.GetBuffDataByIndex("player", 1) end
       return UnitBuff("player", 1)
     end)
     if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
       local learned = {}
       if TotemWatchDB.shieldAuraIds then for id in pairs(TotemWatchDB.shieldAuraIds) do learned[#learned + 1] = id end end
-      print("  Gelernte Schild-IDs: " .. (#learned > 0 and table.concat(learned, ", ") or
-        "|cffff8000keine – Schild außerhalb des Kampfes wirken, dann erneut testen|r"))
-      probe("Eigener Schild (nach Zauber-ID, Schild muss aktiv sein)", function()
+      print(L["  Learned shield IDs: "] .. (#learned > 0 and table.concat(learned, ", ") or
+        L["|cffff8000none – cast your shield out of combat, then test again|r"]))
+      probe(L["Own shield (by spell ID, shield must be active)"], function()
         for _, id in ipairs(ShieldIdList()) do
           local a = C_UnitAuras.GetPlayerAuraBySpellID(id)
           if a then return a end
         end
       end)
     end
-    probe("Eigene Debuffs", function()
+    probe(L["Own debuffs"], function()
       if C_UnitAuras and C_UnitAuras.GetDebuffDataByIndex then return C_UnitAuras.GetDebuffDataByIndex("player", 1) end
       return UnitDebuff("player", 1)
     end)
     if UnitExists("party1") then
-      probe("Buffs Gruppenmitglied", function()
+      probe(L["Party member buffs"], function()
         if C_UnitAuras and C_UnitAuras.GetBuffDataByIndex then return C_UnitAuras.GetBuffDataByIndex("party1", 1) end
         return UnitBuff("party1", 1)
       end)
-      probe("Abstand Gruppenmitglied (UnitInRange)", function() return UnitInRange("party1") end)
+      probe(L["Party member range (UnitInRange)"], function() return UnitInRange("party1") end)
     end
-    probe("Eigenes Leben", function() return UnitHealth("player") end)
-    probe("Eigenes Mana", function() return UnitPower("player") end)
-    probe("Waffenverzauberung", function() return GetWeaponEnchantInfo() end)
+    probe(L["Own health"], function() return UnitHealth("player") end)
+    probe(L["Own mana"], function() return UnitPower("player") end)
+    probe(L["Weapon enchant"], function() return GetWeaponEnchantInfo() end)
     if UnitExists("nameplate1") then
-      probe("Gegner-Namensplakette", function() return UnitAffectingCombat("nameplate1") end)
+      probe(L["Enemy nameplate"], function() return UnitAffectingCombat("nameplate1") end)
     end
-    if UnitExists("target") then probe("Ziel-Leben", function() return UnitHealth("target") end) end
-    print("  Zauber-Ereignis (gewirkt): " .. (not ns.lastCastSeen and "|cffaaaaaanoch nichts gewirkt|r"
-      or ns.lastCastSecret and "|cffff8000gesperrt|r" or "|cff40ff40lesbar|r"))
+    if UnitExists("target") then probe(L["Target health"], function() return UnitHealth("target") end) end
+    print(L["  Spell event (cast): "] .. (not ns.lastCastSeen and L["|cffaaaaaanothing cast yet|r"]
+      or ns.lastCastSecret and L["|cffff8000blocked|r"] or L["|cff40ff40readable|r"]))
     -- für Abstands-Warnung und Furcht-Erkennung
-    probe("Eigene Position (UnitPosition)", function() return UnitPosition("player") end)
+    probe(L["Own position (UnitPosition)"], function() return UnitPosition("player") end)
     if UnitExists("target") then
-      probe("Ziel zaubert (UnitCastingInfo)", function() return UnitCastingInfo("target") end)
+      probe(L["Target casting (UnitCastingInfo)"], function() return UnitCastingInfo("target") end)
     end
-    print("  Feindliche Zauber-Ereignisse: " .. (not ns.enemyCastSeen and "|cffaaaaaanoch keins gesehen (Gegner zaubern lassen)|r"
-      or ns.enemyCastReadable and ("|cff40ff40lesbar|r (zuletzt: " .. tostring(ns.lastEnemyCast) .. ")")
-      or "|cffff8000gesperrt|r"))
-    print("  Kampflog: " .. (ns.combatLogAllowed and "angemeldet" or "nicht angemeldet (bei Forever gesperrt)"))
-    print("  Countdown-Zahlen (Spieleinstellung): " .. tostring(GetCVar and GetCVar("countdownForCooldowns")))
-  elseif cmd == "kampflog" then
+    print(L["  Enemy spell events: "] .. (not ns.enemyCastSeen and L["|cffaaaaaanone seen yet (let enemies cast)|r"]
+      or ns.enemyCastReadable and (L["|cff40ff40readable|r (last: "] .. tostring(ns.lastEnemyCast) .. ")")
+      or L["|cffff8000blocked|r"]))
+    print(L["  Combat log: "] .. (ns.combatLogAllowed and L["registered"] or L["not registered (blocked on Forever)"]))
+    print(L["  Countdown numbers (game setting): "] .. tostring(GetCVar and GetCVar("countdownForCooldowns")))
+  elseif cmd == "combatlog" or cmd == "kampflog" then
     TotemWatchDB.forceCombatLog = not TotemWatchDB.forceCombatLog
-    p("Kampflog erzwingen: " .. (TotemWatchDB.forceCombatLog and "an" or "aus") ..
-      " – wirkt nach /reload. Kommt die Blizzard-Meldung wieder, hiermit ausschalten.")
-  elseif (cmd == "" or cmd == "config" or cmd == "optionen") and ns.OpenOptions then
+    p(L["Force combat log: "] .. (TotemWatchDB.forceCombatLog and L["on"] or L["off"]) ..
+      L[" – takes effect after /reload. If the Blizzard message returns, turn it off again."])
+  elseif (cmd == "" or cmd == "config" or cmd == "options" or cmd == "optionen") and ns.OpenOptions then
     ns.OpenOptions()
   else
-    p("Befehle:")
-    print("  /tw – Optionsmenü öffnen")
-    print("  /tw test – Anzeige testen (ein/aus)")
-    print("  /tw lock | unlock – Fenster fixieren / verschieben")
-    print("  /tw scale 1.2 – Größe ändern")
-    print("  /tw sound – Warnton an/aus")
-    print("  /tw auto – Knöpfe automatisch mit Empfehlung belegen (an/aus)")
-    print("  /tw ooc – auch außerhalb des Kampfes zeigen")
-    print("  /tw boss <encounterID> – Boss-Empfehlung simulieren (z.B. 672 = Ragnaros)")
-    print("  /tw fremd <totem> – Totem eines anderen Schamanen simulieren (ohne Wert: entfernen)")
-    print("  /tw reset – Position zurücksetzen")
-    print("  /tw check – Pull-Check jetzt anzeigen (kommt sonst automatisch bei Pull-Timer/Bereitschaftscheck)")
-    print("  /tw probe – im Kampf testen, welche Daten das Spiel freigibt")
-    print("  /tw kampflog – Kampflog erzwingen (nur testen; Standard bei Forever: aus)")
-    print("  Kampflog aktiv: " .. (ns.combatLogAllowed and "ja" or "nein (Ersatz über Buffs)"))
-    print("  Tasten: Esc → Tastaturbelegung → AddOns → TotemWatch")
+    p(L["Commands:"])
+    print(L["  /tw – open options"])
+    print(L["  /tw test – show the bar for testing (on/off)"])
+    print(L["  /tw lock | unlock – lock / move the window"])
+    print(L["  /tw scale 1.2 – change size"])
+    print(L["  /tw sound – warning sound on/off"])
+    print(L["  /tw auto – auto-assign recommended totems to buttons (on/off)"])
+    print(L["  /tw ooc – also show out of combat"])
+    print(L["  /tw boss <encounterID> – simulate a boss (e.g. 672 = Ragnaros)"])
+    print(L["  /tw other <totem> – simulate another shaman's totem (no value: remove)"])
+    print(L["  /tw reset – reset position"])
+    print(L["  /tw check – show the pull check now (otherwise automatic on pull timer / ready check)"])
+    print(L["  /tw probe – test in combat which data the game allows"])
+    print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
+    print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
+    print(L["  Keys: Esc → Key Bindings → AddOns → TotemWatch"])
   end
 end

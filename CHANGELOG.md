@@ -1,5 +1,13 @@
 # TotemWatch – Changelog
 
+## 1.1.0
+
+- **English interface.** The language follows your game client: English by default, German on German clients.
+- Boss names and recommendation reasons are translated, too.
+- New English command names: `/tw other <totem>`, `/tw combatlog`, `/tw options` (the German ones still work).
+
+*Deutsch:* Englische Oberfläche – die Sprache richtet sich nach dem Spiel-Client (deutscher Client = Deutsch).
+
 ## 1.0.0 (erste Veröffentlichung)
 
 - Totem-Leiste mit 4 Element-Knöpfen: Linksklick stellt, Rechtsklick öffnet die Auswahl

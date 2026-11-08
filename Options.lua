@@ -1,6 +1,7 @@
 -- TotemWatch - Optionsmenü (Esc -> Optionen -> AddOns -> TotemWatch)
 local ADDON, ns = ...
 if not ns.frame then return end   -- kein Schamane
+local L = ns.L
 
 local panel, category
 
@@ -10,7 +11,7 @@ end
 
 -- Einstellungen, die geschützte Fenster ändern, nur außerhalb des Kampfes
 local function OutOfCombat(fn)
-  if InCombatLockdown() then Note("Im Kampf nicht möglich – bitte nach dem Kampf ändern.") return false end
+  if InCombatLockdown() then Note(L["Not possible in combat – please change it after combat."]) return false end
   fn()
   return true
 end
@@ -116,54 +117,54 @@ function ns.CreateOptions()
 
   local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
   title:SetPoint("TOPLEFT", 16, -16)
-  title:SetText("|cff0070deTotemWatch|r – Optionen")
+  title:SetText(L["|cff0070deTotemWatch|r – Options"])
 
   local sub = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
   sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-  sub:SetText("Totem-Empfehlungen, Warnungen und Totem-Leiste. Manche Änderungen gehen nur außerhalb des Kampfes.")
+  sub:SetText(L["Totem recommendations, warnings and the totem bar. Some changes only work out of combat."])
 
   local L, R = 16, 300
   local y = -70
 
-  AddHeader(panel, L, y, "Empfehlungen")
-  AddCheck(panel, L, y - 20, "auto", "Knöpfe automatisch belegen",
-    "Außerhalb des Kampfes werden die Totem-Knöpfe mit dem empfohlenen Totem belegt.",
+  AddHeader(panel, L, y, L["Recommendations"])
+  AddCheck(panel, L, y - 20, "auto", L["Auto-assign buttons"],
+    L["Out of combat, the totem buttons are set to the recommended totem."],
     function() wipe(ns.state.lastRec) end)
-  AddCheck(panel, L, y - 46, "useBoss", "Boss-Regeln verwenden",
-    "Empfehlungen je Boss (erkannt über Blizzard, DBM oder BigWigs).")
-  AddCheck(panel, L, y - 72, "useOthers", "Andere Schamanen berücksichtigen",
-    "Totems anderer Schamanen in deiner Gruppe erkennen und Doppelungen vermeiden.")
-  AddCheck(panel, L, y - 98, "showHints", "Hinweistexte anzeigen",
-    "Erklärungen unter der Leiste: was fehlt und warum.")
+  AddCheck(panel, L, y - 46, "useBoss", L["Use boss rules"],
+    L["Recommendations per boss (detected via Blizzard, DBM or BigWigs)."])
+  AddCheck(panel, L, y - 72, "useOthers", L["Consider other shamans"],
+    L["Detect totems of other shamans in your group and avoid duplicates."])
+  AddCheck(panel, L, y - 98, "showHints", L["Show hint texts"],
+    L["Explanations below the bar: what is missing and why."])
 
-  AddHeader(panel, R, y, "Warnungen")
-  AddCheck(panel, R, y - 20, "sound", "Warnton",
-    "Ton bei dringenden Warnungen (Fear, zerstörtes Totem).")
-  AddCheck(panel, R, y - 46, "rangeWarn", "Reichweiten-Warnung",
-    "Zeigt, wer den Buff deines Totems nicht hat (außer Reichweite). Gilt für Totems mit Buff, z.B. Stärke der Erde, Manaquelle, Luftgnade, Widerstände.")
-  AddCheck(panel, R, y - 72, "destroyWarn", "Warnung bei zerstörtem Totem",
-    "Warnt, wenn ein Totem vor Ablauf verschwindet (getötet, Erdung hat einen Zauber abgefangen).")
-  AddCheck(panel, R, y - 98, "prePull", "Pull-Check",
-    "Zeigt bei Pull-Timer (DBM/BigWigs) und Bereitschaftscheck eine Checkliste: Totems, Schild, Waffe, Reichweite.")
-  AddCheck(panel, R, y - 124, "enemyCasts", "Furcht über feindliche Zauber",
-    "Erkennt über die Namensplaketten, wenn ein Gegner Furcht zaubert, und empfiehlt Erdstoß.")
-  AddCheck(panel, R, y - 150, "distanceWarn", "Abstand zu eigenen Totems",
-    "Warnt, wenn du weiter als die Totem-Reichweite von deinen Totems weg bist.")
+  AddHeader(panel, R, y, L["Warnings"])
+  AddCheck(panel, R, y - 20, "sound", L["Warning sound"],
+    L["Sound on urgent warnings (fear, destroyed totem)."])
+  AddCheck(panel, R, y - 46, "rangeWarn", L["Range warning"],
+    L["Shows who does not have your totem's buff (out of range). Works for totems with a buff, e.g. Strength of Earth, Mana Spring, Grace of Air, resistances."])
+  AddCheck(panel, R, y - 72, "destroyWarn", L["Warn when a totem is destroyed"],
+    L["Warns when a totem disappears early (killed, Grounding absorbed a spell)."])
+  AddCheck(panel, R, y - 98, "prePull", L["Pull check"],
+    L["Shows a checklist on pull timer (DBM/BigWigs) and ready check: totems, shield, weapon, range."])
+  AddCheck(panel, R, y - 124, "enemyCasts", L["Fear from enemy casts"],
+    L["Detects via nameplates when an enemy casts fear and recommends Tremor Totem."])
+  AddCheck(panel, R, y - 150, "distanceWarn", L["Distance to your totems"],
+    L["Warns when you are farther from your totems than their range."])
 
   y = -260
-  AddHeader(panel, L, y, "Leiste")
-  AddCheck(panel, L, y - 20, "showAll", "Knopf „ALLE stellen“", nil,
+  AddHeader(panel, L, y, L["Bar"])
+  AddCheck(panel, L, y - 20, "showAll", L["Cast-all button"], nil,
     function() ns.SetupSecure() end, true)
-  AddCheck(panel, L, y - 46, "showWeapon", "Knopf Waffenverzauberung", nil,
+  AddCheck(panel, L, y - 46, "showWeapon", L["Weapon enchant button"], nil,
     function() ns.SetupSecure() end, true)
-  AddCheck(panel, L, y - 72, "showShield", "Knopf Schild", nil,
+  AddCheck(panel, L, y - 72, "showShield", L["Shield button"], nil,
     function() ns.SetupSecure() end, true)
-  AddCheck(panel, L, y - 98, "showOOC", "Auch außerhalb des Kampfes zeigen", nil,
+  AddCheck(panel, L, y - 98, "showOOC", L["Also show out of combat"], nil,
     function() ns.ApplyVisibilityDriver(); ns.UpdateVisibility() end, true)
-  AddCheck(panel, L, y - 124, "locked", "Fenster fixieren",
-    "Verhindert versehentliches Verschieben über die Titelzeile.")
+  AddCheck(panel, L, y - 124, "locked", L["Lock window"],
+    L["Prevents accidental moving via the title bar."])
 
-  scaleSlider = AddSlider(panel, R, y - 20, "Größe", 0.5, 2.0, 0.05,
+  scaleSlider = AddSlider(panel, R, y - 20, L["Size"], 0.5, 2.0, 0.05,
     function() return TotemWatchDB.scale or 1 end,
     function(v)
       if InCombatLockdown() then return end
@@ -171,17 +172,17 @@ function ns.CreateOptions()
       ns.ApplyPosition()
     end)
 
-  AddButton(panel, R, y - 70, "Anzeige testen (an/aus)", 180, function()
+  AddButton(panel, R, y - 70, L["Test display (on/off)"], 180, function()
     OutOfCombat(function()
       ns.ToggleTest()
-      Note("Testmodus " .. (ns.state.test and "an" or "aus"))
+      Note(L["Test mode "] .. (ns.state.test and L["on"] or L["off"]))
     end)
   end)
-  AddButton(panel, R, y - 100, "Position zurücksetzen", 180, function()
+  AddButton(panel, R, y - 100, L["Reset position"], 180, function()
     OutOfCombat(function() ns.ResetPosition(); RefreshPanel() end)
   end)
 
-  warnSlider = AddSlider(panel, R, y - 135, "Vorwarnung vor Ablauf (Sek., 0 = aus)", 0, 15, 1,
+  warnSlider = AddSlider(panel, R, y - 135, L["Warning before expiry (sec., 0 = off)"], 0, 15, 1,
     function() return TotemWatchDB.warnBefore or 0 end,
     function(v) TotemWatchDB.warnBefore = v end)
 
@@ -189,9 +190,9 @@ function ns.CreateOptions()
   help:SetPoint("TOPLEFT", L, y - 190)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
-  help:SetText("Bedienung: Linksklick stellt das Totem, Rechtsklick öffnet die Auswahl.\n" ..
-    "Tasten belegen: Esc → Tastaturbelegung → AddOns → TotemWatch.\n" ..
-    "Befehle: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw fremd <totem>")
+  help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..
+    L["Key bindings: Esc → Key Bindings → AddOns → TotemWatch.\n"] ..
+    L["Commands: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw other <totem>"])
 
   panel:SetScript("OnShow", RefreshPanel)
   -- ältere Clients
@@ -215,6 +216,6 @@ function ns.OpenOptions()
     InterfaceOptionsFrame_OpenToCategory(panel)
     InterfaceOptionsFrame_OpenToCategory(panel)   -- bekannter Blizzard-Bug: zweimal nötig
   else
-    Note("Optionsmenü nicht verfügbar – nutze /tw help")
+    Note(L["Options menu not available – use /tw help"])
   end
 end

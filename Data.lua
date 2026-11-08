@@ -1,11 +1,12 @@
 -- TotemWatch - Daten
 -- Hier kannst du Boss-Empfehlungen, Fear-Zauber und Standard-Totems anpassen.
 local ADDON, ns = ...
+local L = ns.L
 
 -- Totem-Slots wie GetTotemInfo() sie liefert
 ns.FIRE, ns.EARTH, ns.WATER, ns.AIR = 1, 2, 3, 4
 ns.SLOT_KEYS  = { [1] = "fire", [2] = "earth", [3] = "water", [4] = "air" }
-ns.SLOT_NAMES = { [1] = "Feuer", [2] = "Erde", [3] = "Wasser", [4] = "Luft" }
+ns.SLOT_NAMES = { [1] = L["Fire"], [2] = L["Earth"], [3] = L["Water"], [4] = L["Air"] }
 ns.SLOT_COLORS = {
   [1] = "ff7f3f", [2] = "c8a050", [3] = "40a0ff", [4] = "b0e0ff",
 }
@@ -119,53 +120,54 @@ ns.FEAR_KEYWORDS = {
   "terrify", "schreck", "howl", "geheul", "bellowing", "dröhnend",
 }
 
--- Boss-Empfehlungen, Schlüssel = encounterID (ENCOUNTER_START / DBM / BigWigs).
--- Jede Element-Liste wird der Reihe nach probiert; das erste bekannte Totem gewinnt.
--- avoid = Totems, die man bei diesem Boss NICHT stellen soll.
-local function T(key, reason) return { key, reason } end
+-- Boss recommendations, key = encounterID (ENCOUNTER_START / DBM / BigWigs).
+-- Each element list is tried in order; the first known totem wins.
+-- avoid = totems you should NOT drop on this boss.
+-- Names and reasons are translated via Locales.lua.
+local function T(key, reason) return { key, L[reason] } end
 
 ns.BOSSES = {
   ---------------------------------------------------------------- Molten Core
-  [663] = { name = "Lucifron",   earth = { T("TREMOR", "Gedankenkontrolle (Charm)") } },
-  [664] = { name = "Magmadar",   earth = { T("TREMOR", "Panik (Fear)") },
-                                 water = { T("FIRE_RES", "Lavabomben / Feuerschaden") } },
-  [668] = { name = "Baron Geddon", water = { T("FIRE_RES", "Inferno / Feuerschaden") } },
-  [670] = { name = "Golemagg",   water = { T("FIRE_RES", "Feuerschaden") } },
-  [672] = { name = "Ragnaros",   water = { T("FIRE_RES", "Massiver Feuerschaden") } },
+  [663] = { name = L["Lucifron"],   earth = { T("TREMOR", "Mind control (charm)") } },
+  [664] = { name = L["Magmadar"],   earth = { T("TREMOR", "Panic (fear)") },
+                                    water = { T("FIRE_RES", "Lava bombs / fire damage") } },
+  [668] = { name = L["Baron Geddon"], water = { T("FIRE_RES", "Inferno / fire damage") } },
+  [670] = { name = L["Golemagg"],   water = { T("FIRE_RES", "Fire damage") } },
+  [672] = { name = L["Ragnaros"],   water = { T("FIRE_RES", "Massive fire damage") } },
   ---------------------------------------------------------------- Onyxia
-  [1084] = { name = "Onyxia",    earth = { T("TREMOR", "Dröhnendes Gebrüll in Phase 3") },
-                                 water = { T("FIRE_RES", "Flammenatem / Tiefer Atem") } },
+  [1084] = { name = L["Onyxia"],    earth = { T("TREMOR", "Bellowing Roar in phase 3") },
+                                    water = { T("FIRE_RES", "Flame Breath / Deep Breath") } },
   ---------------------------------------------------------------- Blackwing Lair
-  [611] = { name = "Vaelastrasz", water = { T("FIRE_RES", "Flammenatem") } },
-  [613] = { name = "Feuerschwinge", water = { T("FIRE_RES", "Flammenpuffer") } },
-  [614] = { name = "Schattenschwinge", water = { T("FIRE_RES", "Schattenflamme") } },
-  [615] = { name = "Flammenmaul", water = { T("FIRE_RES", "Schattenflamme / Feuernova") } },
-  [616] = { name = "Chromaggus", water = { T("POISON_CLEANSE", "Brutgebrechen: Grün (Gift)"),
-                                           T("FIRE_RES", "Atemangriffe") },
-                                 note = "Atem-Typ beachten: ggf. Frost-/Naturwiderstand stellen" },
-  [617] = { name = "Nefarian",   earth = { T("TREMOR", "Dröhnendes Gebrüll (Fear)") },
-                                 water = { T("FIRE_RES", "Schattenflamme") } },
+  [611] = { name = L["Vaelastrasz"], water = { T("FIRE_RES", "Flame Breath") } },
+  [613] = { name = L["Firemaw"],    water = { T("FIRE_RES", "Flame Buffet") } },
+  [614] = { name = L["Ebonroc"],    water = { T("FIRE_RES", "Shadow Flame") } },
+  [615] = { name = L["Flamegor"],   water = { T("FIRE_RES", "Shadow Flame / Fire Nova") } },
+  [616] = { name = L["Chromaggus"], water = { T("POISON_CLEANSE", "Brood Affliction: Green (poison)"),
+                                              T("FIRE_RES", "Breath attacks") },
+                                    note = L["Watch the breath type: drop Frost/Nature Resistance if needed"] },
+  [617] = { name = L["Nefarian"],   earth = { T("TREMOR", "Bellowing Roar (fear)") },
+                                    water = { T("FIRE_RES", "Shadow Flame") } },
   ---------------------------------------------------------------- Zul'Gurub
-  [784] = { name = "Venoxis",    water = { T("POISON_CLEANSE", "Giftwolken / Gift") },
-                                 air   = { T("NATURE_RES", "Naturschaden") } },
-  [785] = { name = "Jeklik",     earth = { T("TREMOR", "Schrei (Fear)") } },
-  [786] = { name = "Mar'li",     water = { T("POISON_CLEANSE", "Giftblitzsalve") },
-                                 air   = { T("NATURE_RES", "Naturschaden") } },
-  [793] = { name = "Hakkar",     earth = { T("TREMOR", "Wahnsinn verursachen (Charm)") },
-                                 avoid = { POISON_CLEANSE = "Gift wird gegen Bluttrinken gebraucht!" } },
+  [784] = { name = L["Venoxis"],    water = { T("POISON_CLEANSE", "Poison clouds / poison") },
+                                    air   = { T("NATURE_RES", "Nature damage") } },
+  [785] = { name = L["Jeklik"],     earth = { T("TREMOR", "Screech (fear)") } },
+  [786] = { name = L["Mar'li"],     water = { T("POISON_CLEANSE", "Poison Bolt Volley") },
+                                    air   = { T("NATURE_RES", "Nature damage") } },
+  [793] = { name = L["Hakkar"],     earth = { T("TREMOR", "Cause Insanity (charm)") },
+                                    avoid = { POISON_CLEANSE = L["Poison is needed against Blood Siphon!"] } },
   ---------------------------------------------------------------- AQ40
-  [710] = { name = "Käfer-Trio", earth = { T("TREMOR", "Prinzessin Yauj: Fear") } },
-  [713] = { name = "Viscidus",   water = { T("POISON_CLEANSE", "Giftblitzsalve") },
-                                 air   = { T("NATURE_RES", "Naturschaden") } },
-  [714] = { name = "Huhuran",    water = { T("POISON_CLEANSE", "Wyvernstich / Gift") },
-                                 air   = { T("NATURE_RES", "Giftiger Stachel – Naturschaden") } },
+  [710] = { name = L["Bug Trio"],   earth = { T("TREMOR", "Princess Yauj: fear") } },
+  [713] = { name = L["Viscidus"],   water = { T("POISON_CLEANSE", "Poison Bolt Volley") },
+                                    air   = { T("NATURE_RES", "Nature damage") } },
+  [714] = { name = L["Princess Huhuran"], water = { T("POISON_CLEANSE", "Wyvern Sting / poison") },
+                                    air   = { T("NATURE_RES", "Noxious Poison – nature damage") } },
   ---------------------------------------------------------------- Naxxramas
-  [1108] = { name = "Gluth",     earth = { T("TREMOR", "Furchterregendes Gebrüll") } },
-  [1110] = { name = "Faerlina",  water = { T("FIRE_RES", "Feuerregen") } },
-  [1112] = { name = "Heigan",    water = { T("DISEASE_CLEANSE", "Zerfallsfieber (Krankheit)") } },
-  [1116] = { name = "Maexxna",   water = { T("POISON_CLEANSE", "Giftschuss-Salve") },
-                                 air   = { T("NATURE_RES", "Naturschaden") } },
-  [1119] = { name = "Saphiron",  fire  = { T("FROST_RES", "Frostaura / Frostatem") } },
-  [1114] = { name = "Kel'Thuzad", fire = { T("FROST_RES", "Frostblitze / Frostschlag") } },
-  [1120] = { name = "Thaddius",  air   = { T("NATURE_RES", "Kettenblitz / Polarität") } },
+  [1108] = { name = L["Gluth"],     earth = { T("TREMOR", "Terrifying Roar") } },
+  [1110] = { name = L["Grand Widow Faerlina"], water = { T("FIRE_RES", "Rain of Fire") } },
+  [1112] = { name = L["Heigan the Unclean"], water = { T("DISEASE_CLEANSE", "Decrepit Fever (disease)") } },
+  [1116] = { name = L["Maexxna"],   water = { T("POISON_CLEANSE", "Poison Shock volley") },
+                                    air   = { T("NATURE_RES", "Nature damage") } },
+  [1119] = { name = L["Sapphiron"], fire  = { T("FROST_RES", "Frost Aura / Frost Breath") } },
+  [1114] = { name = L["Kel'Thuzad"], fire = { T("FROST_RES", "Frostbolts / Frost Blast") } },
+  [1120] = { name = L["Thaddius"],  air   = { T("NATURE_RES", "Chain Lightning / Polarity") } },
 }
