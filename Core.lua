@@ -1352,16 +1352,36 @@ local function ActionTotemKey(action)
 end
 ns.ActionTotemKey = ActionTotemKey
 
+-- Welche Aktions-Plätze nutzt die Totem-Leiste des Spiels wirklich?
+-- Die Blizzard-Knöpfe der Leiste (MultiCastActionButton1-4) kennen ihren Platz selbst.
+-- Nur wenn es diese Knöpfe nicht gibt, gilt die WotLK-Annahme 133-136.
+function ns.MultiCastActions()
+  local list = {}
+  for i = 1, 4 do
+    local btn = _G["MultiCastActionButton" .. i]
+    local a = btn and btn.action
+    if (not a) and btn and btn.GetAttribute then a = btn:GetAttribute("action") end
+    if type(a) == "number" and not IsSecret(a) then list[i] = a end
+  end
+  if list[1] and list[2] and list[3] and list[4] then
+    ns.multicastSource = "MultiCastActionButton1-4"
+    return list
+  end
+  ns.multicastSource = format("default %d-%d", ns.MULTICAST_BASE + 1, ns.MULTICAST_BASE + 4)
+  return { ns.MULTICAST_BASE + 1, ns.MULTICAST_BASE + 2, ns.MULTICAST_BASE + 3, ns.MULTICAST_BASE + 4 }
+end
+
 function ns.SyncMultiCast()
   ns.multicastKeys = ns.multicastKeys or {}
   ns.multicastMismatch = nil
   if InCombatLockdown() or not callBtn:IsShown() then return end
+  local actions = ns.MultiCastActions()
 
   -- Welche Aktion gehört zu welchem Element? Zuerst aus dem, was schon auf der Leiste liegt,
   -- für leere Plätze die Standard-Reihenfolge (Erde, Feuer, Wasser, Luft).
   local slotOf, used = {}, {}
   for i = 1, 4 do
-    local k = ActionTotemKey(ns.MULTICAST_BASE + i)
+    local k = ActionTotemKey(actions[i])
     if k then slotOf[i] = ns.TOTEMS[k].slot; used[slotOf[i]] = true end
   end
   local order = TOTEM_PRIORITIES or { 2, 1, 3, 4 }
@@ -1375,7 +1395,7 @@ function ns.SyncMultiCast()
 
   local failed, mismatch = 0, {}
   for i = 1, 4 do
-    local action, slot = ns.MULTICAST_BASE + i, slotOf[i]
+    local action, slot = actions[i], slotOf[i]
     local assigned = slot and slots[slot]:GetAttribute("spell1")
     local want = assigned and KeyFromName(assigned)
     -- 1) setzen (wenn gewünscht und möglich)
@@ -2346,6 +2366,29 @@ SlashCmdList.TOTEMWATCH = function(msg)
           ", GetMultiCastTotemSpells: " .. (GetMultiCastTotemSpells and L["yes"] or L["no"]) ..
           ", TOTEM_PRIORITIES: " .. (TOTEM_PRIORITIES and table.concat(TOTEM_PRIORITIES, ",") or "-"))
     print("  " .. L["Last sync: "] .. tostring(ns.syncResult or "-"))
+    -- Welche Plätze nutzt TotemWatch, und woher kommen sie?
+    local acts = ns.MultiCastActions()
+    print(format("  Slots used: %d, %d, %d, %d  (source: %s)", acts[1], acts[2], acts[3], acts[4], tostring(ns.multicastSource)))
+    -- Blizzard-Knöpfe der Totem-Leiste
+    for i = 1, 4 do
+      local btn = _G["MultiCastActionButton" .. i]
+      if btn then
+        local a = btn.action or (btn.GetAttribute and btn:GetAttribute("action"))
+        local k = type(a) == "number" and ActionTotemKey(a)
+        print(format("  MultiCastActionButton%d: action=%s %s", i, tostring(a), k and TotemName(k) or ""))
+      end
+    end
+    -- Funktionen und Fenster im Client, die mit der Totem-Leiste zu tun haben
+    local apis, frames = {}, {}
+    for name, v in pairs(_G) do
+      if type(name) == "string" and (name:find("MultiCast") or name:find("TotemBar") or name:find("Totem.*Bar")) then
+        if type(v) == "function" then apis[#apis + 1] = name
+        elseif type(v) == "table" and v.GetObjectType then frames[#frames + 1] = name end
+      end
+    end
+    table.sort(apis); table.sort(frames)
+    print("  " .. L["Functions: "] .. (#apis > 0 and table.concat(apis, ", ") or "-"))
+    print("  " .. L["Frames: "] .. (#frames > 0 and table.concat(frames, ", ", 1, math.min(#frames, 15)) or "-"))
     -- Alle Aktions-Plätze mit Totem-Zaubern auflisten (zeigt, wo die Leiste wirklich liegt)
     local found = 0
     for a = 1, 200 do
