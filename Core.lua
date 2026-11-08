@@ -27,6 +27,9 @@ local DEFAULTS = {
   hintSize = 13,        -- Schriftgröße der Hinweise
   messageSize = 24,     -- Schriftgröße der Meldungen
   skin = "classic",     -- Design: classic, minimal, pillars, bars
+  showMinimap = true,   -- Minimap-Knopf anzeigen
+  minimapAngle = 200,   -- Position am Minimap-Rand (Grad)
+  tutorialDone = false, -- Einführung schon gesehen?
 }
 
 ---------------------------------------------------------------------------
@@ -2488,6 +2491,13 @@ ev:SetScript("OnEvent", function(_, event, ...)
     SafeCall("Fonts", ns.ApplyHintFont)       -- gespeicherte Schriftgrößen anwenden
     SafeCall("Fonts", ns.ApplyMessageFont)
     SafeCall("Messages", ns.ApplyMessagePosition)   -- gespeicherte Position der Meldungen
+    if ns.UpdateMinimapButton then SafeCall("Minimap", ns.UpdateMinimapButton) end
+    -- Beim allerersten Mal die Einführung zeigen (kurz nach dem Einloggen)
+    if not TotemWatchDB.tutorialDone and ns.StartTutorial and C_Timer then
+      C_Timer.After(4, function()
+        if not InCombatLockdown() then SafeCall("Tutorial", ns.StartTutorial) end
+      end)
+    end
     SafeCall(L["Visibility"], ApplyVisibilityDriver)
     SafeCall(L["Buttons"], SetupSecure)
     for s = 1, 4 do SafeCall("Totems", CheckDestroyed, s) end
@@ -2674,6 +2684,12 @@ SlashCmdList.TOTEMWATCH = function(msg)
     else
       print(L["  No errors so far."])
     end
+  elseif cmd == "tutorial" or cmd == "tour" or cmd == "einführung" then
+    if ns.StartTutorial then ns.StartTutorial() end
+  elseif cmd == "minimap" then
+    TotemWatchDB.showMinimap = not TotemWatchDB.showMinimap
+    if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
+    p(L["Minimap button: "] .. (TotemWatchDB.showMinimap and L["on"] or L["off"]))
   elseif cmd == "msg" or cmd == "messages" then
     local on = ns.ToggleMessageMove()
     p(on and L["Messages unlocked – drag them, right-click or /tw msg to lock."] or L["Message position saved."])
@@ -2862,6 +2878,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw bar – Call of the Elements bar diagnostics"])
     print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
     print(L["  /tw msg – move the messages in the middle of the screen"])
+    print(L["  /tw tutorial – start the tour  ·  /tw minimap – show/hide the minimap button"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
     print(L["  Keys: Esc → Key Bindings → AddOns → TotemWatch"])

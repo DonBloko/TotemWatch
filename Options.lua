@@ -135,6 +135,13 @@ function ns.CreateOptions()
 
   local LX, RX = 16, 300   -- Spalten-Positionen (nicht L = Übersetzung!)
 
+  -- Einführung jederzeit erneut starten (oben rechts)
+  local tourBtn = AddButton(panel, 0, 0, L["Start tour"], 140, function()
+    if ns.StartTutorial then ns.StartTutorial() end
+  end)
+  tourBtn:ClearAllPoints()
+  tourBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -16)
+
   -- Design-Auswahl (oben, gut sichtbar)
   AddHeader(panel, LX, -62, L["Design"])
   for i, key in ipairs(ns.SKIN_ORDER) do
@@ -201,6 +208,9 @@ function ns.CreateOptions()
     L["Moves your totems to you. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
   AddCheck(panel, LX, y - 228, "showRecall", L["Totemic Recall button"],
     L["Removes your totems. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
+  AddCheck(panel, LX, y - 254, "showMinimap", L["Minimap button"],
+    L["Left-click: options · Right-click: show/hide the bar · Shift-click: tour"],
+    function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end)
 
   scaleSlider = AddSlider(panel, RX, y - 20, L["Size"], 0.5, 2.0, 0.05,
     function() return TotemWatchDB.scale or 1 end,

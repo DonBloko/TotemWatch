@@ -9,6 +9,8 @@
   - **Bars** – one row per element with totem name, status and a time bar (like boss mod bars)
 - Hint texts match the chosen design and no longer overlap when a hint wraps.
 - The messages in the middle of the screen can be moved (options menu → Move messages, or `/tw msg`).
+- **Minimap button:** left-click opens the options, right-click shows/hides the bar, Shift-click starts the tour; drag it around the minimap (can be hidden).
+- **Guided tour** on first login (and any time via the minimap button, the options or `/tw tutorial`): design, placement, usage, key bindings and warnings in 7 short steps.
 
 ## 1.1.0
 
