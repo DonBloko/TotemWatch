@@ -62,6 +62,19 @@ ns.SHIELD_SPELLS = {
   24398, -- Wasserschild (TBC)
   324,   -- Blitzschlagschild
 }
+-- Drei verschiedene Zauber (WoW Forever):
+--   Totemic Recall:      entfernt alle Totems, gibt Mana zurück
+--   Totemic Call:        holt deine Totems zu dir (sie bleiben bestehen)
+--   Call of the Elements: stellt alle Totems der Totem-Leiste auf einmal
+-- Recall und Call werden NUR über den Namen erkannt, da die Zauber-ID 36936 je nach
+-- Spielversion mal "Totemic Call", mal "Totemic Recall" heißt. Bei Bedarf Namen ergänzen.
+ns.RECALL_NAMES = { "Totemic Recall", "Totemischer Rückruf" }
+ns.MOVE_NAMES   = { "Totemic Call", "Totemruf" }
+ns.CALL_IDS     = { 66842 }
+ns.CALL_NAMES   = { "Call of the Elements", "Ruf der Elemente" }
+-- Aktions-IDs der Totem-Leiste für "Call of the Elements" (Seite 1): 133-136
+ns.MULTICAST_BASE = 132
+
 -- Alle Ränge der Schilde (für die Abfrage nach Zauber-ID im Kampf)
 ns.SHIELD_AURA_IDS = {
   324, 325, 905, 945, 8134, 10431, 10432, 25469, 25472, -- Blitzschlagschild

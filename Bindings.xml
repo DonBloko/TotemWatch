@@ -6,4 +6,7 @@
   <Binding name="CLICK TotemWatchAir:LeftButton"></Binding>
   <Binding name="CLICK TotemWatchWeapon:LeftButton"></Binding>
   <Binding name="CLICK TotemWatchShield:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchCall:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchMove:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchRecall:LeftButton"></Binding>
 </Bindings>

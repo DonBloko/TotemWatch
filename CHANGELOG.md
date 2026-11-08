@@ -5,6 +5,11 @@
 - **English interface.** The language follows your game client: English by default, German on German clients.
 - Boss names and recommendation reasons are translated, too.
 - New English command names: `/tw other <totem>`, `/tw combatlog`, `/tw options` (the German ones still work).
+- **New buttons** (only shown if you know the spell):
+  - **Call of the Elements** – drops all 4 totems at once; its totem bar is synced with your TotemWatch buttons out of combat.
+  - **Totemic Call** – moves your totems to you; TotemWatch keeps their timers and updates their position. The distance warning suggests it and the button lights up when you are out of range.
+  - **Totemic Recall** – removes your totems; no false "totem destroyed" warnings afterwards.
+- Key bindings for the new buttons; `/tw probe` shows which of these spells your client knows.
 
 *Deutsch:* Englische Oberfläche – die Sprache richtet sich nach dem Spiel-Client (deutscher Client = Deutsch).
 

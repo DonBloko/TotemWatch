@@ -123,48 +123,57 @@ function ns.CreateOptions()
   sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
   sub:SetText(L["Totem recommendations, warnings and the totem bar. Some changes only work out of combat."])
 
-  local L, R = 16, 300
+  local LX, RX = 16, 300   -- Spalten-Positionen (nicht L = Übersetzung!)
   local y = -70
 
-  AddHeader(panel, L, y, L["Recommendations"])
-  AddCheck(panel, L, y - 20, "auto", L["Auto-assign buttons"],
+  AddHeader(panel, LX, y, L["Recommendations"])
+  AddCheck(panel, LX, y - 20, "auto", L["Auto-assign buttons"],
     L["Out of combat, the totem buttons are set to the recommended totem."],
     function() wipe(ns.state.lastRec) end)
-  AddCheck(panel, L, y - 46, "useBoss", L["Use boss rules"],
+  AddCheck(panel, LX, y - 46, "useBoss", L["Use boss rules"],
     L["Recommendations per boss (detected via Blizzard, DBM or BigWigs)."])
-  AddCheck(panel, L, y - 72, "useOthers", L["Consider other shamans"],
+  AddCheck(panel, LX, y - 72, "useOthers", L["Consider other shamans"],
     L["Detect totems of other shamans in your group and avoid duplicates."])
-  AddCheck(panel, L, y - 98, "showHints", L["Show hint texts"],
+  AddCheck(panel, LX, y - 98, "showHints", L["Show hint texts"],
     L["Explanations below the bar: what is missing and why."])
 
-  AddHeader(panel, R, y, L["Warnings"])
-  AddCheck(panel, R, y - 20, "sound", L["Warning sound"],
+  AddHeader(panel, RX, y, L["Warnings"])
+  AddCheck(panel, RX, y - 20, "sound", L["Warning sound"],
     L["Sound on urgent warnings (fear, destroyed totem)."])
-  AddCheck(panel, R, y - 46, "rangeWarn", L["Range warning"],
+  AddCheck(panel, RX, y - 46, "rangeWarn", L["Range warning"],
     L["Shows who does not have your totem's buff (out of range). Works for totems with a buff, e.g. Strength of Earth, Mana Spring, Grace of Air, resistances."])
-  AddCheck(panel, R, y - 72, "destroyWarn", L["Warn when a totem is destroyed"],
+  AddCheck(panel, RX, y - 72, "destroyWarn", L["Warn when a totem is destroyed"],
     L["Warns when a totem disappears early (killed, Grounding absorbed a spell)."])
-  AddCheck(panel, R, y - 98, "prePull", L["Pull check"],
+  AddCheck(panel, RX, y - 98, "prePull", L["Pull check"],
     L["Shows a checklist on pull timer (DBM/BigWigs) and ready check: totems, shield, weapon, range."])
-  AddCheck(panel, R, y - 124, "enemyCasts", L["Fear from enemy casts"],
+  AddCheck(panel, RX, y - 124, "enemyCasts", L["Fear from enemy casts"],
     L["Detects via nameplates when an enemy casts fear and recommends Tremor Totem."])
-  AddCheck(panel, R, y - 150, "distanceWarn", L["Distance to your totems"],
+  AddCheck(panel, RX, y - 150, "distanceWarn", L["Distance to your totems"],
     L["Warns when you are farther from your totems than their range."])
 
   y = -260
-  AddHeader(panel, L, y, L["Bar"])
-  AddCheck(panel, L, y - 20, "showAll", L["Cast-all button"], nil,
+  AddHeader(panel, LX, y, L["Bar"])
+  AddCheck(panel, LX, y - 20, "showAll", L["Cast-all button"], nil,
     function() ns.SetupSecure() end, true)
-  AddCheck(panel, L, y - 46, "showWeapon", L["Weapon enchant button"], nil,
+  AddCheck(panel, LX, y - 46, "showWeapon", L["Weapon enchant button"], nil,
     function() ns.SetupSecure() end, true)
-  AddCheck(panel, L, y - 72, "showShield", L["Shield button"], nil,
+  AddCheck(panel, LX, y - 72, "showShield", L["Shield button"], nil,
     function() ns.SetupSecure() end, true)
-  AddCheck(panel, L, y - 98, "showOOC", L["Also show out of combat"], nil,
+  AddCheck(panel, LX, y - 98, "showOOC", L["Also show out of combat"], nil,
     function() ns.ApplyVisibilityDriver(); ns.UpdateVisibility() end, true)
-  AddCheck(panel, L, y - 124, "locked", L["Lock window"],
+  AddCheck(panel, LX, y - 124, "locked", L["Lock window"],
     L["Prevents accidental moving via the title bar."])
+  AddCheck(panel, LX, y - 150, "showCall", L["Call of the Elements button"],
+    L["Only shown if you know the spell."], function() ns.SetupSecure() end, true)
+  AddCheck(panel, LX, y - 176, "syncCall", L["Sync Call of the Elements"],
+    L["Puts the totems from your TotemWatch buttons on the Call of the Elements bar (out of combat)."],
+    function() ns.SetupSecure() end, true)
+  AddCheck(panel, LX, y - 202, "showMove", L["Totemic Call button"],
+    L["Moves your totems to you. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
+  AddCheck(panel, LX, y - 228, "showRecall", L["Totemic Recall button"],
+    L["Removes your totems. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
 
-  scaleSlider = AddSlider(panel, R, y - 20, L["Size"], 0.5, 2.0, 0.05,
+  scaleSlider = AddSlider(panel, RX, y - 20, L["Size"], 0.5, 2.0, 0.05,
     function() return TotemWatchDB.scale or 1 end,
     function(v)
       if InCombatLockdown() then return end
@@ -172,22 +181,22 @@ function ns.CreateOptions()
       ns.ApplyPosition()
     end)
 
-  AddButton(panel, R, y - 70, L["Test display (on/off)"], 180, function()
+  AddButton(panel, RX, y - 70, L["Test display (on/off)"], 180, function()
     OutOfCombat(function()
       ns.ToggleTest()
       Note(L["Test mode "] .. (ns.state.test and L["on"] or L["off"]))
     end)
   end)
-  AddButton(panel, R, y - 100, L["Reset position"], 180, function()
+  AddButton(panel, RX, y - 100, L["Reset position"], 180, function()
     OutOfCombat(function() ns.ResetPosition(); RefreshPanel() end)
   end)
 
-  warnSlider = AddSlider(panel, R, y - 135, L["Warning before expiry (sec., 0 = off)"], 0, 15, 1,
+  warnSlider = AddSlider(panel, RX, y - 135, L["Warning before expiry (sec., 0 = off)"], 0, 15, 1,
     function() return TotemWatchDB.warnBefore or 0 end,
     function(v) TotemWatchDB.warnBefore = v end)
 
   local help = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", L, y - 190)
+  help:SetPoint("TOPLEFT", LX, y - 280)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..

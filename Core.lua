@@ -18,6 +18,10 @@ local DEFAULTS = {
   warnBefore = 5,       -- Sekunden Vorwarnung vor dem Ablaufen (0 = aus)
   enemyCasts = true,    -- Furcht über feindliche Zauber (Namensplaketten) erkennen
   distanceWarn = true,  -- Warnung, wenn du zu weit von deinen Totems weg bist
+  showCall = true,      -- Knopf Call of the Elements (wenn gelernt)
+  showRecall = true,    -- Knopf Totemic Recall (wenn gelernt)
+  showMove = true,      -- Knopf Totemic Call (wenn gelernt)
+  syncCall = true,      -- Totem-Leiste von Call of the Elements mit den Knöpfen abgleichen
 }
 
 ---------------------------------------------------------------------------
@@ -130,6 +134,26 @@ end
 
 local function TotemName(key) return SpellName(ns.TOTEMS[key].id) or key end
 
+-- Gelernten Zauber finden: erst über IDs, dann über Namen im Zauberbuch. Liefert den Namen.
+local function FindKnownSpell(ids, names)
+  for _, id in ipairs(ids) do
+    if IsKnownId(id) then return SpellName(id) end
+  end
+  for _, n in ipairs(names) do
+    if knownNames[n] then return n end
+  end
+end
+
+-- Zauber-ID des höchsten gelernten Rangs zu einem Namen (für die Totem-Leiste)
+local function SpellIdFromName(name)
+  if not name then return nil end
+  if C_Spell and C_Spell.GetSpellInfo then
+    local info = C_Spell.GetSpellInfo(name)
+    return info and info.spellID
+  end
+  return (select(7, GetSpellInfo(name)))
+end
+
 -- Lokalisierter Name -> Totem-Schlüssel / Zauber-ID
 local nameToKey, idByName = {}, {}
 local function BuildNameLookup()
@@ -241,6 +265,27 @@ local function TrackCast(spellID)
       end
       return
     end
+  end
+  -- Totemic Recall: alle Totems weg, gleich keine "zerstört"-Warnung
+  if ns.recallName and spellName == ns.recallName then
+    wipe(tracked)
+    ns.recallUntil = GetTime() + 2
+    return
+  end
+  -- Totemic Call: Totems kommen zu dir -> bleiben bestehen, nur neue Position merken
+  if ns.moveName and spellName == ns.moveName then
+    local px, py, pinst = PlayerPos()
+    for _, t in pairs(tracked) do t.x, t.y, t.inst = px, py, pinst end
+    return
+  end
+  -- Call of the Elements: die abgeglichenen Totems der Totem-Leiste stehen jetzt
+  if ns.callName and spellName == ns.callName then
+    local now, px, py, pinst = GetTime(), PlayerPos()
+    for slot, key in pairs(ns.multicastKeys or {}) do
+      tracked[slot] = { key = key, start = now, duration = ns.TOTEM_DURATION[key] or 120, checked = false,
+                        x = px, y = py, inst = pinst }
+    end
+    return
   end
   local key = KeyFromName(spellName)
   if not key then return end
@@ -536,10 +581,12 @@ local function CheckDestroyed(slot)
   state.prevTotem[slot] = nil
   if not prev or not TotemWatchDB.destroyWarn then return end
   if prev.expires - now < 1.5 or UnitIsDeadOrGhost("player") then return end
+  if ns.recallUntil and now < ns.recallUntil then return end   -- selbst zurückgerufen
   -- kurz warten: beim Ersetzen ist der Slot kurz leer
   C_Timer.After(0.5, function()
     local h, n = TotemData(slot)
     if h and n and n ~= "" then return end
+    if ns.recallUntil and GetTime() < ns.recallUntil then return end
     local key = KeyFromName(prev.name)
     if key == "GROUNDING" then
       state.destroyMsg = L["Grounding absorbed a spell – recast it!"]
@@ -774,6 +821,8 @@ local function CreateCastButton(name, x)
   b:HookScript("OnAttributeChanged", function(self, attr, value)
     if attr == "spell1" and self.dbKey and TotemWatchDB and TotemWatchDB.choice then
       TotemWatchDB.choice[self.dbKey] = value
+      -- Totem-Leiste von Call of the Elements nachziehen (nur außerhalb des Kampfes möglich)
+      if self.slot and ns.SyncMultiCast and not InCombatLockdown() then ns.SyncMultiCast() end
     end
   end)
   b:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -924,6 +973,40 @@ weaponBtn.dbKey = "weapon"
 local shieldBtn = CreateCastButton("TotemWatchShield", 9 + 6 * GAP + 6)
 shieldBtn.dbKey = "shield"
 
+-- Call of the Elements (alle 4 auf einmal), Totemic Call (Totems herholen), Totemic Recall (alle entfernen)
+local callBtn = CreateCastButton("TotemWatchCall", 9 + 7 * GAP + 6)
+local moveBtn = CreateCastButton("TotemWatchMove", 9 + 8 * GAP + 6)
+local recallBtn = CreateCastButton("TotemWatchRecall", 9 + 9 * GAP + 6)
+callBtn:Hide(); moveBtn:Hide(); recallBtn:Hide()
+moveBtn:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_TOP")
+  GameTooltip:AddLine(self:GetAttribute("spell1") or "Totemic Call", 1, 1, 1)
+  GameTooltip:AddLine(L["Moves your totems to your position. They keep their remaining time."], 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end)
+moveBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+callBtn:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_TOP")
+  GameTooltip:AddLine(self:GetAttribute("spell1") or "Call of the Elements", 1, 1, 1)
+  GameTooltip:AddLine(L["Drops all 4 totems at once."], 0.8, 0.8, 0.8, true)
+  if TotemWatchDB.syncCall then
+    GameTooltip:AddLine(L["Uses the totems on your TotemWatch buttons (synced out of combat):"], 0.6, 1, 0.6, true)
+    for s = 1, 4 do
+      local key = ns.multicastKeys and ns.multicastKeys[s]
+      if key then GameTooltip:AddLine("  " .. TotemName(key), 0.6, 1, 0.6) end
+    end
+  end
+  GameTooltip:Show()
+end)
+callBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+recallBtn:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_TOP")
+  GameTooltip:AddLine(self:GetAttribute("spell1") or "Totemic Recall", 1, 1, 1)
+  GameTooltip:AddLine(L["Removes all your totems and returns some mana."], 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end)
+recallBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
 local function SimpleTooltip(b, titleText, extra)
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -1020,6 +1103,32 @@ local function RebuildCastAll()
   end
   local text = "/castsequence reset=combat/12 " .. table.concat(parts, ", ")
   if castAll:GetAttribute("macrotext1") ~= text then castAll:SetAttribute("macrotext1", text) end
+  if ns.SyncMultiCast then ns.SyncMultiCast() end
+end
+
+-- Totem-Leiste von "Call of the Elements" mit den TotemWatch-Knöpfen abgleichen (nur außerhalb des Kampfes)
+function ns.SyncMultiCast()
+  ns.multicastKeys = ns.multicastKeys or {}
+  if InCombatLockdown() or not callBtn:IsShown() then return end
+  local order = TOTEM_PRIORITIES or { 2, 1, 3, 4 }   -- Reihenfolge der Leiste: Erde, Feuer, Wasser, Luft
+  for i, slot in ipairs(order) do
+    local assigned = slots[slot] and slots[slot]:GetAttribute("spell1")
+    local key = assigned and KeyFromName(assigned)
+    local synced = false
+    if key and TotemWatchDB.syncCall and SetMultiCastSpell then
+      local id = SpellIdFromName(assigned)
+      if id and pcall(SetMultiCastSpell, ns.MULTICAST_BASE + i, id) then
+        ns.multicastKeys[slot] = key
+        synced = true
+      end
+    end
+    if not synced and GetActionInfo then
+      -- nicht abgeglichen: auslesen, was im Spiel auf der Leiste liegt
+      local ok, kind, id = pcall(GetActionInfo, ns.MULTICAST_BASE + i)
+      local nm = ok and kind == "spell" and id and SpellName(id)
+      ns.multicastKeys[slot] = nm and KeyFromName(nm) or nil
+    end
+  end
 end
 
 local function SetupSecure()
@@ -1051,9 +1160,27 @@ local function SetupSecure()
   if #sKnown > 0 and TotemWatchDB.showShield then shieldBtn:Show() else shieldBtn:Hide() end
   if TotemWatchDB.showAll then castAll:Show() else castAll:Hide() end
 
+  -- Call of the Elements / Totemic Recall: nur wenn gelernt (gibt es evtl. nicht in jeder Spielversion)
+  ns.callName = FindKnownSpell(ns.CALL_IDS, ns.CALL_NAMES)
+  ns.moveName = FindKnownSpell({}, ns.MOVE_NAMES)
+  ns.recallName = FindKnownSpell({}, ns.RECALL_NAMES)
+  for _, pair in ipairs({ { callBtn, ns.callName, TotemWatchDB.showCall },
+                          { moveBtn, ns.moveName, TotemWatchDB.showMove },
+                          { recallBtn, ns.recallName, TotemWatchDB.showRecall } }) do
+    local b, spell, wanted = pair[1], pair[2], pair[3]
+    b:SetAttribute("spell1", spell)
+    if spell and wanted then
+      b.icon:SetTexture(SpellIcon(spell) or "Interface\\Icons\\INV_Misc_QuestionMark")
+      SetBorder(b, "COVERED", false)
+      b:Show()
+    else
+      b:Hide()
+    end
+  end
+
   -- sichtbare Knöpfe nebeneinander anordnen
   local x = 9 + 4 * GAP + 6
-  for _, b in ipairs({ castAll, weaponBtn, shieldBtn }) do
+  for _, b in ipairs({ castAll, callBtn, moveBtn, recallBtn, weaponBtn, shieldBtn }) do
     if b:IsShown() then
       b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -20)
       x = x + GAP
@@ -1158,8 +1285,9 @@ local function Refresh()
     -- Abstand zum eigenen Totem
     local far = state.far[s]
     if far then
+      local tip = (ns.moveName and moveBtn:IsShown()) and format(L[" – use %s"], ns.moveName) or ""
       hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d m from %s (range %d m)"],
-        col, ns.SLOT_NAMES[s], far.dist, far.name, far.range))
+        col, ns.SLOT_NAMES[s], far.dist, far.name, far.range) .. tip)
     end
     local rng = state.range[s]
     if rng then
@@ -1288,6 +1416,16 @@ local function Refresh()
     shieldBtn.timer:SetText(FormatTime(left))
     UpdateCooldown(shieldBtn, assigned)
   end end)
+
+  -- Call of the Elements / Totemic Call / Totemic Recall: Abklingzeit anzeigen
+  for _, b in ipairs({ callBtn, moveBtn, recallBtn }) do
+    if b:IsShown() then SafeCall("Totem spells", UpdateCooldown, b, b:GetAttribute("spell1")) end
+  end
+  -- Totemic Call hervorheben, wenn du zu weit von deinen Totems weg bist
+  if moveBtn:IsShown() then
+    local anyFar = state.far[1] or state.far[2] or state.far[3] or state.far[4]
+    SetBorder(moveBtn, anyFar and "EXPIRING" or "COVERED", anyFar and true or false)
+  end
 
   if TotemWatchDB.useBoss and state.boss and state.boss.note then hint(L["|cffaaaaaaNote: "] .. state.boss.note .. "|r") end
   if not TotemWatchDB.showHints then hintLine = 1 end
@@ -1761,6 +1899,9 @@ _G["BINDING_NAME_CLICK TotemWatchWater:LeftButton"]   = L["Cast water totem"]
 _G["BINDING_NAME_CLICK TotemWatchAir:LeftButton"]     = L["Cast air totem"]
 _G["BINDING_NAME_CLICK TotemWatchWeapon:LeftButton"]  = L["Cast weapon enchant"]
 _G["BINDING_NAME_CLICK TotemWatchShield:LeftButton"]  = L["Cast shield"]
+_G["BINDING_NAME_CLICK TotemWatchCall:LeftButton"]    = L["Call of the Elements (all totems)"]
+_G["BINDING_NAME_CLICK TotemWatchMove:LeftButton"]    = L["Totemic Call (move totems to you)"]
+_G["BINDING_NAME_CLICK TotemWatchRecall:LeftButton"]  = L["Totemic Recall (remove totems)"]
 
 ---------------------------------------------------------------------------
 -- Slash-Befehle
@@ -1916,6 +2057,19 @@ SlashCmdList.TOTEMWATCH = function(msg)
       or ns.enemyCastReadable and (L["|cff40ff40readable|r (last: "] .. tostring(ns.lastEnemyCast) .. ")")
       or L["|cffff8000blocked|r"]))
     print(L["  Combat log: "] .. (ns.combatLogAllowed and L["registered"] or L["not registered (blocked on Forever)"]))
+    -- Totem-Zauber: welche kennt der Client?
+    local nf = "|cffaaaaaa" .. L["not learned / not in this game version"] .. "|r"
+    print("  Call of the Elements: " .. (ns.callName and ("|cff40ff40" .. ns.callName .. "|r") or nf))
+    print("  Totemic Call: " .. (ns.moveName and ("|cff40ff40" .. ns.moveName .. "|r") or nf))
+    print("  Totemic Recall: " .. (ns.recallName and ("|cff40ff40" .. ns.recallName .. "|r") or nf))
+    if ns.callName then
+      local keys = {}
+      for s = 1, 4 do
+        local k = ns.multicastKeys and ns.multicastKeys[s]
+        keys[#keys + 1] = k and TotemName(k) or "-"
+      end
+      print(L["  Call of the Elements bar: "] .. table.concat(keys, ", "))
+    end
     print(L["  Countdown numbers (game setting): "] .. tostring(GetCVar and GetCVar("countdownForCooldowns")))
   elseif cmd == "combatlog" or cmd == "kampflog" then
     TotemWatchDB.forceCombatLog = not TotemWatchDB.forceCombatLog
