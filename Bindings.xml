@@ -10,4 +10,7 @@
   <Binding name="CLICK TotemWatchMove:LeftButton"></Binding>
   <Binding name="CLICK TotemWatchRecall:LeftButton"></Binding>
   <Binding name="CLICK TotemWatchTremor:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchPoison:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchDisease:LeftButton"></Binding>
+  <Binding name="CLICK TotemWatchGrounding:LeftButton"></Binding>
 </Bindings>

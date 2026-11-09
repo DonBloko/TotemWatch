@@ -225,3 +225,22 @@ ns.SKINS = {
     hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
   },
 }
+
+-- Notfall-Knöpfe: Stichworte in feindlichen Zaubern (Namensplaketten/Ziel/Boss) und in
+-- DBM-/BigWigs-Timern, bei denen der jeweilige Notfall-Knopf aufleuchtet (klein geschrieben).
+ns.EMERGENCY_KEYWORDS = {
+  POISON_CLEANSE = {
+    "poison", "venom", "toxic", "toxin", "sting", "wyvern",
+    "gift", "toxisch", "stich",
+  },
+  DISEASE_CLEANSE = {
+    "disease", "plague", "fever", "pestilence", "rotting", "putrid", "decrepit",
+    "krankheit", "seuche", "fieber", "fäule",
+  },
+  GROUNDING = {
+    "polymorph", "hex", "mind control", "dominate", "charm", "sheep", "seduction", "sleep",
+    "frostbolt", "shadow bolt", "fireball", "chain lightning", "lightning bolt", "mana burn",
+    "verwandlung", "verhexung", "gedankenkontrolle", "beherrschung", "verführung", "schlaf",
+    "frostblitz", "schattenblitz", "feuerball", "kettenblitz", "blitzschlag", "manabrand",
+  },
+}
