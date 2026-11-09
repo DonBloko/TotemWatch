@@ -1,5 +1,9 @@
 # TotemWatch – Changelog
 
+## 1.2.1
+
+- **Fix:** your own totem choice is no longer overwritten by the automatic assignment (e.g. Magma Totem being reset to Searing Totem after combat). A button you set yourself keeps your totem until you pick the recommended one again; the tooltip shows when a button is set by you. `/tw auto` or the option *Auto-assign buttons* clears your choices.
+
 ## 1.2.0
 
 - **Four designs to choose from** (options menu → Design, or `/tw skin <name>`):

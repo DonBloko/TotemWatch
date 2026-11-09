@@ -1013,6 +1013,13 @@ local function CreateCastButton(name, x)
   b:HookScript("OnAttributeChanged", function(self, attr, value)
     if attr == "spell1" and self.dbKey and TotemWatchDB and TotemWatchDB.choice then
       TotemWatchDB.choice[self.dbKey] = value
+      -- Hast DU das Totem gewählt (nicht die Automatik)? Dann hat deine Wahl Vorrang.
+      -- Wählst du wieder das empfohlene Totem, übernimmt die Automatik den Knopf wieder.
+      if self.slot and not ns.autoAssigning and TotemWatchDB.manual then
+        local k = value and KeyFromName(value)
+        local rec = state.curRec and state.curRec[self.slot]
+        TotemWatchDB.manual[self.slot] = (k and k ~= rec) and k or nil
+      end
       -- Totem-Leiste von Call of the Elements nachziehen (nur außerhalb des Kampfes möglich)
       if self.slot and ns.SyncMultiCast and not InCombatLockdown() then ns.SyncMultiCast() end
     end
@@ -1128,6 +1135,9 @@ for s = 1, 4 do
     end
     if self.otherHint then GameTooltip:AddLine(self.otherHint, 1, 0.6, 0.2, true) end
     if self.rangeInfo then GameTooltip:AddLine(self.rangeInfo, 1, 0.3, 0.3, true) end
+    if TotemWatchDB.manual and TotemWatchDB.manual[s] then
+      GameTooltip:AddLine(L["Chosen by you – automatic choice is paused for this button. Pick the recommended totem to resume it."], 0.6, 0.8, 1, true)
+    end
     GameTooltip:AddLine(L["Left-click: cast  ·  Right-click: choose"], 0.5, 0.5, 0.5)
     GameTooltip:Show()
   end)
@@ -1721,7 +1731,9 @@ local function SetupSecure()
       local id = FirstKnown(ids)
       cur = id and SpellName(id)
     end
+    ns.autoAssigning = true             -- Wiederherstellen beim Laden ist keine neue eigene Wahl
     slots[s]:SetAttribute("spell1", cur)
+    ns.autoAssigning = false
   end
 
   local wKnown = BuildFlyout(weaponBtn, ns.WEAPON_SPELLS)
@@ -1770,11 +1782,21 @@ ns.SetupSecure = SetupSecure
 
 -- Außerhalb des Kampfes: Knopf automatisch auf die Empfehlung setzen, wenn diese sich ändert
 local function AutoAssign(s, key)
+  state.curRec = state.curRec or {}
+  state.curRec[s] = key                 -- aktuelle Empfehlung (für die Erkennung "eigene Wahl")
   if InCombatLockdown() or not state.setupDone then return end
   if key == state.lastRec[s] then return end
   state.lastRec[s] = key
+  -- Von dir gewählte Knöpfe nicht überschreiben
+  local manual = TotemWatchDB.manual and TotemWatchDB.manual[s]
+  if manual then
+    if manual == key then TotemWatchDB.manual[s] = nil end   -- Empfehlung = deine Wahl: Automatik wieder an
+    return
+  end
   if TotemWatchDB.auto and key then
+    ns.autoAssigning = true
     slots[s]:SetAttribute("spell1", TotemName(key))
+    ns.autoAssigning = false
     RebuildCastAll()
   end
 end
@@ -2473,6 +2495,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
       TotemWatchDB = TotemWatchDB or {}
       for k, v in pairs(DEFAULTS) do if TotemWatchDB[k] == nil then TotemWatchDB[k] = v end end
       TotemWatchDB.choice = TotemWatchDB.choice or {}
+      TotemWatchDB.manual = TotemWatchDB.manual or {}   -- [slot] = von dir festgelegtes Totem
       if TotemWatchDB.forceCombatLog then ns.combatLogAllowed = true end
       if ns.combatLogAllowed then ev:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED") end
     end
@@ -2631,6 +2654,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     TotemWatchDB.sound = not TotemWatchDB.sound; p("Sound " .. (TotemWatchDB.sound and L["on"] or L["off"]))
   elseif cmd == "auto" then
     TotemWatchDB.auto = not TotemWatchDB.auto; wipe(state.lastRec)
+    wipe(TotemWatchDB.manual)   -- eigene Festlegungen aufheben
     p(L["Auto-assign recommended totems to buttons: "] .. (TotemWatchDB.auto and L["on"] or L["off"]))
   elseif cmd == "ooc" then
     TotemWatchDB.showOOC = not TotemWatchDB.showOOC; ApplyVisibilityDriver(); UpdateVisibility()

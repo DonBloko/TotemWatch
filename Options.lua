@@ -161,7 +161,10 @@ function ns.CreateOptions()
   AddHeader(panel, LX, y, L["Recommendations"])
   AddCheck(panel, LX, y - 20, "auto", L["Auto-assign buttons"],
     L["Out of combat, the totem buttons are set to the recommended totem."],
-    function() wipe(ns.state.lastRec) end)
+    function()
+      wipe(ns.state.lastRec)
+      if TotemWatchDB.manual then wipe(TotemWatchDB.manual) end   -- eigene Festlegungen aufheben
+    end)
   AddCheck(panel, LX, y - 46, "useBoss", L["Use boss rules"],
     L["Recommendations per boss (detected via Blizzard, DBM or BigWigs)."])
   AddCheck(panel, LX, y - 72, "useOthers", L["Consider other shamans"],
