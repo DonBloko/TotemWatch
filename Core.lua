@@ -994,15 +994,8 @@ local function CreateCastButton(name, x)
   b.barTime:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")
   b.barTime:SetPoint("RIGHT", -4, 0)
   b.timeBar:Hide()
-  -- runde Maske (Pillars), falls der Client Masken kann
-  if b.CreateMaskTexture then
-    b.maskBorder = b:CreateMaskTexture()
-    b.maskBorder:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    b.maskBorder:SetAllPoints(b)
-    b.maskIcon = b:CreateMaskTexture()
-    b.maskIcon:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    b.maskIcon:SetAllPoints(b.icon)
-  end
+  -- Hinweis: Keine Masken-Texturen (runde Icons) verwenden – sie haben bei WoW Forever
+  -- einen Absturz des Spiels ausgelöst ("memory could not be written").
 
   local ag = b.border:CreateAnimationGroup()
   ag:SetLooping("BOUNCE")
@@ -1402,19 +1395,6 @@ local function HexColor(hex)
   return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
 end
 
--- Runde Maske an/aus (Pillars)
-local function SetRound(b, on)
-  if not b.maskBorder then return end
-  if on and not b.isRound then
-    pcall(b.border.AddMaskTexture, b.border, b.maskBorder)
-    pcall(b.icon.AddMaskTexture, b.icon, b.maskIcon)
-    b.isRound = true
-  elseif not on and b.isRound then
-    pcall(b.border.RemoveMaskTexture, b.border, b.maskBorder)
-    pcall(b.icon.RemoveMaskTexture, b.icon, b.maskIcon)
-    b.isRound = false
-  end
-end
 
 -- Design anwenden: Rahmen, Knopfgrößen, Anordnung, Restzeit, Balken, Hinweise.
 -- Nur außerhalb des Kampfes (die Knöpfe sind geschützt).
@@ -1451,7 +1431,6 @@ function ns.ApplySkin()
     b.icon:ClearAllPoints()
     b.icon:SetPoint("TOPLEFT", inset, -inset); b.icon:SetPoint("BOTTOMRIGHT", -inset, inset)
     b.glow:SetSize(size * 1.85, size * 1.85)
-    SetRound(b, S.round)
     -- Restzeit
     b.timer:ClearAllPoints()
     if S.timer == "inside" then

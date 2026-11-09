@@ -195,7 +195,7 @@ ns.BOSSES = {
 --   title    Titel "TotemWatch" oben anzeigen
 --   timer    Restzeit: "below" (unter dem Knopf), "inside" (im Icon), "none"
 --   strip    Status als Farbstreifen unten im Icon (statt farbigem Rahmen)
---   round    runde Icons             elemStrip  Element-Farbleiste über dem Knopf
+--   elemStrip  Element-Farbleiste über dem Knopf  (runde Icons gibt es nicht: Masken lassen WoW Forever abstürzen)
 --   bar      Zeitbalken: "below" (unter dem Knopf) oder "right" (Balken mit Name rechts)
 --   bg/edge  Hintergrund- und Rahmenfarbe der Leiste, edgeFile/edgeSize = Rahmenart
 local WHITE = "Interface\Buttons\WHITE8X8"
@@ -213,7 +213,7 @@ ns.SKINS = {
     hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
   },
   pillars = {
-    name = "Pillars", btn = 34, gap = 12, inset = 2, title = false, timer = "below", round = true,
+    name = "Pillars", btn = 34, gap = 12, inset = 2, title = false, timer = "below",
     elemStrip = true, bar = "below",
     bg = { 0.08, 0.10, 0.12, 0.92 }, edge = { 0.22, 0.26, 0.30, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0.08, 0.10, 0.12, 0.90 }, hintEdge = { 0.22, 0.26, 0.30, 1 },
