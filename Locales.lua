@@ -5,6 +5,28 @@ local L = setmetatable({}, { __index = function(_, k) return k end })
 ns.L = L
 
 local locale = GetLocale()
+
+-- Weitere Sprachen: Übersetzungen aus dem CurseForge-Projekt (Localization).
+-- Der CurseForge-Packager ersetzt die @localization-Zeilen beim Bauen durch die Übersetzungen;
+-- ohne Packager sind es nur Kommentare. Deutsch steht weiter unten direkt in dieser Datei.
+if locale == "frFR" then
+--@localization(locale="frFR", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "esES" or locale == "esMX" then
+--@localization(locale="esES", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "ruRU" then
+--@localization(locale="ruRU", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "ptBR" then
+--@localization(locale="ptBR", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "itIT" then
+--@localization(locale="itIT", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "koKR" then
+--@localization(locale="koKR", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "zhCN" then
+--@localization(locale="zhCN", format="lua_additive_table", handle-unlocalized="ignore")@
+elseif locale == "zhTW" then
+--@localization(locale="zhTW", format="lua_additive_table", handle-unlocalized="ignore")@
+end
+
 if locale ~= "deDE" then return end
 
 L["|cffff4040TotemWatch error ("] = "|cffff4040TotemWatch-Fehler ("
@@ -368,3 +390,10 @@ L["Always show in dungeons"] = "In Dungeons immer anzeigen"
 L["The bar stays visible in dungeons, also between fights."] = "Die Leiste bleibt in Dungeons sichtbar, auch zwischen den Kämpfen."
 L["Always show in raids"] = "In Raids immer anzeigen"
 L["The bar stays visible in raids, also between fights."] = "Die Leiste bleibt in Raids sichtbar, auch zwischen den Kämpfen."
+L["Out of totem range"] = "Außer Totem-Reichweite"
+L["Totem bar"] = "Totem-Leiste"
+L["Speak warnings (text to speech)"] = "Warnungen vorlesen (Sprachausgabe)"
+L["Important warnings are read out loud, e.g. “Tremor Totem now!”."] = "Wichtige Warnungen werden laut vorgelesen, z. B. „Totem des Erdstoßes jetzt!“."
+L["TotemWatch voice warnings on"] = "TotemWatch Sprachwarnungen an"
+L["Use Masque (if installed)"] = "Masque verwenden (falls installiert)"
+L["Styles the buttons with your Masque skin. Changes need a /reload."] = "Gestaltet die Knöpfe mit deinem Masque-Skin. Änderungen brauchen ein /reload."

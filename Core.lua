@@ -32,6 +32,8 @@ local DEFAULTS = {
   tutorialDone = false, -- Einführung schon gesehen?
   showInDungeon = true, -- in Dungeons immer anzeigen
   showInRaid = true,    -- in Raids immer anzeigen
+  speak = false,        -- Warnungen vorlesen (Text-to-Speech)
+  useMasque = true,     -- Knöpfe mit Masque gestalten, falls installiert
 }
 
 ---------------------------------------------------------------------------
@@ -651,6 +653,7 @@ local function ScanDistance()
   local isFar = maxDist > 0
   if isFar and not state.wasFar and ns.ShowMessage then
     ns.ShowMessage(format(L["Out of range of your totems (%d yd)"], floor(maxDist + 0.5)), 1, 0.6, 0.2)
+    if ns.Speak then ns.Speak(L["Out of totem range"]) end
   end
   state.wasFar = isFar
 end
@@ -1222,6 +1225,19 @@ recallBtn:SetScript("OnEnter", function(self)
 end)
 recallBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+-- Masque: Knöpfe im Look des gewählten Masque-Skins (nur wenn Masque installiert ist)
+function ns.SetupMasque()
+  if ns.masqueGroup or not (TotemWatchDB and TotemWatchDB.useMasque) then return end
+  local Masque = LibStub and LibStub("Masque", true)
+  if not Masque then return end
+  local ok, group = pcall(Masque.Group, Masque, "TotemWatch", L["Totem bar"])
+  if not ok or not group then return end
+  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn, callBtn, moveBtn, recallBtn }) do
+    pcall(group.AddButton, group, b, { Icon = b.icon, Cooldown = b.cd, Highlight = b:GetHighlightTexture() })
+  end
+  ns.masqueGroup = group
+end
+
 local function SimpleTooltip(b, titleText, extra)
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -1298,6 +1314,32 @@ msgFrame:SetScript("OnMouseUp", function(self)
   local p, _, _, x, y = self:GetPoint()
   if TotemWatchDB then TotemWatchDB.msgPoint, TotemWatchDB.msgX, TotemWatchDB.msgY = p, x, y end
 end)
+
+-- Sprachausgabe (Text-to-Speech) für wichtige Warnungen; höchstens alle 8 s derselbe Text
+local lastSpoken = {}
+function ns.Speak(text, force)
+  if not text or text == "" or not TotemWatchDB or (not TotemWatchDB.speak and not force) then return end
+  text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+  local now = GetTime()
+  if not force and lastSpoken[text] and now - lastSpoken[text] < 8 then return end
+  lastSpoken[text] = now
+  local ok = false
+  -- Weg 1: Blizzards TTS-Oberfläche (neuere Clients)
+  if TextToSpeech_Speak and TextToSpeech_GetSelectedVoice and Enum and Enum.TtsVoiceType then
+    ok = pcall(function() TextToSpeech_Speak(text, TextToSpeech_GetSelectedVoice(Enum.TtsVoiceType.Standard)) end)
+  end
+  -- Weg 2: direkt über C_VoiceChat
+  if not ok and C_VoiceChat and C_VoiceChat.SpeakText and C_VoiceChat.GetTtsVoices then
+    ok = pcall(function()
+      local voices = C_VoiceChat.GetTtsVoices()
+      local voice = voices and voices[1] and voices[1].voiceID or 0
+      local dest = (Enum and Enum.VoiceTtsDestination and Enum.VoiceTtsDestination.LocalPlayback) or 1
+      C_VoiceChat.SpeakText(voice, text, dest, 0, 100)
+    end)
+  end
+  ns.ttsWorks = ok
+  return ok
+end
 
 local lastMessage = {}
 -- Zeigt eine Meldung, aber dieselbe höchstens alle 8 Sekunden
@@ -1515,6 +1557,8 @@ function ns.ApplySkin()
     height = top + size + below + 2
   end
   frame:SetSize(math.max(width, 120), height)
+  -- Masque-Skin an die neuen Knopfgrößen anpassen
+  if ns.masqueGroup then pcall(ns.masqueGroup.ReSkin, ns.masqueGroup) end
 
   -- Hinweise im passenden Stil
   if hintBg.SetBackdrop then
@@ -2129,6 +2173,7 @@ local function Refresh()
       PlayAlert()
       local r, g, b = alert:GetTextColor()
       ns.ShowMessage(alertText, r, g, b)   -- zusätzlich groß in der Bildschirmmitte
+      ns.Speak(alertText)                  -- und auf Wunsch vorgelesen
     end
     alert:SetText(alertText)
   else
@@ -2520,6 +2565,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
     end
     SafeCall(L["Visibility"], ApplyVisibilityDriver)
     SafeCall(L["Buttons"], SetupSecure)
+    SafeCall("Masque", ns.SetupMasque)
     for s = 1, 4 do SafeCall("Totems", CheckDestroyed, s) end
     if ns.CreateOptions then SafeCall(L["Options"], ns.CreateOptions) end
     print(L["|cff0070deTotemWatch|r loaded – /tw for options, /tw debug if something is wrong."])

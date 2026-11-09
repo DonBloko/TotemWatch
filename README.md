@@ -1,42 +1,53 @@
 <p align="center"><img src="media/logo.png" width="200" alt="TotemWatch"></p>
 
-# TotemWatch
+<h1 align="center">TotemWatch</h1>
 
-Totem-Helfer für Schamanen in **WoW Forever**: zeigt im Kampf fehlende Totems und empfiehlt automatisch die passenden – nach Boss (Blizzard/DBM/BigWigs), Gruppe und Situation.
+<p align="center"><b>Made for WoW Forever</b> – the totem helper for Shamans that works with Forever's combat restrictions.</p>
 
-*Totem helper for Shamans in WoW Forever: shows missing totems in combat and recommends the right ones based on boss (DBM/BigWigs), group and situation. UI language: English or German, following your game client.*
+TotemWatch shows which totems are missing in combat, recommends the right ones for your boss, your group and the situation, and warns you before something goes wrong. Many older totem addons stop working on WoW Forever because the game hides combat data from addons – TotemWatch was built around these limits from day one.
 
-**Übersetzungen** stehen in `Locales.lua` (Schlüssel = englischer Text). Weitere Sprachen können dort ergänzt werden.
+## Features
 
-## Funktionen
+- **Clickable totem bar** – left-click drops a totem, right-click opens a selection of all your totems
+- **Smart recommendations** – boss rules (MC, Onyxia, BWL, ZG, AQ40, Naxx), boss detection via Blizzard encounters, **DBM** and **BigWigs**, fear warnings (Tremor Totem), group composition, AoE
+- **Glow** on the button you should press right now
+- **Warnings** – before a totem expires, when a totem is destroyed, when you are out of range of your totems, big messages in the middle of the screen, optional **spoken warnings** (text to speech)
+- **Pull check** – a checklist on DBM/BigWigs pull timers and ready checks: totems, shield, weapon imbue, group range
+- **Call of the Elements, Totemic Call, Totemic Recall** – with a mana comparison that tells you whether Totemic Call or re-dropping is cheaper
+- **Four designs** – Classic, Minimal, Pillars, Bars – plus **Masque** support
+- **Multiple shamans** – avoids duplicate totems in your group
+- **Guided tour** on first start, minimap button, key bindings for every button
+- **English and German**, more languages via CurseForge translations
 
-- Totem-Leiste: Linksklick stellt, Rechtsklick öffnet die Auswahl; Farben für passt / läuft ab / besser / fehlt
-- Exakte Restzeit im Kampf, Laufzeit je Rang wird automatisch gelernt
-- Boss-Regeln (MC, Onyxia, BWL, ZG, AQ40, Naxx), Furcht-Warnungen, Gruppenzusammensetzung, AoE
-- Warnungen: Vorwarnung vor Ablauf, Totem zerstört, Abstand zu den Totems, Reichweite der Gruppe
-- Pull-Check bei Pull-Timer oder Bereitschaftscheck
-- Knopf „ALLE“, Waffenverzauberung, Schild, Abklingzeiten, Tastenbelegung
-- Erkennt Totems anderer Schamanen
+## Commands
 
-## Befehle
-
-`/tw` Optionen · `/tw test` Leiste anzeigen · `/tw check` Pull-Check · `/tw help` alle Befehle · `/tw debug`, `/tw probe` Diagnose
+| Command | |
+|---|---|
+| `/tw` | Options |
+| `/tw tutorial` | Guided tour |
+| `/tw test` | Show the bar out of combat |
+| `/tw check` | Pull check now |
+| `/tw skin <classic\|minimal\|pillars\|bars>` | Change the design |
+| `/tw help` | All commands |
 
 ## Installation
 
-Über CurseForge oder manuell: Ordner `TotemWatch` nach `World of Warcraft\<Forever-Ordner>\Interface\AddOns\` kopieren.
+Install via **CurseForge** or **Wago**, or copy the folder `TotemWatch` to `World of Warcraft\<Forever folder>\Interface\AddOns\`.
 
-## Release erstellen (für Entwickler)
+## Translations
 
-1. `## Version` wird automatisch aus dem Git-Tag gesetzt.
-2. Eintrag in `CHANGELOG.md` ergänzen und committen.
-3. Tag setzen und pushen:
+All texts live in `Locales.lua` (key = English text). Translations can be contributed on the CurseForge project page (*Localization*) or via a pull request.
+
+## For developers – releasing
+
+1. Add an entry at the top of `CHANGELOG.md` and commit.
+2. Tag and push:
    ```bash
-   git tag v1.0.1
-   git push origin v1.0.1
+   git tag v1.2.1
+   git push origin main --tags
    ```
-   GitHub Actions baut das ZIP, erstellt ein GitHub-Release und lädt es zu CurseForge hoch.
+   GitHub Actions builds the package, creates a GitHub release and uploads it to CurseForge (and Wago, if configured – see `.github/workflows/release.yml`).
 
-## Lizenz
+## License
 
-MIT – siehe [LICENSE.txt](LICENSE.txt).
+MIT – see [LICENSE.txt](LICENSE.txt).

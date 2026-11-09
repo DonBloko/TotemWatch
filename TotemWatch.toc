@@ -1,15 +1,15 @@
 ## Interface: 16001, 11508, 11507, 20505, 20504
-## Title: |cff0070deTotemWatch|r
-## Notes: Zeigt im Kampf fehlende Totems und empfiehlt passende Totems je nach Situation, Boss (DBM/BigWigs) und Gruppe.
-## Notes-deDE: Zeigt im Kampf fehlende Totems und empfiehlt passende Totems je nach Situation, Boss (DBM/BigWigs) und Gruppe.
-## Notes-enUS: Shows missing totems in combat and recommends totems based on situation, boss (DBM/BigWigs) and group.
+## Title: |cff0070deTotemWatch|r |cff888888(WoW Forever)|r
+## Notes: Totem helper for Shamans, made for WoW Forever: missing totems, smart recommendations (boss, DBM/BigWigs, group), warnings and a clickable totem bar.
+## Notes-deDE: Totem-Helfer für Schamanen, gemacht für WoW Forever: fehlende Totems, Empfehlungen (Boss, DBM/BigWigs, Gruppe), Warnungen und klickbare Totem-Leiste.
 ## Author: donbloko
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Nature_TremorTotem
 ## SavedVariables: TotemWatchDB
-## OptionalDeps: DBM-Core, BigWigs, BigWigs_Core
+## OptionalDeps: DBM-Core, BigWigs, BigWigs_Core, Masque
 ## X-Category: Combat
 ## X-License: MIT
+## X-Website: https://github.com/DonBloko/TotemWatch
 
 Locales.lua
 Data.lua

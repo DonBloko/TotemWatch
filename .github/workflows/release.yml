@@ -1,9 +1,13 @@
-# Baut bei jedem Tag "v..." (z.B. v1.0.1) automatisch das Addon-ZIP,
-# erstellt ein GitHub-Release und lädt die Datei bei CurseForge hoch.
+# Baut bei jedem Tag "v..." (z.B. v1.2.1) automatisch das Addon-ZIP,
+# erstellt ein GitHub-Release und lädt die Datei bei CurseForge (und optional Wago) hoch.
 #
 # Einmalig im GitHub-Repository einrichten (Settings -> Secrets and variables -> Actions):
-#   Secret   CF_API_KEY     = CurseForge-API-Token (https://authors.curseforge.com/account/api-tokens)
-#   Variable CF_PROJECT_ID  = Projekt-ID deines CurseForge-Projekts (steht auf der Projektseite rechts)
+#   Secret   CF_API_KEY        = CurseForge-API-Token (https://authors.curseforge.com/account/api-tokens)
+#   Variable CF_PROJECT_ID     = Projekt-ID des CurseForge-Projekts
+# Optional für Wago Addons (https://addons.wago.io):
+#   Secret   WAGO_API_TOKEN    = Wago-API-Token (Wago -> Account -> API Keys)
+#   Variable WAGO_PROJECT_ID   = Projekt-ID des Wago-Projekts
+# Ohne Wago-Einträge wird nur zu CurseForge hochgeladen.
 
 name: Release
 
@@ -19,6 +23,7 @@ jobs:
       contents: write   # für das GitHub-Release
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Code holen
@@ -29,4 +34,5 @@ jobs:
       - name: Paketieren und hochladen
         uses: BigWigsMods/packager@v2
         with:
-          args: -p ${{ vars.CF_PROJECT_ID }}
+          # -p = CurseForge-Projekt, -a = Wago-Projekt (nur wenn eingerichtet)
+          args: -p ${{ vars.CF_PROJECT_ID }} ${{ vars.WAGO_PROJECT_ID && format('-a {0}', vars.WAGO_PROJECT_ID) || '' }}

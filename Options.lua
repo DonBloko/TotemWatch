@@ -195,8 +195,11 @@ function ns.CreateOptions()
     L["The bar stays visible in dungeons, also between fights."], applyVis, true)
   AddCheck(panel, RX, y - 202, "showInRaid", L["Always show in raids"],
     L["The bar stays visible in raids, also between fights."], applyVis, true)
+  AddCheck(panel, RX, y - 228, "speak", L["Speak warnings (text to speech)"],
+    L["Important warnings are read out loud, e.g. “Tremor Totem now!”."],
+    function(on) if on and ns.Speak then ns.Speak(L["TotemWatch voice warnings on"], true) end end)
 
-  y = -320
+  y = -350
   AddHeader(panel, LX, y, L["Bar"])
   AddCheck(panel, LX, y - 20, "showAll", L["Cast-all button"], nil,
     function() ns.SetupSecure() end, true)
@@ -220,6 +223,8 @@ function ns.CreateOptions()
   AddCheck(panel, LX, y - 254, "showMinimap", L["Minimap button"],
     L["Left-click: options · Right-click: show/hide the bar · Shift-click: tour"],
     function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end)
+  AddCheck(panel, LX, y - 280, "useMasque", L["Use Masque (if installed)"],
+    L["Styles the buttons with your Masque skin. Changes need a /reload."])
 
   scaleSlider = AddSlider(panel, RX, y - 20, L["Size"], 0.5, 2.0, 0.05,
     function() return TotemWatchDB.scale or 1 end,
@@ -263,7 +268,7 @@ function ns.CreateOptions()
   end)
 
   local help = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", LX, y - 305)
+  help:SetPoint("TOPLEFT", LX, y - 312)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..
