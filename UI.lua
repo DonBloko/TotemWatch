@@ -246,7 +246,7 @@ local function BuildSteps()
             if KeyBindingFrame_LoadUI then pcall(KeyBindingFrame_LoadUI) end
             if KeyBindingFrame then ok = pcall(ShowUIPanel, KeyBindingFrame) end
           end
-          if not ok then Note(L["Open it via Esc → Key Bindings → AddOns → TotemWatch."]) end
+          if not ok then Note(L["Open it via Esc > Key Bindings > AddOns > TotemWatch."]) end
         end)
         b:SetPoint("TOPLEFT", 0, 0)
       end,

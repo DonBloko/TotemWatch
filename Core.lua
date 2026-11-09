@@ -1986,7 +1986,7 @@ local function Refresh()
         if missing then
           text = "|cffff8080" .. TotemName(key) .. " – " .. L["missing"] .. "|r"
         elseif key and (status == "WRONG" or status == "DUPLICATE") then
-          text = (BaseName(curName) or "?") .. " → |cffffd100" .. TotemName(key) .. "|r"
+          text = (BaseName(curName) or "?") .. " > |cffffd100" .. TotemName(key) .. "|r"
         elseif tHave and tName and tName ~= "" and tName ~= "?" then
           text = BaseName(tName) or tName
         else
@@ -2954,6 +2954,6 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw tutorial – start the tour  ·  /tw minimap – show/hide the minimap button"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
-    print(L["  Keys: Esc → Key Bindings → AddOns → TotemWatch"])
+    print(L["  Keys: Esc > Key Bindings > AddOns > TotemWatch"])
   end
 end
