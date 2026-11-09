@@ -254,6 +254,7 @@ local function BuildSteps()
     { -- 6 Warnungen
       title = L["Warnings"],
       text = L["Choose how TotemWatch warns you. You can change all of this later in the options."],
+      controlsHeight = 5 * 24 + 4,   -- 5 Häkchen untereinander
       build = function(f)
         f.checks = {
           MakeCheck(f, "messages", L["Messages in the middle of the screen"]),
@@ -263,8 +264,8 @@ local function BuildSteps()
           MakeCheck(f, "prePull", L["Pull check"]),
         }
         for i, cb in ipairs(f.checks) do
-          local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-          cb:SetPoint("TOPLEFT", col * 205, -row * 26)
+          -- untereinander (lange Texte würden in eine zweite Spalte hineinlaufen)
+          cb:SetPoint("TOPLEFT", 0, -(i - 1) * 24)
         end
       end,
       onShow = function(f)
@@ -301,7 +302,7 @@ local function ShowStep(i)
   navSkip:SetShown(i < #steps)
   -- Fensterhöhe an den Text anpassen
   local textH = tText:GetStringHeight() or 60
-  local controls = (s.build and 70) or 0
+  local controls = s.controlsHeight or ((s.build and 70) or 0)
   tut:SetHeight(math.max(220, 72 + textH + 12 + controls + 60))
 end
 
