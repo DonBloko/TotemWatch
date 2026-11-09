@@ -1368,6 +1368,11 @@ local function CreateEmergencyButton(def)
       SetGlow(self.glow, false)
       self.text:SetText("")
     end
+    -- Nur wegen einer Warnung außerhalb des Kampfes eingeblendet: danach wieder normale Sichtbarkeit
+    if self.tempShown and not level and not InCombatLockdown() then
+      self.tempShown = nil
+      if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
+    end
   end)
 
   -- Verschieben: blaue Fläche über dem Knopf (ziehen, Rechtsklick = fixieren)
@@ -1472,6 +1477,19 @@ function ns.SetupEmergency()
   if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
 end
 
+-- Außerhalb des Kampfes sind die Knöpfe sonst versteckt: bei einer Warnung kurz einblenden
+-- (im Kampf zeigt sie der Sichtbarkeits-Treiber ohnehin)
+function ns.RevealEmergency()
+  if InCombatLockdown() then return end
+  local now = GetTime()
+  for _, e in ipairs(ns.emergency or {}) do
+    if e.enabled and not e.btn:IsShown() and DangerFor(e.def.key, now) == 2 then
+      e.btn.tempShown = true
+      e.btn:Show()
+    end
+  end
+end
+
 -- Test: alle Notfall-Knöpfe in 5 s aufleuchten lassen
 function ns.TestEmergency()
   local at = GetTime() + 5
@@ -1479,6 +1497,7 @@ function ns.TestEmergency()
   for _, k in ipairs({ "POISON_CLEANSE", "DISEASE_CLEANSE", "GROUNDING" }) do
     state.danger[k] = { at = at, untilT = (k ~= "GROUNDING") and (at + 8) or nil }
   end
+  ns.RevealEmergency()
 end
 
 -- alte Namen weiter erlauben (Optionen, Befehle)
@@ -2688,6 +2707,7 @@ local function OnTimer(text, duration, spellId)
   if type(text) == "string" and duration > 0 and duration < 120 and ns.MarkDanger then
     ns.MarkDanger(text, GetTime() + duration)
   end
+  if ns.RevealEmergency then ns.RevealEmergency() end
   if type(text) == "string" and lower(text):find("pull", 1, true) then
     ShowForPull(duration)
   end
@@ -2705,13 +2725,24 @@ local function HookBossMods()
     end)
     DBM:RegisterCallback("DBM_Kill", ClearBoss)
     DBM:RegisterCallback("DBM_Wipe", ClearBoss)
-    DBM:RegisterCallback("DBM_TimerStart", function(_, id, msg, timer, icon, timerType, spellId)
+    -- Neuere DBM-Versionen melden Timer als "DBM_TimerBegin", ältere als "DBM_TimerStart".
+    -- Beide anmelden; feuern beide, wird derselbe Timer nur einmal ausgewertet.
+    local lastId, lastAt = nil, 0
+    local function OnDBMTimer(_, id, msg, timer, icon, timerType, spellId)
+      local now = GetTime()
+      if id ~= nil and id == lastId and now - lastAt < 0.5 then return end
+      lastId, lastAt = id, now
+      if ns.debugTimers then
+        print("|cff0070deTotemWatch|r DBM timer:", tostring(msg), tostring(timer), tostring(timerType), tostring(spellId))
+      end
       if timerType == "pull" or (type(id) == "string" and id:lower():find("pull", 1, true)) then
         ShowForPull(timer)
         return
       end
       OnTimer(msg, timer, spellId)
-    end)
+    end
+    pcall(DBM.RegisterCallback, DBM, "DBM_TimerStart", OnDBMTimer)
+    pcall(DBM.RegisterCallback, DBM, "DBM_TimerBegin", OnDBMTimer)
   end
   if not bwHooked and BigWigsLoader and BigWigsLoader.RegisterMessage then
     bwHooked = true
@@ -2723,6 +2754,9 @@ local function HookBossMods()
     BigWigsLoader.RegisterMessage(owner, "BigWigs_OnBossWin", ClearBoss)
     BigWigsLoader.RegisterMessage(owner, "BigWigs_OnBossWipe", ClearBoss)
     BigWigsLoader.RegisterMessage(owner, "BigWigs_StartBar", function(_, module, key, text, time)
+      if ns.debugTimers then
+        print("|cff0070deTotemWatch|r BigWigs bar:", tostring(text), tostring(time), tostring(key))
+      end
       OnTimer(text, time, type(key) == "number" and key or nil)
     end)
     BigWigsLoader.RegisterMessage(owner, "BigWigs_StartPull", function(_, _, seconds)
@@ -3084,6 +3118,10 @@ SlashCmdList.TOTEMWATCH = function(msg)
     end
   elseif cmd == "soundtest" or cmd == "testsound" then
     ns.TestWarnings()
+  elseif cmd == "timers" then
+    -- Diagnose: jeden Bossmod-Timer im Chat ausgeben
+    ns.debugTimers = not ns.debugTimers
+    p(L["Boss mod timer output: "] .. (ns.debugTimers and L["on"] or L["off"]))
   elseif cmd == "msg" or cmd == "messages" then
     local on = ns.ToggleMessageMove()
     p(on and L["Messages unlocked – drag them, right-click or /tw msg to lock."] or L["Message position saved."])
