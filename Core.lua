@@ -1323,8 +1323,8 @@ local function CreateEmergencyButton(def)
   b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
   b.text = b:CreateFontString(nil, "OVERLAY")
   b.text:SetFont(STANDARD_TEXT_FONT, 16, "OUTLINE")
-  b.text:SetPoint("LEFT", b, "RIGHT", 8, 0)   -- rechts neben dem Knopf (nicht in die Leiste hinein)
-  b.text:SetJustifyH("LEFT")
+  b.text:SetPoint("BOTTOM", b, "TOP", 0, 3)   -- über dem Knopf (überdeckt keinen Nachbarknopf)
+  b.text:SetJustifyH("CENTER"); b.text:SetWordWrap(false)
   b.glow = MakeGlow(b, 64)
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -1350,7 +1350,7 @@ local function CreateEmergencyButton(def)
       self:SetAlpha(1)
       self.border:SetColorTexture(0.1, 0.9, 0.1, 1)
       SetGlow(self.glow, false)
-      self.text:SetText(def.key == "TREMOR" and L["Tremor active"] or L["Active"])
+      self.text:SetText(L["Active"])
       self.text:SetTextColor(0.4, 1, 0.4)
     elseif level == 2 then
       self:SetAlpha(1)
@@ -1420,14 +1420,14 @@ function ns.LayoutEmergency()
       -- angedockt: oben über der Leiste, nebeneinander (rechts daneben Platz für den Text)
       b:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", x, 6)
       if e.enabled then
-        x = x + b:GetWidth() + 6 + 90
+        x = x + b:GetWidth() + 20
         rowH = math.max(rowH, b:GetHeight())
       end
     end
   end
   -- Große Warnmeldung über der Leiste über die Notfall-Reihe heben
   alert:ClearAllPoints()
-  alert:SetPoint("BOTTOM", frame, "TOP", 0, 6 + (rowH > 0 and rowH + 6 or 0))
+  alert:SetPoint("BOTTOM", frame, "TOP", 0, 6 + (rowH > 0 and rowH + 28 or 0))   -- + Platz für den Text über den Knöpfen
 end
 
 -- Alle wieder an die Leiste andocken
