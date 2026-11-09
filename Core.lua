@@ -1253,7 +1253,8 @@ tremorBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 tremorBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 tremorBtn.text = tremorBtn:CreateFontString(nil, "OVERLAY")
 tremorBtn.text:SetFont(STANDARD_TEXT_FONT, 16, "OUTLINE")
-tremorBtn.text:SetPoint("TOP", tremorBtn, "BOTTOM", 0, -3)
+tremorBtn.text:SetPoint("LEFT", tremorBtn, "RIGHT", 8, 0)   -- rechts neben dem Knopf (nicht in die Leiste hinein)
+tremorBtn.text:SetJustifyH("LEFT")
 tremorBtn.glow = MakeGlow(tremorBtn, 64)
 tremorBtn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -1343,8 +1344,8 @@ function ns.LayoutEmergency()
       -- angedockt: oben über der Leiste, nebeneinander
       b:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", x, 6)
       if e.active() then
-        x = x + b:GetWidth() + 6
-        rowH = math.max(rowH, b:GetHeight() + (b.text and 18 or 0))
+        x = x + b:GetWidth() + 6 + (b.text and 110 or 0)   -- Platz für den Text rechts daneben
+        rowH = math.max(rowH, b:GetHeight())
       end
     end
   end
