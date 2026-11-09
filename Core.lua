@@ -30,6 +30,8 @@ local DEFAULTS = {
   showMinimap = true,   -- Minimap-Knopf anzeigen
   minimapAngle = 200,   -- Position am Minimap-Rand (Grad)
   tutorialDone = false, -- Einführung schon gesehen?
+  showInDungeon = false, -- in Dungeons immer anzeigen
+  showInRaid = false,   -- in Raids immer anzeigen
 }
 
 ---------------------------------------------------------------------------
@@ -2139,14 +2141,23 @@ end
 ---------------------------------------------------------------------------
 -- Sichtbarkeit (im Kampf über sicheren Statustreiber)
 ---------------------------------------------------------------------------
+-- Bist du gerade in einem Dungeon/Raid, in dem die Leiste immer sichtbar sein soll?
+local function AlwaysShowHere()
+  if not IsInInstance then return false end
+  local inInstance, kind = IsInInstance()
+  if not inInstance then return false end
+  return (kind == "party" and TotemWatchDB.showInDungeon) or (kind == "raid" and TotemWatchDB.showInRaid) or false
+end
+ns.AlwaysShowHere = AlwaysShowHere
+
 local function ApplyVisibilityDriver()
   if InCombatLockdown() then state.pendingSecure = true; return end
-  local always = state.test or TotemWatchDB.showOOC
+  local always = state.test or TotemWatchDB.showOOC or AlwaysShowHere()
   RegisterStateDriver(frame, "visibility", always and "show" or "[combat] show; hide")
 end
 
 local function UpdateVisibility()
-  if InCombatLockdown() or state.test or TotemWatchDB.showOOC then return end
+  if InCombatLockdown() or state.test or TotemWatchDB.showOOC or AlwaysShowHere() then return end
   if GetTime() < state.pullUntil then
     if not frame:IsShown() then frame:Show() end
   elseif frame:IsShown() then
@@ -2408,6 +2419,8 @@ ev:RegisterEvent("UNIT_AURA")
 ev:RegisterEvent("UNIT_SPELLCAST_START")
 ev:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 ev:RegisterEvent("READY_CHECK")
+ev:RegisterEvent("PLAYER_ENTERING_WORLD")   -- Instanz betreten/verlassen -> Sichtbarkeit neu setzen
+ev:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 -- Feindliche Zauber (Namensplaketten, Ziel, Boss): Furcht erkennen, ohne Kampflog
 local ENEMY_UNIT = { target = true, focus = true }
@@ -2544,6 +2557,12 @@ ev:SetScript("OnEvent", function(_, event, ...)
     local unit, _, spellID = ...
     if type(unit) == "string" and unit ~= "player" then
       pcall(ns.OnEnemyCast, unit, spellID, event == "UNIT_SPELLCAST_CHANNEL_START")
+    end
+  elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+    -- in Dungeons/Raids ggf. immer anzeigen (im Kampf wird es nach dem Kampf nachgeholt)
+    if TotemWatchDB then
+      SafeCall(L["Visibility"], ApplyVisibilityDriver)
+      SafeCall(L["Visibility"], UpdateVisibility)
     end
   elseif event == "READY_CHECK" then
     if ns.RunPrePullCheck then SafeCall(L["Pull check"], ns.RunPrePullCheck, L["ready check"], 20) end

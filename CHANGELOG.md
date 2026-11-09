@@ -2,6 +2,7 @@
 
 ## 1.2.1
 
+- **New:** *Always show in dungeons* and *Always show in raids* – the bar stays visible in instances, also between fights.
 - **Fix: game crash** ("memory could not be written") caused by the round icon masks of the *Pillars* design. Masks are no longer used; Pillars now has square icons.
 - **Fix:** your own totem choice is no longer overwritten by the automatic assignment (e.g. Magma Totem being reset to Searing Totem after combat). A button you set yourself keeps your totem until you pick the recommended one again; the tooltip shows when a button is set by you. `/tw auto` or the option *Auto-assign buttons* clears your choices.
 

@@ -189,8 +189,14 @@ function ns.CreateOptions()
     L["Detects via nameplates when an enemy casts fear and recommends Tremor Totem."])
   AddCheck(panel, RX, y - 150, "distanceWarn", L["Distance to your totems"],
     L["Warns when you are farther from your totems than their range."])
+  -- In Instanzen die Leiste dauerhaft zeigen (nicht nur im Kampf)
+  local function applyVis() ns.ApplyVisibilityDriver(); ns.UpdateVisibility() end
+  AddCheck(panel, RX, y - 176, "showInDungeon", L["Always show in dungeons"],
+    L["The bar stays visible in dungeons, also between fights."], applyVis, true)
+  AddCheck(panel, RX, y - 202, "showInRaid", L["Always show in raids"],
+    L["The bar stays visible in raids, also between fights."], applyVis, true)
 
-  y = -290
+  y = -320
   AddHeader(panel, LX, y, L["Bar"])
   AddCheck(panel, LX, y - 20, "showAll", L["Cast-all button"], nil,
     function() ns.SetupSecure() end, true)
