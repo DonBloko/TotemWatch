@@ -101,7 +101,7 @@ local function AddSlider(parent, x, y, label, minV, maxV, step, getter, setter)
   return s
 end
 
-local scaleSlider, warnSlider, hintSlider, msgSlider
+local scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider
 local skinButtons = {}
 
 -- Gewähltes Design im Menü hervorheben
@@ -113,7 +113,7 @@ end
 
 local function RefreshPanel()
   for _, c in ipairs(checks) do c.cb:SetChecked(TotemWatchDB[c.key] and true or false) end
-  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider }) do
+  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider }) do
     if s then s.Refresh() end
   end
   RefreshSkinButtons()
@@ -137,7 +137,7 @@ function ns.CreateOptions()
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -4)
   scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 4)
   local P = CreateFrame("Frame", nil, scroll)
-  P:SetSize(660, 760)
+  P:SetSize(660, 880)
   scroll:SetScrollChild(P)
   -- Inhalt so breit wie der sichtbare Bereich (nicht unter die Scrollleiste)
   scroll:SetScript("OnSizeChanged", function(self, w)
@@ -253,6 +253,9 @@ function ns.CreateOptions()
     function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end)
   AddCheck(P, LX, y - 280, "useMasque", L["Use Masque (if installed)"],
     L["Styles the buttons with your Masque skin. Changes need a /reload."])
+  AddCheck(P, LX, y - 306, "tremorButton", L["Emergency Tremor button"],
+    L["A big button that always casts Tremor Totem. It is dimmed and lights up when a fear is coming."],
+    function() if ns.SetupTremor then ns.SetupTremor() end end, true)
 
   scaleSlider = AddSlider(P, RX, y - 20, L["Size"], 0.5, 2.0, 0.05,
     function() return TotemWatchDB.scale or 1 end,
@@ -295,8 +298,28 @@ function ns.CreateOptions()
     moveMsg:SetText(on and L["Lock messages"] or L["Move messages"])
   end)
 
+  -- Notfall-Knopf Tremor: verschieben, testen, Größe
+  local moveTremor
+  moveTremor = AddButton(P, RX, y - 298, L["Move Tremor button"], 180, function()
+    OutOfCombat(function()
+      local on = ns.ToggleTremorMove and ns.ToggleTremorMove()
+      moveTremor:SetText(on and L["Lock Tremor button"] or L["Move Tremor button"])
+    end)
+  end)
+  AddButton(P, RX, y - 328, L["Test Tremor alert"], 180, function()
+    if ns.state then ns.state.fearAt = GetTime() + 5 end
+    Note(L["Simulating a fear in 5 seconds."])
+  end)
+  tremorSlider = AddSlider(P, RX, y - 362, L["Tremor button size"], 40, 120, 4,
+    function() return TotemWatchDB.tremorSize or 64 end,
+    function(v)
+      if InCombatLockdown() then return end
+      TotemWatchDB.tremorSize = v
+      if ns.SetupTremor then ns.SetupTremor() end
+    end)
+
   local help = P:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", LX, y - 312)
+  help:SetPoint("TOPLEFT", LX, y - 410)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..

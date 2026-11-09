@@ -2,6 +2,7 @@
 
 ## 1.2.1
 
+- **Emergency Tremor button** – a big button that always casts Tremor Totem. It stays dimmed and lights up with a countdown when a fear is coming (boss mod timer or enemy cast); green when Tremor is already up. Own key binding, movable, size adjustable (`/tw tremor`, `/tw tremor move`, `/tw tremor test`).
 - **Spoken warnings** (text to speech) – optional, in the options under Warnings. Try them with the *Test warnings* button or `/tw soundtest`.
 - **Masque support** – the buttons use your Masque skin if Masque is installed.
 - Prepared for **community translations** on CurseForge (French, Spanish, Russian, …).

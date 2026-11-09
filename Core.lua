@@ -34,6 +34,9 @@ local DEFAULTS = {
   showInRaid = true,    -- in Raids immer anzeigen
   speak = false,        -- Warnungen vorlesen (Text-to-Speech)
   useMasque = true,     -- Knöpfe mit Masque gestalten, falls installiert
+  tremorButton = true,  -- Notfall-Knopf "Emergency Tremor"
+  tremorSize = 64,      -- Größe des Notfall-Knopfs
+  tremorDim = 0.35,     -- Helligkeit, solange keine Fear-Warnung anliegt
 }
 
 ---------------------------------------------------------------------------
@@ -1226,13 +1229,137 @@ end)
 recallBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
 -- Masque: Knöpfe im Look des gewählten Masque-Skins (nur wenn Masque installiert ist)
+---------------------------------------------------------------------------
+-- Notfall-Knopf: zaubert IMMER Totem des Erdstoßes (fester Zauber = erlaubt).
+-- Gedimmt, leuchtet bei Fear-Warnung auf, grün wenn Tremor schon steht.
+-- Im Kampf darf er nicht ein-/ausgeblendet werden, nur heller/dunkler (SetAlpha).
+---------------------------------------------------------------------------
+local tremorBtn = CreateFrame("Button", "TotemWatchTremor", UIParent, "SecureActionButtonTemplate")
+tremorBtn:SetSize(64, 64)
+tremorBtn:SetPoint("CENTER", UIParent, "CENTER", 0, -60)
+tremorBtn:SetFrameStrata("MEDIUM")
+tremorBtn:SetClampedToScreen(true)
+tremorBtn:SetMovable(true)
+RegisterClicks(tremorBtn)
+tremorBtn:SetAttribute("type1", "spell")
+tremorBtn:Hide()
+tremorBtn.border = tremorBtn:CreateTexture(nil, "BACKGROUND")
+tremorBtn.border:SetAllPoints()
+tremorBtn.border:SetColorTexture(0.15, 0.15, 0.15, 1)
+tremorBtn.icon = tremorBtn:CreateTexture(nil, "ARTWORK")
+tremorBtn.icon:SetPoint("TOPLEFT", 3, -3)
+tremorBtn.icon:SetPoint("BOTTOMRIGHT", -3, 3)
+tremorBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+tremorBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+tremorBtn.text = tremorBtn:CreateFontString(nil, "OVERLAY")
+tremorBtn.text:SetFont(STANDARD_TEXT_FONT, 16, "OUTLINE")
+tremorBtn.text:SetPoint("TOP", tremorBtn, "BOTTOM", 0, -3)
+tremorBtn.glow = MakeGlow(tremorBtn, 64)
+tremorBtn:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_TOP")
+  GameTooltip:AddLine(L["Emergency Tremor"], 1, 1, 1)
+  GameTooltip:AddLine(L["Always casts Tremor Totem. Lights up when a fear is coming."], 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end)
+tremorBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+ns.tremorBtn = tremorBtn
+
+-- Anzeige: dunkel / leuchtend mit Countdown / grün
+local tremorAcc = 0
+tremorBtn:SetScript("OnUpdate", function(self, elapsed)
+  tremorAcc = tremorAcc + elapsed
+  if tremorAcc < 0.1 then return end
+  tremorAcc = 0
+  local now = GetTime()
+  local have, name = TotemData(2)
+  local active = have and name and name ~= "" and KeyFromName(name) == "TREMOR"
+  local fearSoon, text = false, ""
+  if state.fearUntil > now then
+    fearSoon, text = true, L["FEAR!"]
+  elseif state.fearAt then
+    local dt = state.fearAt - now
+    if dt > -3 and dt < 10 then
+      fearSoon = true
+      text = (dt > 0) and format(L["Fear in %d"], ceil(dt)) or L["FEAR!"]
+    end
+  end
+  if active then
+    self:SetAlpha(1)
+    self.border:SetColorTexture(0.1, 0.9, 0.1, 1)
+    SetGlow(self.glow, false)
+    self.text:SetText(L["Tremor active"]); self.text:SetTextColor(0.4, 1, 0.4)
+  elseif fearSoon then
+    self:SetAlpha(1)
+    self.border:SetColorTexture(1, 0.1, 0.1, 1)
+    SetGlow(self.glow, true)
+    self.text:SetText(text); self.text:SetTextColor(1, 0.3, 0.3)
+  else
+    self:SetAlpha(ns.tremorMoving and 1 or ((TotemWatchDB and TotemWatchDB.tremorDim) or 0.35))
+    self.border:SetColorTexture(0.15, 0.15, 0.15, 1)
+    SetGlow(self.glow, false)
+    self.text:SetText("")
+  end
+end)
+
+-- Verschieben: blaue Fläche über dem Knopf (ziehen, Rechtsklick = fixieren)
+local tremorMover = CreateFrame("Frame", nil, UIParent)
+tremorMover:SetFrameStrata("DIALOG")
+tremorMover:SetAllPoints(tremorBtn)
+tremorMover:EnableMouse(true)
+tremorMover:RegisterForDrag("LeftButton")
+tremorMover:Hide()
+tremorMover.bg = tremorMover:CreateTexture(nil, "BACKGROUND")
+tremorMover.bg:SetAllPoints(); tremorMover.bg:SetColorTexture(0.1, 0.4, 0.9, 0.45)
+tremorMover.txt = tremorMover:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+tremorMover.txt:SetPoint("BOTTOM", tremorMover, "TOP", 0, 4)
+tremorMover.txt:SetText(L["Drag – right-click to lock"])
+tremorMover:SetScript("OnDragStart", function() if not InCombatLockdown() then tremorBtn:StartMoving() end end)
+tremorMover:SetScript("OnDragStop", function()
+  tremorBtn:StopMovingOrSizing()
+  local p, _, _, x, y = tremorBtn:GetPoint()
+  TotemWatchDB.tremorPoint, TotemWatchDB.tremorX, TotemWatchDB.tremorY = p, x, y
+end)
+tremorMover:SetScript("OnMouseUp", function(_, button)
+  if button == "RightButton" then ns.ToggleTremorMove(false) end
+end)
+
+function ns.ToggleTremorMove(on)
+  if InCombatLockdown() then return ns.tremorMoving end
+  if on == nil then on = not ns.tremorMoving end
+  ns.tremorMoving = on
+  if on then
+    tremorBtn:Show(); tremorMover:Show()
+  else
+    tremorMover:Hide()
+    if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
+  end
+  return on
+end
+
+-- Einrichten (außerhalb des Kampfes): Zauber, Größe, Position, Sichtbarkeit
+function ns.SetupTremor()
+  if InCombatLockdown() then state.pendingSecure = true; return end
+  local db = TotemWatchDB
+  local known = IsKnown("TREMOR")
+  tremorBtn:SetAttribute("spell1", known and TotemName("TREMOR") or nil)
+  local size = db.tremorSize or 64
+  tremorBtn:SetSize(size, size)
+  tremorBtn.glow:SetSize(size * 1.85, size * 1.85)
+  tremorBtn.text:SetFont(STANDARD_TEXT_FONT, math.max(12, floor(size / 4)), "OUTLINE")
+  tremorBtn.icon:SetTexture(SpellIcon(ns.TOTEMS.TREMOR.id))
+  tremorBtn:ClearAllPoints()
+  tremorBtn:SetPoint(db.tremorPoint or "CENTER", UIParent, db.tremorPoint or "CENTER", db.tremorX or 0, db.tremorY or -60)
+  ns.tremorActive = known and db.tremorButton and true or false
+  if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
+end
+
 function ns.SetupMasque()
   if ns.masqueGroup or not (TotemWatchDB and TotemWatchDB.useMasque) then return end
   local Masque = LibStub and LibStub("Masque", true)
   if not Masque then return end
   local ok, group = pcall(Masque.Group, Masque, "TotemWatch", L["Totem bar"])
   if not ok or not group then return end
-  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn, callBtn, moveBtn, recallBtn }) do
+  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn, callBtn, moveBtn, recallBtn, tremorBtn }) do
     pcall(group.AddButton, group, b, { Icon = b.icon, Cooldown = b.cd, Highlight = b:GetHighlightTexture() })
   end
   ns.masqueGroup = group
@@ -1808,6 +1935,8 @@ local function SetupSecure()
 
   -- Design anwenden: ordnet alle sichtbaren Knöpfe an und setzt Rahmen/Größen
   ns.ApplySkin()
+  -- Notfall-Knopf Tremor einrichten
+  ns.SetupTremor()
 
   RebuildCastAll()
   state.setupDone = true
@@ -2212,6 +2341,12 @@ local function ApplyVisibilityDriver()
   if InCombatLockdown() then state.pendingSecure = true; return end
   local always = state.test or TotemWatchDB.showOOC or AlwaysShowHere()
   RegisterStateDriver(frame, "visibility", always and "show" or "[combat] show; hide")
+  -- Notfall-Knopf Tremor: gleiche Sichtbarkeit wie die Leiste (beim Verschieben immer sichtbar)
+  if ns.tremorActive or ns.tremorMoving then
+    RegisterStateDriver(tremorBtn, "visibility", (always or ns.tremorMoving) and "show" or "[combat] show; hide")
+  else
+    RegisterStateDriver(tremorBtn, "visibility", "hide")
+  end
 end
 
 local function UpdateVisibility()
@@ -2691,6 +2826,7 @@ _G["BINDING_NAME_CLICK TotemWatchShield:LeftButton"]  = L["Cast shield"]
 _G["BINDING_NAME_CLICK TotemWatchCall:LeftButton"]    = L["Call of the Elements (all totems)"]
 _G["BINDING_NAME_CLICK TotemWatchMove:LeftButton"]    = L["Totemic Call (move totems to you)"]
 _G["BINDING_NAME_CLICK TotemWatchRecall:LeftButton"]  = L["Totemic Recall (remove totems)"]
+_G["BINDING_NAME_CLICK TotemWatchTremor:LeftButton"]  = L["Emergency Tremor (Tremor Totem)"]
 
 ---------------------------------------------------------------------------
 -- Slash-Befehle
@@ -2776,6 +2912,20 @@ SlashCmdList.TOTEMWATCH = function(msg)
     TotemWatchDB.showMinimap = not TotemWatchDB.showMinimap
     if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
     p(L["Minimap button: "] .. (TotemWatchDB.showMinimap and L["on"] or L["off"]))
+  elseif cmd == "tremor" then
+    if InCombatLockdown() then p(L["Not possible in combat."]) return end
+    if arg == "move" then
+      local on = ns.ToggleTremorMove()
+      p(on and L["Tremor button unlocked – drag it, right-click to lock."] or L["Tremor button locked."])
+    elseif arg == "test" then
+      -- Fear-Warnung simulieren, damit man das Aufleuchten sieht
+      state.fearAt = GetTime() + 5
+      p(L["Simulating a fear in 5 seconds."])
+    else
+      TotemWatchDB.tremorButton = not TotemWatchDB.tremorButton
+      ns.SetupTremor()
+      p(L["Emergency Tremor button: "] .. (TotemWatchDB.tremorButton and L["on"] or L["off"]))
+    end
   elseif cmd == "soundtest" or cmd == "testsound" then
     ns.TestWarnings()
   elseif cmd == "msg" or cmd == "messages" then
@@ -2967,6 +3117,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
     print(L["  /tw msg – move the messages in the middle of the screen"])
     print(L["  /tw soundtest – play a test warning (sound, message, speech)"])
+    print(L["  /tw tremor – Emergency Tremor button on/off  ·  /tw tremor move  ·  /tw tremor test"])
     print(L["  /tw tutorial – start the tour  ·  /tw minimap – show/hide the minimap button"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
