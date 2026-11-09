@@ -555,22 +555,33 @@ local function ScanRange()
     if buffId and start and now - start > 3 and (start + (duration or 0) - now) > 1 then
       local buffName = SpellName(buffId)
       local baseTotem = TotemName(key)
-      local missing, checked = {}, 0
+      local missing, checked, selfOut = {}, 0, false
       for _, u in ipairs(GROUP_UNITS) do
         if UnitExists(u) and UnitIsConnected(u) and not UnitIsDeadOrGhost(u) then
           checked = checked + 1
           local visible = UnitIsVisible(u)
           if not visible or not HasTotemBuff(CollectBuffNames(u, buffScratch), buffName, baseTotem) then
-            missing[#missing + 1] = (u == "player") and "du" or (UnitName(u) or "?")
+            if u == "player" then selfOut = true end
+            missing[#missing + 1] = (u == "player") and L["you"] or (UnitName(u) or "?")
           end
         end
       end
       -- Hat niemand den Buff, ist die Erkennung unzuverlässig -> nicht warnen
       if #missing > 0 and #missing < checked then
-        state.range[s] = { count = #missing, names = table.concat(missing, ", ") }
+        state.range[s] = { count = #missing, names = table.concat(missing, ", "), self = selfOut,
+                           name = baseTotem }
       end
     end
   end
+  -- Du selbst bist raus (erkannt am fehlenden Buff): Meldung in der Mitte, einmal pro Mal,
+  -- falls die Abstandsmessung (Position) das nicht schon gemeldet hat
+  local selfOutNow = false
+  for s = 1, 4 do if state.range[s] and state.range[s].self then selfOutNow = true end end
+  if selfOutNow and not state.wasSelfOut and not state.wasFar and ns.ShowMessage then
+    ns.ShowMessage(L["Out of totem range"], 1, 0.6, 0.2)
+    if ns.Speak then ns.Speak(L["Out of totem range"]) end
+  end
+  state.wasSelfOut = selfOutNow
 end
 
 -- Ersatz ohne Kampflog: Totems anderer Schamanen über die Buffs auf dir erkennen.
@@ -2153,6 +2164,18 @@ local function Refresh()
     local tHave, tName, tStart, tDur = TotemData(s)
     local tLeft = (tHave and tDur and tDur > 0) and (tStart + tDur - now) or 0
     b.timer:SetText(FormatTime(tLeft))
+    -- Abstand ebenfalls gleich am Anfang zeigen: fällt später etwas aus (im Kampf gesperrte
+    -- Werte), soll die Yards-Anzeige trotzdem erscheinen
+    local farEarly = state.far[s]
+    local rngEarly = state.range[s]
+    if farEarly then
+      b.farText:SetText(farEarly.dist .. L["yd"]); b.farText:Show()
+    elseif rngEarly and rngEarly.self then
+      -- Position gesperrt (z.B. in Dungeons): keine Yards, aber du selbst hast den Buff nicht
+      b.farText:SetText(L["far"]); b.farText:Show()
+    else
+      b.farText:Hide()
+    end
 
     -- Vorwarnung kurz vor dem Ablaufen (nur für längere Totems, einmal pro gestelltem Totem)
     local wb = TotemWatchDB.warnBefore or 0
@@ -2233,11 +2256,14 @@ local function Refresh()
     local col = ns.SLOT_COLORS[s]
     -- Abstand zum eigenen Totem
     local far = state.far[s]
+    local rng = state.range[s]
     if far then
       hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d yd from %s (range %d yd)"],
         col, ns.SLOT_NAMES[s], far.dist, far.name, far.range))
+    elseif rng and rng.self then
+      -- ohne Position (Dungeon): wenigstens klar sagen, dass DU zu weit weg bist
+      hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are out of range of %s"], col, ns.SLOT_NAMES[s], rng.name or "?"))
     end
-    local rng = state.range[s]
     if rng then
       b.label:SetText("|cffff3030" .. rng.count .. "|r")
       b.rangeInfo = format(L["Out of range: %s"], rng.names)
@@ -2258,6 +2284,9 @@ local function Refresh()
       local t = tracked[s]
       local redropBetter = not (adv and adv.useCall)
       SetGlow(b.glow, TotemWatchDB.glow and redropBetter and t and t.key == assignedKey)
+    elseif rng and rng.self then
+      b.farText:SetText(L["far"]); b.farText:Show()
+      SetBorder(b, "FAR", true)
     else
       b.farText:Hide()
     end

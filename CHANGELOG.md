@@ -3,6 +3,8 @@
 ## 1.2.2
 
 - **Fix:** the totem range/distance was sometimes missing when the game reported a new totem before the cast event (no or an old position was stored). The position is now taken when the totem appears.
+- **Range in dungeons:** the game hides your position in instances, so no yards can be shown there. If you yourself are missing a totem buff, the button now says *far* with an orange frame, the hint says "you are out of range of …", and the center message appears (instead of only a red "1").
+- The yards display on the button no longer disappears when a locked value causes a problem earlier in the update.
 
 ## 1.2.1
 
