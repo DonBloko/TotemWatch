@@ -199,6 +199,10 @@ function ns.CreateOptions()
     L["The button (or the totem in the selection) that you should press glows."])
   AddCheck(P, LX, y - 150, "messages", L["Messages in the middle of the screen"],
     L["Large messages for missing totems, fear and destroyed totems. Each message is shown only once."])
+  -- Warnton, Meldung und Sprachausgabe sofort ausprobieren
+  AddButton(P, LX + 4, y - 184, L["Test warnings"], 180, function()
+    if ns.TestWarnings then ns.TestWarnings() end
+  end)
 
   AddHeader(P, RX, y, L["Warnings"])
   AddCheck(P, RX, y - 20, "sound", L["Warning sound"],

@@ -2,7 +2,7 @@
 
 ## 1.2.1
 
-- **Spoken warnings** (text to speech) – optional, in the options under Warnings.
+- **Spoken warnings** (text to speech) – optional, in the options under Warnings. Try them with the *Test warnings* button or `/tw soundtest`.
 - **Masque support** – the buttons use your Masque skin if Masque is installed.
 - Prepared for **community translations** on CurseForge (French, Spanish, Russian, …).
 - Uploads to **Wago Addons** as well (once configured).

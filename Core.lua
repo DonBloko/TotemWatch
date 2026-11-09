@@ -1341,6 +1341,15 @@ function ns.Speak(text, force)
   return ok
 end
 
+-- Test: Warnton, Meldung und Sprachausgabe auf einmal (unabhängig von den Optionen)
+function ns.TestWarnings()
+  PlaySound((SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959, "Master")
+  msgFrame:AddMessage(L["Test: Tremor Totem now!"], 1, 0.2, 0.2)
+  local spoke = ns.Speak(L["Tremor Totem now!"], true)
+  print("|cff0070deTotemWatch|r: " .. (spoke and L["Test warning played: sound, message and speech."]
+    or L["Test warning played: sound and message. Text to speech is not available on this client."]))
+end
+
 local lastMessage = {}
 -- Zeigt eine Meldung, aber dieselbe höchstens alle 8 Sekunden
 function ns.ShowMessage(text, r, g, b)
@@ -2767,6 +2776,8 @@ SlashCmdList.TOTEMWATCH = function(msg)
     TotemWatchDB.showMinimap = not TotemWatchDB.showMinimap
     if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
     p(L["Minimap button: "] .. (TotemWatchDB.showMinimap and L["on"] or L["off"]))
+  elseif cmd == "soundtest" or cmd == "testsound" then
+    ns.TestWarnings()
   elseif cmd == "msg" or cmd == "messages" then
     local on = ns.ToggleMessageMove()
     p(on and L["Messages unlocked – drag them, right-click or /tw msg to lock."] or L["Message position saved."])
@@ -2955,6 +2966,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw bar – Call of the Elements bar diagnostics"])
     print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
     print(L["  /tw msg – move the messages in the middle of the screen"])
+    print(L["  /tw soundtest – play a test warning (sound, message, speech)"])
     print(L["  /tw tutorial – start the tour  ·  /tw minimap – show/hide the minimap button"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))
