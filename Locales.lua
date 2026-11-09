@@ -397,3 +397,5 @@ L["Important warnings are read out loud, e.g. “Tremor Totem now!”."] = "Wich
 L["TotemWatch voice warnings on"] = "TotemWatch Sprachwarnungen an"
 L["Use Masque (if installed)"] = "Masque verwenden (falls installiert)"
 L["Styles the buttons with your Masque skin. Changes need a /reload."] = "Gestaltet die Knöpfe mit deinem Masque-Skin. Änderungen brauchen ein /reload."
+L["%s: 1 charge, %s"] = "%s: 1 Aufladung, %s"
+L["%s: only 1 charge – refresh it"] = "%s: nur 1 Aufladung – erneuern"

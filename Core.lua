@@ -2098,7 +2098,11 @@ local function Refresh()
       return
     end
     if name then
-      shieldBtn.info = format(L["%s: %d charges, %s"], name, count or 0, FormatTime(left))
+      if count == 1 then
+        shieldBtn.info = format(L["%s: 1 charge, %s"], name, FormatTime(left))
+      else
+        shieldBtn.info = format(L["%s: %d charges, %s"], name, count or 0, FormatTime(left))
+      end
       SetBorder(shieldBtn, left > 0 and left < 60 and "EXPIRING" or "OK", false)
       shieldBtn.label:SetText((count and count > 0) and count or "")
     else
@@ -2304,7 +2308,7 @@ local function BuildCheck()
       if left > 0 and left < 180 then
         add(false, format(L["%s expires in %s – refresh it"], n, FormatTime(left)))
       elseif c and c > 0 and c < 3 then
-        add(false, format(L["%s: only %d charges – refresh it"], n, c))
+        add(false, (c == 1) and format(L["%s: only 1 charge – refresh it"], n) or format(L["%s: only %d charges – refresh it"], n, c))
       else
         add(true, format(L["%s: %s charges%s"], n, c or "?", left > 0 and (", " .. FormatTime(left)) or ""))
       end
