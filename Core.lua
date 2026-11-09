@@ -1323,6 +1323,36 @@ tremorMover:SetScript("OnMouseUp", function(_, button)
   if button == "RightButton" then ns.ToggleTremorMove(false) end
 end)
 
+-- Notfall-Reihe: angedockte Notfall-Knöpfe stehen oben über der Leiste nebeneinander
+-- (linksbündig). Weitere Notfall-Knöpfe werden einfach in ns.emergency eingetragen.
+-- { button, aktivFunktion, Schlüssel für gespeicherte Position }
+ns.emergency = { { btn = tremorBtn, active = function() return ns.tremorActive end, key = "tremor" } }
+
+function ns.LayoutEmergency()
+  if InCombatLockdown() then state.pendingSecure = true; return end
+  local db = TotemWatchDB
+  local x, rowH = 0, 0
+  for _, e in ipairs(ns.emergency) do
+    local b = e.btn
+    local point = db[e.key .. "Point"]
+    b:ClearAllPoints()
+    if point then
+      -- frei platziert (vom Spieler verschoben)
+      b:SetPoint(point, UIParent, point, db[e.key .. "X"] or 0, db[e.key .. "Y"] or 0)
+    else
+      -- angedockt: oben über der Leiste, nebeneinander
+      b:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", x, 6)
+      if e.active() then
+        x = x + b:GetWidth() + 6
+        rowH = math.max(rowH, b:GetHeight() + (b.text and 18 or 0))
+      end
+    end
+  end
+  -- Große Warnmeldung über der Leiste über die Notfall-Reihe heben
+  alert:ClearAllPoints()
+  alert:SetPoint("BOTTOM", frame, "TOP", 0, 6 + (rowH > 0 and rowH + 6 or 0))
+end
+
 -- Wieder an die Leiste andocken
 function ns.AttachTremor()
   if InCombatLockdown() then return false end
@@ -1355,15 +1385,8 @@ function ns.SetupTremor()
   tremorBtn.glow:SetSize(size * 1.85, size * 1.85)
   tremorBtn.text:SetFont(STANDARD_TEXT_FONT, math.max(12, floor(size / 4)), "OUTLINE")
   tremorBtn.icon:SetTexture(SpellIcon(ns.TOTEMS.TREMOR.id))
-  tremorBtn:ClearAllPoints()
-  if db.tremorPoint then
-    -- frei platziert (vom Spieler verschoben)
-    tremorBtn:SetPoint(db.tremorPoint, UIParent, db.tremorPoint, db.tremorX or 0, db.tremorY or 0)
-  else
-    -- Standard: links an der TotemWatch-Leiste angedockt, wandert mit ihr mit
-    tremorBtn:SetPoint("RIGHT", frame, "LEFT", -8, 0)
-  end
   ns.tremorActive = known and db.tremorButton and true or false
+  ns.LayoutEmergency()   -- Position: oben an der Leiste oder frei platziert
   if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
 end
 
