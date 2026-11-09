@@ -200,7 +200,7 @@ ns.BOSSES = {
 --   bg/edge  Hintergrund- und Rahmenfarbe der Leiste, edgeFile/edgeSize = Rahmenart
 local WHITE = "Interface\Buttons\WHITE8X8"
 local TOOLTIP_EDGE = "Interface\Tooltips\UI-Tooltip-Border"
-ns.SKIN_ORDER = { "classic", "minimal", "pillars", "bars" }
+ns.SKIN_ORDER = { "classic", "minimal", "pillars", "bars", "compact", "focus", "stacked", "column" }
 ns.SKINS = {
   classic = {
     name = "Classic", btn = 40, gap = 6, inset = 2, title = true, timer = "below",
@@ -223,6 +223,31 @@ ns.SKINS = {
     extraBtn = 34,   -- Größe der Zusatzknöpfe (ALLE, Call, Recall, Waffe, Schild) unter den Balken
     bg = { 0, 0, 0, 0.55 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
+  },
+  -- Beta-Designs zum Ausprobieren
+  compact = {
+    name = "Compact (beta)", btn = 26, gap = 3, inset = 1, title = false, timer = "inside",
+    extraBtn = 18, more = true, hints = 1,
+    bg = { 0, 0, 0, 0.6 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
+  },
+  focus = {
+    name = "Focus (beta)", btn = 30, gap = 4, inset = 1, title = false, timer = "below",
+    focus = true, hints = 1,
+    bg = { 0, 0, 0, 0 }, edge = { 0, 0, 0, 0 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
+  },
+  stacked = {
+    name = "Two rows (beta)", btn = 30, gap = 3, inset = 1, title = false, timer = "inside",
+    extraBtn = 16, extrasBelow = true, hints = 0,
+    bg = { 0, 0, 0, 0.6 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
+  },
+  column = {
+    name = "Column (beta)", btn = 24, gap = 3, inset = 1, title = false, timer = "right",
+    extraBtn = 16, vertical = true, hints = 0,
+    bg = { 0, 0, 0, 0 }, edge = { 0, 0, 0, 0 }, edgeFile = WHITE, edgeSize = 1,
+    hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
   },
 }
 

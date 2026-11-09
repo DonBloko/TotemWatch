@@ -1,5 +1,13 @@
 # TotemWatch – Changelog
 
+## 1.3.0 (beta)
+
+- **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
+  - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
+  - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.
+  - **Two rows** (`stacked`) – totems on top, all extra buttons as a small row below; hints only in the tooltip.
+  - **Column** (`column`) – a narrow column (e.g. next to your character) with the remaining time beside each totem.
+
 ## 1.2.2
 
 - **Fix:** the totem range/distance was sometimes missing when the game reported a new totem before the cast event (no or an old position was stored). The position is now taken when the totem appears.

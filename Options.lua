@@ -137,7 +137,7 @@ function ns.CreateOptions()
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -4)
   scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 4)
   local P = CreateFrame("Frame", nil, scroll)
-  P:SetSize(660, 960)
+  P:SetSize(660, 986)
   scroll:SetScrollChild(P)
   -- Inhalt so breit wie der sichtbare Bereich (nicht unter die Scrollleiste)
   scroll:SetScript("OnSizeChanged", function(self, w)
@@ -169,7 +169,7 @@ function ns.CreateOptions()
   -- Design-Auswahl (oben, gut sichtbar)
   AddHeader(P, LX, -62, L["Design"])
   for i, key in ipairs(ns.SKIN_ORDER) do
-    local b = AddButton(P, LX + 60 + (i - 1) * 128, -58, L[ns.SKINS[key].name], 124, function()
+    local b = AddButton(P, LX + 60 + ((i - 1) % 4) * 128, -58 - math.floor((i - 1) / 4) * 26, L[ns.SKINS[key].name], 124, function()
       OutOfCombat(function()
         TotemWatchDB.skin = key
         if ns.ApplySkin then ns.ApplySkin() end
@@ -180,7 +180,7 @@ function ns.CreateOptions()
     skinButtons[key] = b
   end
 
-  local y = -100
+  local y = -126
 
   AddHeader(P, LX, y, L["Recommendations"])
   AddCheck(P, LX, y - 20, "auto", L["Auto-assign buttons"],

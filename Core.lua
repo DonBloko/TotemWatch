@@ -1205,6 +1205,38 @@ local callBtn = CreateCastButton("TotemWatchCall", 9 + 7 * GAP + 6)
 local moveBtn = CreateCastButton("TotemWatchMove", 9 + 8 * GAP + 6)
 local recallBtn = CreateCastButton("TotemWatchRecall", 9 + 9 * GAP + 6)
 callBtn:Hide(); moveBtn:Hide(); recallBtn:Hide()
+
+-- "..."-Knopf (Design Kompakt): klappt ALLE, Call, Totemic Call und Recall auf/zu.
+-- Gesicherter Klick-Handler, damit das Aufklappen auch im Kampf funktioniert.
+local moreBtn = CreateFrame("Button", "TotemWatchMore", frame, "SecureHandlerClickTemplate")
+moreBtn:SetSize(18, 18)
+moreBtn:RegisterForClicks("AnyUp")
+moreBtn:Hide()
+do
+  local bg = moreBtn:CreateTexture(nil, "BACKGROUND")
+  bg:SetAllPoints(); bg:SetColorTexture(0.15, 0.15, 0.15, 1)
+  local t = moreBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  t:SetPoint("CENTER", 0, 2); t:SetText("...")
+  moreBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+end
+for i, b in ipairs({ castAll, callBtn, moveBtn, recallBtn }) do moreBtn:SetFrameRef("x" .. i, b) end
+moreBtn:SetAttribute("_onclick", [=[
+  local open = not self:GetAttribute("open")
+  self:SetAttribute("open", open)
+  for i = 1, 4 do
+    local f = self:GetFrameRef("x" .. i)
+    if f then
+      if open and f:GetAttribute("twEnabled") then f:Show() else f:Hide() end
+    end
+  end
+]=])
+moreBtn:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_TOP")
+  GameTooltip:AddLine(L["More buttons"], 1, 1, 1)
+  GameTooltip:AddLine(L["Click: show/hide ALL, Call of the Elements, Totemic Call and Totemic Recall (also in combat)."], 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end)
+moreBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 moveBtn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine(self:GetAttribute("spell1") or "Totemic Call", 1, 1, 1)
@@ -1790,6 +1822,8 @@ function ns.ApplySkin()
       b.timer:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 4); b.timer:Show()
     elseif S.timer == "below" then
       b.timer:SetPoint("TOP", b, "BOTTOM", 0, S.bar == "below" and -8 or -1); b.timer:Show()
+    elseif S.timer == "right" then
+      b.timer:SetPoint("LEFT", b, "RIGHT", 4, 0); b.timer:Show()
     else
       b.timer:Hide()
     end
@@ -1824,7 +1858,8 @@ function ns.ApplySkin()
     end
     -- Position
     b:ClearAllPoints()
-    if S.bar == "right" then
+    b:SetAlpha(1)   -- Fokus-Design dimmt im Betrieb; beim Wechsel zurücksetzen
+    if S.bar == "right" or S.vertical then
       b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -top - (s - 1) * (size + gap))
     else
       b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad + (s - 1) * (size + gap), -top)
@@ -1834,8 +1869,66 @@ function ns.ApplySkin()
 
   -- Zusatzknöpfe (ALLE, Call, Totemic Call, Recall, Waffe, Schild)
   local extras = { castAll, callBtn, moveBtn, recallBtn, weaponBtn, shieldBtn }
+  for _, b in ipairs(extras) do b:SetAlpha(1) end
+  -- ALLE / Call / Totemic Call / Recall: gewünscht laut Optionen? (Kompakt: hinter "...")
+  local wanted = {
+    [castAll] = TotemWatchDB.showAll,
+    [callBtn] = ns.callName and TotemWatchDB.showCall,
+    [moveBtn] = ns.moveName and TotemWatchDB.showMove,
+    [recallBtn] = ns.recallName and TotemWatchDB.showRecall,
+  }
+  for b, want in pairs(wanted) do
+    b:SetAttribute("twEnabled", want and true or false)
+    if want and not S.more then b:Show() else b:Hide() end
+  end
+  moreBtn:SetAttribute("open", false)
+  if S.more then moreBtn:Show() else moreBtn:Hide() end
+
   local width, height
-  if S.bar == "right" then
+  local esize = S.extraBtn or size
+  local function PlaceExtra(b, x, y, sz)
+    b:SetSize(sz, sz)
+    if b.glow then b.glow:SetSize(sz * 1.85, sz * 1.85) end
+    b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
+  end
+  if S.more then
+    -- Kompakt: Waffe/Schild klein rechts daneben, dann "...";
+    -- die übrigen Zusatzknöpfe klappen über dem "..." auf
+    local x = pad + 4 * (size + gap) + 4
+    local y = -top - (size - esize) / 2
+    for _, b in ipairs({ weaponBtn, shieldBtn }) do
+      if b:IsShown() then PlaceExtra(b, x, y, esize); x = x + esize + 3 end
+    end
+    moreBtn:SetSize(esize, esize)
+    moreBtn:ClearAllPoints(); moreBtn:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
+    x = x + esize
+    local i = 0
+    for _, b in ipairs({ castAll, callBtn, moveBtn, recallBtn }) do
+      if wanted[b] then
+        b:SetSize(esize + 6, esize + 6)
+        if b.glow then b.glow:SetSize((esize + 6) * 1.85, (esize + 6) * 1.85) end
+        b:ClearAllPoints()
+        b:SetPoint("BOTTOMRIGHT", moreBtn, "TOPRIGHT", -i * (esize + 9), 4)
+        i = i + 1
+      end
+    end
+    width = x + pad
+    height = top + size + ((S.timer == "below") and 16 or 4)
+  elseif S.extrasBelow or S.vertical then
+    -- Zwei Ebenen / Senkrecht: alle Zusatzknöpfe als kleine Reihe darunter
+    local y = S.vertical and (-top - 4 * (size + gap) - 2) or (-top - size - 4)
+    local x = pad
+    for _, b in ipairs(extras) do
+      if b:IsShown() then PlaceExtra(b, x, y, esize); x = x + esize + 3 end
+    end
+    if S.vertical then
+      width = math.max(pad + size + 44, x + pad)
+      height = top + 4 * (size + gap) + ((x > pad) and (esize + 16) or 0) + 2
+    else
+      width = math.max(pad + 4 * (size + gap) - gap + pad, x + pad)
+      height = top + size + 4 + ((x > pad) and (esize + 16) or 0) + 2
+    end
+  elseif S.bar == "right" then
     -- Bars: Zusatzknöpfe in einer Reihe unter den Balken
     local y = -top - 4 * (size + gap) - 3
     local x = pad
@@ -2153,8 +2246,10 @@ local shieldNames = {}
 local function Refresh()
   local now = GetTime()
   local hintLine, alertText = 1, nil
+  -- Anzahl Hinweiszeilen je Design (Kompakt/Fokus: 1, Zwei Ebenen/Senkrecht: 0 = nur Tooltip)
+  local hintMax = math.min(CurrentSkin().hints or MAX_HINTS, MAX_HINTS)
   local function hint(text)
-    if hintLine <= MAX_HINTS then hints[hintLine]:SetText(text); hintLine = hintLine + 1 end
+    if hintLine <= hintMax then hints[hintLine]:SetText(text); hintLine = hintLine + 1 end
   end
 
   -- Totems (jeder Slot einzeln abgesichert; Restzeit zuerst, damit sie immer läuft)
@@ -2335,6 +2430,16 @@ local function Refresh()
     end
   end
   for s = 1, 4 do SafeCall("Totem", doSlot, s) end
+  -- Fokus-Design: nur Knöpfe mit Handlungsbedarf hell, alles andere fast unsichtbar
+  -- (SetAlpha ist auch im Kampf erlaubt; die Knöpfe bleiben klickbar)
+  if CurrentSkin().focus then
+    local calm = { [STATUS_COLOR.OK] = true, [STATUS_COLOR.NONE] = true, [STATUS_COLOR.COVERED] = true }
+    for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], castAll, callBtn, moveBtn, recallBtn, weaponBtn, shieldBtn }) do
+      local need = b.statusColor and not calm[b.statusColor]
+      if b.glow and b.glow:IsShown() then need = true end
+      b:SetAlpha(need and 1 or 0.18)
+    end
+  end
 
   -- Waffenverzauberung
   SafeCall(L["Weapon"], function() if weaponBtn:IsShown() then

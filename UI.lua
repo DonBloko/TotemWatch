@@ -194,7 +194,7 @@ local function BuildSteps()
               end
             end)
           end)
-          b:SetPoint("TOPLEFT", (i - 1) * 103, 0)
+          b:SetPoint("TOPLEFT", ((i - 1) % 4) * 103, -math.floor((i - 1) / 4) * 26)
           f.skinButtons[key] = b
         end
       end,
