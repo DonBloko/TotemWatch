@@ -30,8 +30,8 @@ local DEFAULTS = {
   showMinimap = true,   -- Minimap-Knopf anzeigen
   minimapAngle = 200,   -- Position am Minimap-Rand (Grad)
   tutorialDone = false, -- Einführung schon gesehen?
-  showInDungeon = false, -- in Dungeons immer anzeigen
-  showInRaid = false,   -- in Raids immer anzeigen
+  showInDungeon = true, -- in Dungeons immer anzeigen
+  showInRaid = true,    -- in Raids immer anzeigen
 }
 
 ---------------------------------------------------------------------------
@@ -2488,6 +2488,11 @@ ev:SetScript("OnEvent", function(_, event, ...)
       for k, v in pairs(DEFAULTS) do if TotemWatchDB[k] == nil then TotemWatchDB[k] = v end end
       TotemWatchDB.choice = TotemWatchDB.choice or {}
       TotemWatchDB.manual = TotemWatchDB.manual or {}   -- [slot] = von dir festgelegtes Totem
+      -- Einmalig: "in Dungeons/Raids immer anzeigen" einschalten (Testversion hatte "aus" gespeichert)
+      if not TotemWatchDB.instanceDefaultsSet then
+        TotemWatchDB.showInDungeon, TotemWatchDB.showInRaid = true, true
+        TotemWatchDB.instanceDefaultsSet = true
+      end
       if TotemWatchDB.forceCombatLog then ns.combatLogAllowed = true end
       if ns.combatLogAllowed then ev:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED") end
     end
