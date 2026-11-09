@@ -1323,6 +1323,14 @@ tremorMover:SetScript("OnMouseUp", function(_, button)
   if button == "RightButton" then ns.ToggleTremorMove(false) end
 end)
 
+-- Wieder an die Leiste andocken
+function ns.AttachTremor()
+  if InCombatLockdown() then return false end
+  TotemWatchDB.tremorPoint, TotemWatchDB.tremorX, TotemWatchDB.tremorY = nil, nil, nil
+  ns.SetupTremor()
+  return true
+end
+
 function ns.ToggleTremorMove(on)
   if InCombatLockdown() then return ns.tremorMoving end
   if on == nil then on = not ns.tremorMoving end
@@ -1348,7 +1356,13 @@ function ns.SetupTremor()
   tremorBtn.text:SetFont(STANDARD_TEXT_FONT, math.max(12, floor(size / 4)), "OUTLINE")
   tremorBtn.icon:SetTexture(SpellIcon(ns.TOTEMS.TREMOR.id))
   tremorBtn:ClearAllPoints()
-  tremorBtn:SetPoint(db.tremorPoint or "CENTER", UIParent, db.tremorPoint or "CENTER", db.tremorX or 0, db.tremorY or -60)
+  if db.tremorPoint then
+    -- frei platziert (vom Spieler verschoben)
+    tremorBtn:SetPoint(db.tremorPoint, UIParent, db.tremorPoint, db.tremorX or 0, db.tremorY or 0)
+  else
+    -- Standard: links an der TotemWatch-Leiste angedockt, wandert mit ihr mit
+    tremorBtn:SetPoint("RIGHT", frame, "LEFT", -8, 0)
+  end
   ns.tremorActive = known and db.tremorButton and true or false
   if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
 end
@@ -2671,6 +2685,8 @@ ns.ResetPosition = function()
   -- Meldungen zurück in die Bildschirmmitte
   TotemWatchDB.msgPoint, TotemWatchDB.msgX, TotemWatchDB.msgY = nil, nil, nil
   if ns.ApplyMessagePosition then ns.ApplyMessagePosition() end
+  -- Notfall-Knopf wieder an die Leiste andocken
+  if ns.AttachTremor then ns.AttachTremor() end
 end
 
 ev:SetScript("OnEvent", function(_, event, ...)
@@ -2914,7 +2930,10 @@ SlashCmdList.TOTEMWATCH = function(msg)
     p(L["Minimap button: "] .. (TotemWatchDB.showMinimap and L["on"] or L["off"]))
   elseif cmd == "tremor" then
     if InCombatLockdown() then p(L["Not possible in combat."]) return end
-    if arg == "move" then
+    if arg == "attach" then
+      ns.AttachTremor()
+      p(L["Tremor button attached to the bar."])
+    elseif arg == "move" then
       local on = ns.ToggleTremorMove()
       p(on and L["Tremor button unlocked – drag it, right-click to lock."] or L["Tremor button locked."])
     elseif arg == "test" then
@@ -3117,7 +3136,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
     print(L["  /tw msg – move the messages in the middle of the screen"])
     print(L["  /tw soundtest – play a test warning (sound, message, speech)"])
-    print(L["  /tw tremor – Emergency Tremor button on/off  ·  /tw tremor move  ·  /tw tremor test"])
+    print(L["  /tw tremor – Emergency Tremor button on/off  ·  /tw tremor move | attach | test"])
     print(L["  /tw tutorial – start the tour  ·  /tw minimap – show/hide the minimap button"])
     print(L["  /tw combatlog – force the combat log (testing only; default on Forever: off)"])
     print(L["  Combat log active: "] .. (ns.combatLogAllowed and L["yes"] or L["no (buff-based fallback)"]))

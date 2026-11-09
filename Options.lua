@@ -306,6 +306,17 @@ function ns.CreateOptions()
       moveTremor:SetText(on and L["Lock Tremor button"] or L["Move Tremor button"])
     end)
   end)
+  -- Notfall-Knopf wieder links an die Leiste hängen
+  AddButton(P, LX + 4, y - 338, L["Attach Tremor button to the bar"], 220, function()
+    OutOfCombat(function()
+      if ns.tremorMoving and ns.ToggleTremorMove then
+        ns.ToggleTremorMove(false)
+        moveTremor:SetText(L["Move Tremor button"])
+      end
+      if ns.AttachTremor then ns.AttachTremor() end
+      Note(L["Tremor button attached to the bar."])
+    end)
+  end)
   AddButton(P, RX, y - 328, L["Test Tremor alert"], 180, function()
     if ns.state then ns.state.fearAt = GetTime() + 5 end
     Note(L["Simulating a fear in 5 seconds."])
