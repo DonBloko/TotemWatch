@@ -139,6 +139,10 @@ function ns.CreateOptions()
   local P = CreateFrame("Frame", nil, scroll)
   P:SetSize(660, 760)
   scroll:SetScrollChild(P)
+  -- Inhalt so breit wie der sichtbare Bereich (nicht unter die Scrollleiste)
+  scroll:SetScript("OnSizeChanged", function(self, w)
+    if w and w > 0 then P:SetWidth(w) end
+  end)
   scroll:EnableMouseWheel(true)
   scroll:SetScript("OnMouseWheel", function(self, delta)
     local range = self:GetVerticalScrollRange() or 0
@@ -160,7 +164,7 @@ function ns.CreateOptions()
     if ns.StartTutorial then ns.StartTutorial() end
   end)
   tourBtn:ClearAllPoints()
-  tourBtn:SetPoint("TOPRIGHT", P, "TOPRIGHT", -16, -16)
+  tourBtn:SetPoint("TOPRIGHT", P, "TOPRIGHT", -30, -16)   -- Abstand zur Scrollleiste
 
   -- Design-Auswahl (oben, gut sichtbar)
   AddHeader(P, LX, -62, L["Design"])
