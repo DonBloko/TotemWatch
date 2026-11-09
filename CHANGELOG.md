@@ -8,7 +8,6 @@
 - Emergency button texts (countdown, *Active*) now sit above the buttons and no longer overlap the neighbouring button.
 - **Spoken warnings** (text to speech) – optional, in the options under Warnings. Try them with the *Test warnings* button or `/tw soundtest`.
 - **Masque support** – the buttons use your Masque skin if Masque is installed.
-- Prepared for **community translations** on CurseForge (French, Spanish, Russian, …).
 - Uploads to **Wago Addons** as well (once configured).
 - **New:** *Always show in dungeons* and *Always show in raids* – the bar stays visible in instances, also between fights (on by default).
 - **Fix: game crash** ("memory could not be written") caused by the round icon masks of the *Pillars* design. Masks are no longer used; Pillars now has square icons.

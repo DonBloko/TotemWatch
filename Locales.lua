@@ -6,26 +6,9 @@ ns.L = L
 
 local locale = GetLocale()
 
--- Weitere Sprachen: Übersetzungen aus dem CurseForge-Projekt (Localization).
--- Der CurseForge-Packager ersetzt die @localization-Zeilen beim Bauen durch die Übersetzungen;
--- ohne Packager sind es nur Kommentare. Deutsch steht weiter unten direkt in dieser Datei.
-if locale == "frFR" then
---@localization(locale="frFR", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "esES" or locale == "esMX" then
---@localization(locale="esES", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "ruRU" then
---@localization(locale="ruRU", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "ptBR" then
---@localization(locale="ptBR", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "itIT" then
---@localization(locale="itIT", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "koKR" then
---@localization(locale="koKR", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "zhCN" then
---@localization(locale="zhCN", format="lua_additive_table", handle-unlocalized="ignore")@
-elseif locale == "zhTW" then
---@localization(locale="zhTW", format="lua_additive_table", handle-unlocalized="ignore")@
-end
+-- Weitere Sprachen (Französisch, Spanisch, …) folgen später. Die CurseForge-Übersetzungen
+-- (@localization-Platzhalter) sind abgeschaltet, weil CurseForge dem Upload-Token den
+-- Zugriff darauf verweigert hat. Deutsch steht direkt in dieser Datei.
 
 if locale ~= "deDE" then return end
 
