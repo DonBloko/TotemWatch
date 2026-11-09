@@ -101,7 +101,7 @@ local function AddSlider(parent, x, y, label, minV, maxV, step, getter, setter)
   return s
 end
 
-local scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider
+local scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider
 local skinButtons = {}
 
 -- Gewähltes Design im Menü hervorheben
@@ -113,7 +113,7 @@ end
 
 local function RefreshPanel()
   for _, c in ipairs(checks) do c.cb:SetChecked(TotemWatchDB[c.key] and true or false) end
-  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider }) do
+  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider }) do
     if s then s.Refresh() end
   end
   RefreshSkinButtons()
@@ -137,7 +137,7 @@ function ns.CreateOptions()
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -4)
   scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 4)
   local P = CreateFrame("Frame", nil, scroll)
-  P:SetSize(660, 880)
+  P:SetSize(660, 930)
   scroll:SetScrollChild(P)
   -- Inhalt so breit wie der sichtbare Bereich (nicht unter die Scrollleiste)
   scroll:SetScript("OnSizeChanged", function(self, w)
@@ -328,9 +328,13 @@ function ns.CreateOptions()
       TotemWatchDB.tremorSize = v
       if ns.SetupTremor then ns.SetupTremor() end
     end)
+  -- Sichtbarkeit im Ruhezustand (in Prozent): 0 = unsichtbar, 100 = voll sichtbar
+  dimSlider = AddSlider(P, RX, y - 404, L["Tremor button visibility at rest (%)"], 0, 100, 5,
+    function() return math.floor(((TotemWatchDB.tremorDim or 0.15) * 100) + 0.5) end,
+    function(v) TotemWatchDB.tremorDim = v / 100 end)
 
   local help = P:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", LX, y - 410)
+  help:SetPoint("TOPLEFT", LX, y - 452)
   help:SetWidth(560)
   help:SetJustifyH("LEFT")
   help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..

@@ -36,7 +36,7 @@ local DEFAULTS = {
   useMasque = true,     -- Knöpfe mit Masque gestalten, falls installiert
   tremorButton = true,  -- Notfall-Knopf "Emergency Tremor"
   tremorSize = 64,      -- Größe des Notfall-Knopfs
-  tremorDim = 0.35,     -- Helligkeit, solange keine Fear-Warnung anliegt
+  tremorDim = 0.15,     -- Sichtbarkeit, solange keine Fear-Warnung anliegt (0 = unsichtbar, 1 = voll)
 }
 
 ---------------------------------------------------------------------------
@@ -1295,7 +1295,7 @@ tremorBtn:SetScript("OnUpdate", function(self, elapsed)
     SetGlow(self.glow, true)
     self.text:SetText(text); self.text:SetTextColor(1, 0.3, 0.3)
   else
-    self:SetAlpha(ns.tremorMoving and 1 or ((TotemWatchDB and TotemWatchDB.tremorDim) or 0.35))
+    self:SetAlpha(ns.tremorMoving and 1 or ((TotemWatchDB and TotemWatchDB.tremorDim) or 0.15))
     self.border:SetColorTexture(0.15, 0.15, 0.15, 1)
     SetGlow(self.glow, false)
     self.text:SetText("")
@@ -2721,6 +2721,9 @@ ev:SetScript("OnEvent", function(_, event, ...)
       for k, v in pairs(DEFAULTS) do if TotemWatchDB[k] == nil then TotemWatchDB[k] = v end end
       TotemWatchDB.choice = TotemWatchDB.choice or {}
       TotemWatchDB.manual = TotemWatchDB.manual or {}   -- [slot] = von dir festgelegtes Totem
+      -- Einmalig: alter Standard 0.35 auf den neuen, durchsichtigeren Standard setzen
+      if TotemWatchDB.tremorDim == 0.35 and not TotemWatchDB.tremorDimSet then TotemWatchDB.tremorDim = 0.15 end
+      TotemWatchDB.tremorDimSet = true
       -- Einmalig: "in Dungeons/Raids immer anzeigen" einschalten (Testversion hatte "aus" gespeichert)
       if not TotemWatchDB.instanceDefaultsSet then
         TotemWatchDB.showInDungeon, TotemWatchDB.showInRaid = true, true
