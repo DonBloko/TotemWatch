@@ -250,13 +250,19 @@ local function TotemData(slot)
       end
       -- Aufzeichnung mit den echten Werten abgleichen, damit sie im Kampf stimmt
       if key then
+        local fresh = (now - start) < 4   -- gerade eben gestellt: steht dort, wo du jetzt bist
         if not t or t.key ~= key or math.abs(t.start - start) > 1 then
           local same = t and t.key == key
+          local px, py, pinst
+          if fresh then px, py, pinst = PlayerPos() end
+          if not px and same then px, py, pinst = t.x, t.y, t.inst end
           tracked[slot] = { key = key, start = start, duration = duration,
                             spellID = same and t.spellID or nil, checked = true,
-                            x = same and t.x or nil, y = same and t.y or nil, inst = same and t.inst or nil }
+                            x = px, y = py, inst = pinst }
         else
           t.start, t.duration = start, duration
+          -- Position fehlt noch (z.B. Ort war beim Wirken gesperrt): jetzt nachtragen
+          if not t.x and fresh then t.x, t.y, t.inst = PlayerPos() end
         end
       end
     elseif t and now - t.start > 1 then

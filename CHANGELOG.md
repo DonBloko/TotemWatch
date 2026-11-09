@@ -1,6 +1,10 @@
 # TotemWatch – Changelog
 
 ## 1.2.1
+## 1.2.2
+
+- **Fix:** the totem range/distance was sometimes missing when the game reported a new totem before the cast event (no or an old position was stored). The position is now taken when the totem appears.
+
 
 - **Emergency Tremor button** – a big button that always casts Tremor Totem. It stays dimmed and lights up with a countdown when a fear is coming (boss mod timer or enemy cast); green when Tremor is already up. By default it sits on top of the totem bar (emergency row) and moves with it; drag it anywhere you like, and attach it again with one click. Own key binding, size adjustable (`/tw tremor`, `/tw tremor move | attach | test`).
 - **More emergency buttons: Poison Cleansing, Disease Cleansing and Grounding** – they work like the Tremor button: always the same totem, dimmed at rest, lighting up when enemies cast poison, diseases or dangerous spells (Polymorph, Hex, Fear …) or a boss mod announces them. Each can be switched off in the options; all of them dock in the emergency row above the bar and move together. Test them with *Test emergency alerts* or `/tw sos test`.
