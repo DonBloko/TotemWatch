@@ -9,7 +9,7 @@
 - **Short hints** (on by default, options → Recommendations): one line with the next step, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Turn it off for the full list.
 - Pillars: no empty gray time bar under a slot without a totem; with round icons the time bar is thinner.
 - Clean look: counts (shield charges, players out of range) are a small badge at the bottom right and no longer overlap "far" or the remaining time.
-- Clean look with square icons: the status line and glow are clearly visible now (they were too faint on bright ground); in Blizzard style the ready Call/Recall buttons get a neutral ring with round icons. New `/tw look` prints the display state for bug reports.
+- Clean look with square icons: the status line and glow are clearly visible now (they were too faint on bright ground); in Blizzard style the ready Call/Recall buttons get a neutral ring with round icons. New `/tw look` prints the display state for bug reports. Fixed the glow sometimes being drawn behind the totem buttons.
 - **Clearer options menu** (`/tw`): five tabs – Look, Bar, Warnings, Emergency, Help – instead of one long page; related settings grouped in two columns. The Look tab uses drop-downs for design, style (Clean/Blizzard), icon shape (square/round) and hints (one line/full list/off). The menu remembers the last tab.
 - Guided tour: the design step now also asks whether icons should be square or round.
 - While the options menu is open, the bar is shown (test mode) on top of the window, so every change is visible right away; closing the menu restores it.

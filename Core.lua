@@ -2059,6 +2059,18 @@ function ns.ApplySkin()
   if ns.ApplyRound then ns.ApplyRound() end   -- runde Symbole an/aus
 end
 
+-- Ebenen-Reihenfolge absichern: Abklingzeit über dem Symbol, obere Ebene (Leuchten, Linie,
+-- Zahlen) über allem. Nach einem Wechsel der Ebene der Leiste (z. B. Vorschau über dem
+-- Optionsfenster) kann die Reihenfolge sonst kippen und das Leuchten liegt hinter dem Knopf.
+function ns.FixLayers()
+  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn, callBtn, moveBtn, recallBtn }) do
+    local lvl = b:GetFrameLevel()
+    if b.cd and b.cd:GetFrameLevel() <= lvl then b.cd:SetFrameLevel(lvl + 1) end
+    if b.over and b.over:GetFrameLevel() <= lvl + 1 then b.over:SetFrameLevel(lvl + 3) end
+    if b.roundIcon and b.roundIcon:GetFrameLevel() <= lvl then b.roundIcon:SetFrameLevel(lvl + 1) end
+  end
+end
+
 -- Clean Look, nach jeder Aktualisierung: Mini-Symbole aus (stehen im Tooltip),
 -- ruhige Symbole leicht abgedunkelt, nur Knöpfe mit Handlungsbedarf in voller Farbe,
 -- leere Plätze als dunkles Feld statt Fragezeichen.
@@ -2911,6 +2923,7 @@ local function Refresh()
   end
 
   if state.fearAt and now - state.fearAt > 5 then state.fearAt = nil end
+  if ns.FixLayers then ns.FixLayers() end      -- obere Ebene (Leuchten, Zahlen) immer über dem Knopf
   if ns.CleanPost then ns.CleanPost() end   -- Clean Look: ruhigere Darstellung nachziehen
   if ns.RoundPost then ns.RoundPost() end     -- runde Symbole: Streifen angleichen, Ring einfärben
 end
@@ -3513,6 +3526,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
         g and tostring(g:IsShown()) or "-", g and g:GetAlpha() or 0,
         b.over and tostring(b.over:IsVisible()) or "-",
         r and tostring(r:IsShown()) or "-", b.border:GetAlpha(), tostring(b.icon:IsShown())))
+      print(format("    levels: button=%d over=%d cd=%d", b:GetFrameLevel(), b.over and b.over:GetFrameLevel() or -1, b.cd and b.cd:GetFrameLevel() or -1))
     end
   elseif cmd == "debug" then
     local known = {}
