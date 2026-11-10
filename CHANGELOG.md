@@ -31,6 +31,7 @@
 ### Fixed
 - The bar now really stays visible for a few seconds after combat.
 - Totemic Call no longer stays grey after your position becomes unreadable (e.g. when entering a dungeon).
+- Cooldowns of Totemic Call, Totemic Recall and the calls are counted by TotemWatch itself in combat (the game hides them there), so the button no longer looks ready when it is not. While Totemic Call is on cooldown it is grey, does not glow, and re-dropping is suggested instead.
 
 ## 1.3.0
 

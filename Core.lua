@@ -199,6 +199,8 @@ end
 -- Manakosten eines Zaubers (höchster Rang). Werden zwischengespeichert, falls der
 -- Client sie im Kampf sperrt.
 ns.costCache = {}
+ns.ownCd = {}      -- [Zaubername] = { start, dur }: selbst mitgezählte Abklingzeit
+ns.cdLength = {}   -- [Zaubername] = Länge der Abklingzeit (außerhalb des Kampfes gelesen; gespeichert)
 local function ManaCost(name)
   if not name then return nil end
   local ok, value = pcall(function()
@@ -819,6 +821,7 @@ function ns.EvaluateTotemicCall()
     -- Ersatzregel ohne Manakosten: je mehr Totems, desto eher lohnt sich der eine Zauber
     useCall = (fracSum / count) > math.max(0.10, 0.30 - 0.10 * saved)
   end
+  if ns.moveOnCd then useCall = false end   -- Totemic Call klingt noch ab: neu stellen
   state.moveAdvice = {
     useCall = useCall, costsKnown = costsKnown, callCost = callCost,
     saved = saved, bonus = floor(bonus + 0.5),
@@ -3377,12 +3380,31 @@ local function Refresh()
   for _, b in ipairs({ callBtn, moveBtn, recallBtn }) do
     if b:IsShown() then
       local sp = b:GetAttribute("spell1")
-      UpdateCooldown(b, sp)
       local txt = ""
       local start, dur = SpellCooldown(sp)
-      if start and dur and not IsSecret(start) and not IsSecret(dur) and dur > 1.6 then
-        local left = start + dur - now
-        if left > 0 then txt = FormatTime(left) end
+      local own = sp and ns.ownCd[sp]
+      if start and dur and not IsSecret(start) and not IsSecret(dur) then
+        UpdateCooldown(b, sp)
+        if dur > 1.6 then
+          ns.cdLength[sp] = dur                         -- Länge merken für den Kampf
+          ns.ownCd[sp] = { start = start, dur = dur }
+          local left = start + dur - now
+          if left > 0 then txt = FormatTime(left) end
+        elseif own and own.start + own.dur > now + 1 and own.start > now - 1.5 then
+          -- gerade gewirkt, Abklingzeit noch nicht gemeldet: eigene Zählung behalten
+          txt = FormatTime(own.start + own.dur - now)
+        else
+          ns.ownCd[sp] = nil
+        end
+      elseif own and own.start + own.dur > now then
+        -- im Kampf gesperrt: selbst mitgezählte Abklingzeit (ab dem Wirken)
+        txt = FormatTime(own.start + own.dur - now)
+        if b.cdOwnStart ~= own.start then
+          b.cdOwnStart = own.start
+          b.cd:SetCooldown(own.start, own.dur); b.cd:Show()
+        end
+      else
+        UpdateCooldown(b, sp)
       end
       if not b.cdText then
         b.cdText = b.over:CreateFontString(nil, "OVERLAY")
@@ -3391,7 +3413,9 @@ local function Refresh()
       local fsz = math.max(9, math.floor((b:GetWidth() or 30) * 0.38))
       if b.cdSize ~= fsz then b.cdSize = fsz; b.cdText:SetFont(STANDARD_TEXT_FONT, fsz, "OUTLINE") end   -- Schrift nur bei neuer Größe
       if b.cdShown ~= txt then b.cdShown = txt; b.cdText:SetText(txt) end
-      if b == callBtn then b.icon:SetDesaturated(txt ~= "") end   -- auf Abklingzeit: grau
+      b.onCd = txt ~= ""
+      if b == moveBtn then ns.moveOnCd = b.onCd end
+      if b == callBtn then b.icon:SetDesaturated(b.onCd) end   -- auf Abklingzeit: grau
     end
   end
   if callBtn:IsShown() then
@@ -3404,13 +3428,13 @@ local function Refresh()
   local callGrey  = adv and not adv.useCall
   local recallGrey = adv and adv.useCall
   local function Dim(b, grey)
-    b.icon:SetDesaturated(grey and true or false)
+    b.icon:SetDesaturated((grey or b.onCd) and true or false)   -- lohnt sich nicht oder klingt ab: grau
     b.icon:SetAlpha(grey and 0.45 or 1)
   end
   if moveBtn:IsShown() then
     Dim(moveBtn, callGrey)
     SetBorder(moveBtn, callWorth and "OK" or (callGrey and "NONE" or "COVERED"), false)
-    SetGlow(moveBtn.glow, TotemWatchDB.glow and callWorth)
+    SetGlow(moveBtn.glow, TotemWatchDB.glow and callWorth and not moveBtn.onCd)   -- nicht leuchten, solange es abklingt
   end
   if recallBtn:IsShown() then
     Dim(recallBtn, recallGrey)
@@ -3643,6 +3667,26 @@ check:SetScript("OnUpdate", function(self, elapsed)
   if InCombatLockdown() or GetTime() > (self.untilT or 0) then self:Hide(); return end
   SafeCall(L["Pull check"], BuildCheck)   -- jede Sekunde neu, damit Behobenes sofort grün wird
 end)
+
+-- Eigene Zählung der Abklingzeit für Ruf / Totemruf / Rückruf: im Kampf sperrt das Spiel
+-- die Abklingzeit, das Zauber-Ereignis ist aber lesbar. Länge: zuletzt außerhalb des Kampfes
+-- gelesen (ns.cdLength), sonst die Grund-Abklingzeit des Zaubers.
+function ns.NoteOwnCooldown(spellID)
+  if not spellID or IsSecret(spellID) then return end
+  local name = SpellName(spellID)
+  if not name then return end
+  for _, b in ipairs({ callBtn, moveBtn, recallBtn }) do
+    if b:GetAttribute("spell1") == name then
+      local dur = ns.cdLength[name]
+      if not dur and GetSpellBaseCooldown then
+        local ok, ms = pcall(GetSpellBaseCooldown, spellID)
+        if ok and type(ms) == "number" and not IsSecret(ms) and ms > 1600 then dur = ms / 1000 end
+      end
+      if dur then ns.ownCd[name] = { start = GetTime(), dur = dur } end
+      return
+    end
+  end
+end
 
 -- CPU-Messung für /tw cpu: Zeit je Teil in Millisekunden (debugprofilestop ist immer verfügbar)
 ns.prof = { since = GetTime() }
@@ -3911,6 +3955,8 @@ ev:SetScript("OnEvent", function(_, event, ...)
       for k, v in pairs(DEFAULTS) do if TotemWatchDB[k] == nil then TotemWatchDB[k] = v end end
       TotemWatchDB.choice = TotemWatchDB.choice or {}
       TotemWatchDB.manual = TotemWatchDB.manual or {}   -- [slot] = von dir festgelegtes Totem
+      TotemWatchDB.cdLength = TotemWatchDB.cdLength or {}   -- Abklingzeiten von Ruf / Totemruf / Rückruf
+      ns.cdLength = TotemWatchDB.cdLength
       -- Benannte Vorlagen für die Rufe (Elemente / Ahnen / Geister)
       TotemWatchDB.templates = TotemWatchDB.templates or {}
       TotemWatchDB.callTemplate = TotemWatchDB.callTemplate or {}
@@ -4054,6 +4100,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
       ns.lastCastSecret = IsSecret(spellID)
       ns.lastCastSeen = true
       pcall(TrackCast, spellID)
+      if ns.NoteOwnCooldown then pcall(ns.NoteOwnCooldown, spellID) end
     end
   elseif event == "ENCOUNTER_START" then
     local encounterID, encounterName = ...
