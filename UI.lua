@@ -391,6 +391,8 @@ local NEWS = {
     L["Bosses of the new Forever dungeons are now also recognized by name (first rules for Ruins of Lordaeron)."],
     L["Rules for many classic dungeon bosses: Tremor against sleep and fear, cleansing totems against poison and disease, resistances against fire and frost."],
     L["Known dangerous monsters too: spiders and scorpids (poison), ghouls and plague mobs (disease), warlocks and banshees (fear) and more – the matching totem is recommended."],
+    L["Not enough mana: the button turns blue-grey. Calls, Totemic Call and Recall show their cooldown on the button."],
+    L["Totemic Call glows when it is worth it – it also counts the casts it saves you."],
   } },
   { version = "1.3.0", items = {
     L["Four new designs, the Clean look and round icons."],
@@ -445,6 +447,11 @@ if news.SetBackdrop then
     tile = true, tileSize = 32, edgeSize = 32,
     insets = { left = 11, right = 12, top = 12, bottom = 11 },
   })
+end
+do   -- deckender Grund: sonst scheint die Spielwelt (und die Leiste) durch den Text
+  local solid = news:CreateTexture(nil, "BACKGROUND", nil, -8)
+  solid:SetPoint("TOPLEFT", 11, -12); solid:SetPoint("BOTTOMRIGHT", -12, 11)
+  solid:SetColorTexture(0.04, 0.04, 0.05, 0.92)
 end
 tinsert(UISpecialFrames, "TotemWatchNews")   -- mit Esc schließen
 
