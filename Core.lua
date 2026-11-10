@@ -3484,6 +3484,7 @@ ns.frame = frame
 ns.slots = slots
 ns.TotemName = TotemName
 ns.IsKnown = IsKnown
+ns.SpellIcon = SpellIcon
 ns.ApplyPosition = ApplyPosition
 ns.ApplyVisibilityDriver = ApplyVisibilityDriver
 ns.UpdateVisibility = UpdateVisibility

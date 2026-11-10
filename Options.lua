@@ -140,6 +140,8 @@ local function AddDropdown(parent, x, y, label, width, items, getter, setter, to
     b:SetBackdropColor(0.06, 0.06, 0.07, 0.95)
     b:SetBackdropBorderColor(0.35, 0.35, 0.38, 1)
   end
+  b.icon = b:CreateTexture(nil, "ARTWORK")          -- Symbol des gewählten Eintrags (falls vorhanden)
+  b.icon:SetSize(18, 18); b.icon:SetPoint("LEFT", 4, 0); b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92); b.icon:Hide()
   b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   b.text:SetPoint("LEFT", 8, 0); b.text:SetPoint("RIGHT", -22, 0); b.text:SetJustifyH("LEFT")
   b.text:SetWordWrap(false)
@@ -167,9 +169,16 @@ local function AddDropdown(parent, x, y, label, width, items, getter, setter, to
 
   local function Refresh()
     local cur = getter()
-    b.text:SetText("")
+    b.text:SetText(""); b.icon:Hide()
+    b.text:SetPoint("LEFT", 8, 0)
     for _, it in ipairs(Items()) do
-      if it.value == cur then b.text:SetText(it.text) end
+      if it.value == cur then
+        b.text:SetText(it.text)
+        if it.icon then
+          b.icon:SetTexture(it.icon); b.icon:Show()
+          b.text:SetPoint("LEFT", 26, 0)
+        end
+      end
     end
   end
   b.Refresh = Refresh
@@ -183,6 +192,8 @@ local function AddDropdown(parent, x, y, label, width, items, getter, setter, to
         row = CreateFrame("Button", nil, list)
         row:SetSize(width - 6, 22)
         row:SetPoint("TOPLEFT", 3, -3 - (i - 1) * 22)
+        row.icon = row:CreateTexture(nil, "ARTWORK")
+        row.icon:SetSize(18, 18); row.icon:SetPoint("LEFT", 4, 0); row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         row.text:SetPoint("LEFT", 6, 0); row.text:SetPoint("RIGHT", -4, 0)
         row.text:SetJustifyH("LEFT"); row.text:SetWordWrap(false)
@@ -199,6 +210,11 @@ local function AddDropdown(parent, x, y, label, width, items, getter, setter, to
       end
       row.value = it.value
       row.text:SetText(it.text)
+      if it.icon then
+        row.icon:SetTexture(it.icon); row.icon:Show(); row.text:SetPoint("LEFT", 26, 0)
+      else
+        row.icon:Hide(); row.text:SetPoint("LEFT", 6, 0)
+      end
       row:Show()
     end
     for i = #its + 1, #rows do rows[i]:Hide() end
@@ -548,11 +564,25 @@ function ns.CreateOptions()
 
   -- 4 Elemente der bearbeiteten Vorlage
   for s = 1, 4 do
-    local items = { { value = false, text = L["– none –"] } }
-    local keys = {}
-    for key, t in pairs(ns.TOTEMS) do if t.slot == s then keys[#keys + 1] = key end end
-    table.sort(keys, function(a, b) return (ns.TotemName(a) or a) < (ns.TotemName(b) or b) end)
-    for _, key in ipairs(keys) do items[#items + 1] = { value = key, text = ns.TotemName(key) or key } end
+    -- Nur gelernte Totems zur Auswahl (beim Öffnen neu ermittelt); ein schon eingetragenes,
+    -- nicht gelerntes Totem bleibt grau sichtbar, damit nichts still verschwindet
+    local function items()
+      local its = { { value = false, text = L["– none –"] } }
+      local tp = CurrentTpl()
+      local cur = tp and tp.t[s]
+      local keys = {}
+      for key, t in pairs(ns.TOTEMS) do
+        if t.slot == s and (ns.IsKnown(key) or key == cur) then keys[#keys + 1] = key end
+      end
+      table.sort(keys, function(a, b) return (ns.TotemName(a) or a) < (ns.TotemName(b) or b) end)
+      for _, key in ipairs(keys) do
+        local known = ns.IsKnown(key)
+        its[#its + 1] = { value = key,
+          text = known and (ns.TotemName(key) or key) or ("|cff888888" .. (ns.TotemName(key) or key) .. " (" .. L["not learned yet"] .. ")|r"),
+          icon = ns.SpellIcon and ns.SpellIcon(ns.TOTEMS[key].id) }
+      end
+      return its
+    end
     local col, row = (s - 1) % 2, math.floor((s - 1) / 2)
     AddDropdown(p, LX + col * 240, -256 - row * 52, ns.SLOT_NAMES[s], 230, items,
       function()
