@@ -3,29 +3,34 @@
 ## 1.4.0
 
 ### New
-- **Named templates for all three calls** (options → Calls): save as many templates as you like with a name (e.g. "Dungeon AoE", "Raid melee"), each with 4 totems, and choose which template **Call of the Elements**, **Call of the Ancestors** and **Call of the Spirits** use. TotemWatch puts the totems on the game's totem bar for you (out of combat) – no need to set up the bar yourself. "Take from buttons" saves your current TotemWatch buttons, "Put on buttons" loads a template onto them. Call of the Elements can also simply follow your TotemWatch buttons.
+- **Named templates for all three calls** (options → Calls): save as many templates as you like with a name (e.g. "Dungeon AoE", "Raid melee"), each with 4 totems, and choose which template **Call of the Elements**, **Call of the Ancestors** and **Call of the Spirits** use. TotemWatch puts the totems on the game's totem bar for you (out of combat) – no need to set up the bar yourself. "Take from buttons" saves your current TotemWatch buttons, "Put on buttons" loads a template onto them. Call of the Elements can also simply follow your TotemWatch buttons. The editor shows totem icons and only lists totems you have learned.
 - **Call button with selection**: right-click the Call button to choose which call it casts (Elements, Ancestors or Spirits) – the name of each call's template is shown next to it, and a short message names the chosen template. The tooltip shows the template and its totems.
 - **Switch templates at the bar**: right-click the dotted grip left of the bar to open your templates; one click puts the 4 totems of a template on your TotemWatch buttons – also in combat (options → Bar).
-- TotemWatch now recognizes all three calls when you cast them, so the totem timers are right in combat, too.
-- Template editor shows totem icons and only lists totems you have learned.
-- **Smarter weapon enchant**: chosen by your role (talents) and weapon – Windfury for melee from level 30, Rockbiter before that, Flametongue for casters and healers. The tooltip and the hint say why; your own choice is kept.
-- Flametongue Totem is only recommended when it helps: at least 2 melee without rogue poisons and no Windfury Totem yet (both are weapon enchants and overwrite each other). Healers (by their group role) do not count as melee. Otherwise Searing Totem.
-- Totemic Call also counts the time it saves: one cast instead of re-dropping every totem is worth some extra mana (more in combat). The tooltip shows the numbers.
-- Not enough mana: the button turns blue-grey like on the Blizzard action bars (totems, weapon enchant, shield, calls and emergency buttons).
-- **Less CPU use**: the bar updates 2x per second out of combat (5x in combat, events still update instantly), round icons and texts only redraw when something changes, enemy nameplates are tracked by event, aura scans are bundled. New command /tw cpu shows how much time TotemWatch uses.
-- **Reasons with numbers**: recommendations say why, e.g. "Strength for melee (3 melee)".
-- **Most urgent first**: the hint line now shows missing totems before out-of-range, wrong and expiring ones.
+- **Visible grip to move the bar**: a small dotted handle on the left of the bar – drag it to move the bar.
+- **Cooldowns on the buttons**: Call of the Elements / Ancestors / Spirits, Totemic Call and Totemic Recall show their cooldown (spiral and remaining time; the Call icon turns grey).
+- **Not enough mana**: the button turns blue-grey like on the Blizzard action bars (totems, weapon enchant, shield, calls and emergency buttons) – also in combat.
 - **New Forever dungeons**: bosses are also recognized by name (target or boss frame), because the game reports no encounter IDs in 5-player dungeons. First, provisional rules for Ruins of Lordaeron: Poison Cleansing for Witherfang and Viktor the Vile, Frost Resistance for The Abandoned, Fire Resistance for Rath'mael. `/tw debug` shows the detected boss.
 - **Classic dungeons**: rules for about 30 bosses (Wailing Caverns, Scarlet Monastery, Blackrock Depths, Blackrock Spire, Scholomance, Stratholme, Dire Maul and more) – Tremor against sleep and fear, Poison/Disease Cleansing, Fire and Frost Resistance. Provisional, recognized by the English boss name.
-- **Dangerous monsters**: also normal enemies are recognized by name – spiders, scorpids, snakes (Poison Cleansing), ghouls, plague and rotting mobs (Disease Cleansing), warlocks and banshees (Tremor), fire elementals and Flamewakers (Fire Resistance), Druids of the Fang (sleep). The matching totem is recommended after boss rules, and the emergency button lights up half.
-- Call of the Elements / Ancestors / Spirits, Totemic Call and Totemic Recall show their cooldown on the button (spiral and remaining time; the Call icon turns grey).
-- `/tw bar` shows all three pages of the totem bar.
-- **Pictures that explain the bar**: the guided tour shows small pictures for moving the bar, clicking and the status colors, and the **Help** tab is now a reference page with an annotated overview of the bar and pictures for every feature (casting and choosing, colors, templates, calls, emergency buttons). The pictures follow your icon shape (round or square).
-- The guided tour shows the TotemWatch logo.
+- **Dangerous monsters**: normal enemies are recognized by name, too – spiders, scorpids, snakes (Poison Cleansing), ghouls, plague and rotting mobs (Disease Cleansing), warlocks and banshees (Tremor), fire elementals and Flamewakers (Fire Resistance), Druids of the Fang (sleep). The matching totem is recommended after boss rules, and the emergency button lights up half.
+- **Pictures that explain the bar**: the guided tour shows small pictures for moving the bar, clicking and the status colors, and the **Help** tab is now a reference page with an annotated overview of the bar and pictures for every feature (casting and choosing, colors, templates, calls, emergency buttons). The pictures follow your icon shape (round or square). The tour shows the TotemWatch logo.
 - **"What's new" window**: after an update TotemWatch shows once what is new (not on a fresh install – the tour explains everything then). Read it again any time in the new **Changelog** tab of the options (`/tw`).
+- New command `/tw cpu` shows how much CPU time TotemWatch uses. `/tw bar` shows all three pages of the totem bar.
 - "made by DonBloko" in the options menu.
-- **Visible grip to move the bar**: a small dotted handle on the left of the bar (hidden when the bar is locked).
-- Fix: the bar now really stays visible for a few seconds after combat.
+
+### Smarter recommendations
+- **Weapon enchant by role**: chosen by your talents and weapon – Windfury for melee from level 30, Rockbiter before that, Flametongue for casters and healers. The tooltip and the hint say why; your own choice is kept.
+- **Flametongue Totem only when it helps**: at least 2 melee without rogue poisons and no Windfury Totem yet (both are weapon enchants and overwrite each other). Healers (by their group role) do not count as melee. Otherwise Searing Totem.
+- **Totemic Call counts the time it saves**: one cast instead of re-dropping every totem is worth some extra mana (more in combat). The tooltip shows the numbers.
+- **Reasons with numbers**: recommendations say why, e.g. "Strength for melee (3 melee)".
+- **Most urgent first**: the hint line shows missing totems before out-of-range, wrong and expiring ones.
+
+### Improved
+- **Less CPU use**: the bar updates 2x per second out of combat (5x in combat, events still update instantly), round icons and texts only redraw when something changes, enemy nameplates are tracked by event, aura scans are bundled.
+- TotemWatch recognizes all three calls when you cast them, so the totem timers are right in combat, too.
+
+### Fixed
+- The bar now really stays visible for a few seconds after combat.
+- Totemic Call no longer stays grey after your position becomes unreadable (e.g. when entering a dungeon).
 
 ## 1.3.0
 
