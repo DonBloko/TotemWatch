@@ -1193,6 +1193,7 @@ do
   bg:SetAllPoints(); bg:SetColorTexture(0.05, 0.25, 0.55, 1)
   local t = castAll:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   t:SetPoint("CENTER"); t:SetText(L["ALL"])
+  castAll.label = t
   castAll:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 end
 castAll:SetScript("OnEnter", function(self)
@@ -2063,6 +2064,9 @@ function ns.ApplySkin()
   hintBg:SetWidth(math.max(frame:GetWidth(), 380))
   for _, fs in ipairs(hints) do fs:SetWidth(hintBg:GetWidth() - 12) end
   if ns.ApplyRound then ns.ApplyRound() end   -- runde Symbole an/aus
+  -- "ALL"-Schrift passend zur Knopfgröße (kleine Knöpfe bei Zwei Ebenen/Senkrecht/Kompakt)
+  local aw = castAll:GetWidth() or 30
+  castAll.label:SetFont(STANDARD_TEXT_FONT, math.max(6, math.min(12, math.floor(aw * 0.33))), "OUTLINE")
 end
 
 -- Ebenen-Reihenfolge absichern: Abklingzeit über dem Symbol, obere Ebene (Leuchten, Linie,
