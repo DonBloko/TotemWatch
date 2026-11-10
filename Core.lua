@@ -1013,14 +1013,14 @@ local function CreateCastButton(name, x)
   b.strip:SetHeight(3); b.strip:Hide()
   -- Clean Look: feine Statuslinie am unteren Rand (nur sichtbar, wenn etwas zu tun ist)
   b.cleanLine = over:CreateTexture(nil, "OVERLAY", nil, 3)
-  b.cleanLine:SetHeight(2)
+  b.cleanLine:SetHeight(3)
   b.cleanLine:SetPoint("BOTTOMLEFT", 1, 1); b.cleanLine:SetPoint("BOTTOMRIGHT", -1, 1)
   b.cleanLine:Hide()
   do
     local lg = b.cleanLine:CreateAnimationGroup()
     lg:SetLooping("BOUNCE")
     local la = lg:CreateAnimation("Alpha")
-    la:SetFromAlpha(1); la:SetToAlpha(0.3); la:SetDuration(0.6)
+    la:SetFromAlpha(1); la:SetToAlpha(0.65); la:SetDuration(0.6)
     b.cleanPulse = lg
   end
   b.elemStrip = b:CreateTexture(nil, "OVERLAY")          -- Element-Farbleiste (Pillars)
@@ -2054,7 +2054,7 @@ function ns.ApplySkin()
     if clean then b.farText:ClearAllPoints(); b.farText:SetPoint("CENTER", b, "CENTER", 0, 1) end
     b.farText:SetShadowOffset(1, -1); b.farText:SetShadowColor(0, 0, 0, 1)
     if not clean then b.icon:SetVertexColor(1, 1, 1); b.icon:SetAlpha(1) end
-    if b.glow then b.glow:SetVertexColor(1, 0.85, 0.2, clean and 0.5 or 1) end
+    if b.glow then b.glow:SetVertexColor(1, 0.85, 0.2, clean and (TotemWatchDB.roundIcons and 0.5 or 0.9) or 1) end
   end
   hintBg:SetWidth(math.max(frame:GetWidth(), 380))
   for _, fs in ipairs(hints) do fs:SetWidth(hintBg:GetWidth() - 12) end
