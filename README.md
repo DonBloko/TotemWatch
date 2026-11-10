@@ -8,15 +8,20 @@ TotemWatch shows which totems are missing in combat, recommends the right ones f
 
 ## Features
 
-- **Clickable totem bar** – left-click drops a totem, right-click opens a selection of all your totems
-- **Smart recommendations** – boss rules (MC, Onyxia, BWL, ZG, AQ40, Naxx), boss detection via Blizzard encounters, **DBM** and **BigWigs**, fear warnings (Tremor Totem), group composition, AoE
-- **Glow** on the button you should press right now
-- **Warnings** – before a totem expires, when a totem is destroyed, when you are out of range of your totems, big messages in the middle of the screen, optional **spoken warnings** (text to speech)
-- **Pull check** – a checklist on DBM/BigWigs pull timers and ready checks: totems, shield, weapon imbue, group range
-- **Call of the Elements, Totemic Call, Totemic Recall** – with a mana comparison that tells you whether Totemic Call or re-dropping is cheaper
-- **Four designs** – Classic, Minimal, Pillars, Bars – plus **Masque** support
+- **Clickable totem bar** – left-click drops a totem, right-click opens a selection of all your learned totems; **ALL** casts your four totems one after another
+- **The button you need glows** – missing, wrong or expiring totems are marked, one hint line tells you the next step
+- **Eight designs** – Classic, Minimal, Pillars, Bars, Compact, Focus, Two rows, Column – with the **Clean look** or Blizzard style, **round or square icons**, plus **Masque** support
+- **Named templates** for **Call of the Elements, Ancestors and Spirits** – TotemWatch sets up the game's totem bar for you; switch templates in combat by right-clicking the grip
+- **Smart recommendations** – raid bosses (MC, Onyxia, BWL, ZG, AQ40, Naxx), about 30 classic dungeon bosses and the new Forever dungeons (Blizzard encounters, **DBM**, **BigWigs** or boss name), dangerous monsters, your group (melee, casters, healers by role, rogues, AoE) – every recommendation says why
+- **Weapon enchant by role** – Windfury, Rockbiter or Flametongue depending on talents and weapon
+- **Emergency buttons** – Tremor, Poison Cleansing, Disease Cleansing and Grounding light up when danger is coming
+- **Warnings** – before a totem expires, when one is destroyed, when you are out of range – big messages and optional **spoken warnings**
+- **Pull check** – a checklist on DBM/BigWigs pull timers and ready checks: totems, shield, weapon enchant, group range
+- **Mana and cooldowns** – buttons turn blue-grey without enough mana; cooldowns are shown, also in combat
+- **Totemic Call or re-drop?** – compares mana and saved casts and lights up the better button
 - **Multiple shamans** – avoids duplicate totems in your group
-- **Guided tour** on first start, minimap button, key bindings for every button
+- **Guided tour with pictures**, Help tab, "What's new" window and Changelog tab, minimap button, key bindings for every button
+- **Light on your CPU** – check with `/tw cpu`
 - **English and German**, more languages via CurseForge translations
 
 ## Commands
@@ -24,10 +29,12 @@ TotemWatch shows which totems are missing in combat, recommends the right ones f
 | Command | |
 |---|---|
 | `/tw` | Options |
-| `/tw tutorial` | Guided tour |
+| `/tw tour` | Guided tour |
 | `/tw test` | Show the bar out of combat |
 | `/tw check` | Pull check now |
-| `/tw skin <classic\|minimal\|pillars\|bars>` | Change the design |
+| `/tw sos test` | Test the emergency buttons |
+| `/tw skin <name>` | Change the design |
+| `/tw cpu` | CPU use of TotemWatch |
 | `/tw help` | All commands |
 
 ## Installation
