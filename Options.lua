@@ -137,7 +137,7 @@ function ns.CreateOptions()
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -4)
   scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 4)
   local P = CreateFrame("Frame", nil, scroll)
-  P:SetSize(660, 986)
+  P:SetSize(660, 1010)
   scroll:SetScrollChild(P)
   -- Inhalt so breit wie der sichtbare Bereich (nicht unter die Scrollleiste)
   scroll:SetScript("OnSizeChanged", function(self, w)
@@ -180,7 +180,11 @@ function ns.CreateOptions()
     skinButtons[key] = b
   end
 
-  local y = -126
+  AddCheck(P, LX + 56, -110, "cleanLook", L["Clean look"],
+    L["Thin dark frames, color only where you have to act, calmer icons, smaller glow and no mini icons (they are in the tooltip). Works with every design."],
+    function() if ns.ApplySkin then ns.ApplySkin() end; if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end end, true)
+
+  local y = -150
 
   AddHeader(P, LX, y, L["Recommendations"])
   AddCheck(P, LX, y - 20, "auto", L["Auto-assign buttons"],

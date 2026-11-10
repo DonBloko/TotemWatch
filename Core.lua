@@ -40,6 +40,7 @@ local DEFAULTS = {
   poisonButton = true,  -- Notfall-Knopf Poison Cleansing
   diseaseButton = true, -- Notfall-Knopf Disease Cleansing
   groundingButton = true, -- Notfall-Knopf Grounding
+  cleanLook = true,     -- Clean Look: dünne Rahmen, Farbe nur bei Problemen, ruhige Symbole
 }
 
 ---------------------------------------------------------------------------
@@ -1008,6 +1009,18 @@ local function CreateCastButton(name, x)
   -- Bausteine für die Designs (Skins); welche sichtbar sind, entscheidet ApplySkin
   b.strip = over:CreateTexture(nil, "OVERLAY", nil, 2)   -- Status-Farbstreifen (Minimal)
   b.strip:SetHeight(3); b.strip:Hide()
+  -- Clean Look: feine Statuslinie am unteren Rand (nur sichtbar, wenn etwas zu tun ist)
+  b.cleanLine = over:CreateTexture(nil, "OVERLAY", nil, 3)
+  b.cleanLine:SetHeight(2)
+  b.cleanLine:SetPoint("BOTTOMLEFT", 1, 1); b.cleanLine:SetPoint("BOTTOMRIGHT", -1, 1)
+  b.cleanLine:Hide()
+  do
+    local lg = b.cleanLine:CreateAnimationGroup()
+    lg:SetLooping("BOUNCE")
+    local la = lg:CreateAnimation("Alpha")
+    la:SetFromAlpha(1); la:SetToAlpha(0.3); la:SetDuration(0.6)
+    b.cleanPulse = lg
+  end
   b.elemStrip = b:CreateTexture(nil, "OVERLAY")          -- Element-Farbleiste (Pillars)
   b.elemStrip:SetHeight(3); b.elemStrip:Hide()
   b.timeBar = CreateFrame("StatusBar", nil, frame)        -- Zeitbalken (Pillars / Bars)
@@ -1754,9 +1767,32 @@ local function CurrentSkin()
 end
 ns.CurrentSkin = CurrentSkin
 
+local CALM = { OK = true, NONE = true, COVERED = true }
 local function SetBorder(b, status, pulse)
   local c = STATUS_COLOR[status] or STATUS_COLOR.NONE
   b.statusColor = c
+  b.statusKey = status
+  if TotemWatchDB and TotemWatchDB.cleanLook and b.cleanLine then
+    -- Clean Look: immer ein feiner dunkler Rahmen; Farbe nur als Linie, wenn etwas zu tun ist
+    if b.pulse:IsPlaying() then b.pulse:Stop() end
+    b.border:SetAlpha(1)
+    b.border:SetColorTexture(0.06, 0.06, 0.06, 0.9)
+    if b.strip then b.strip:Hide() end
+    if CALM[status] then
+      b.cleanLine:Hide()
+      if b.cleanPulse:IsPlaying() then b.cleanPulse:Stop() end
+    else
+      b.cleanLine:SetColorTexture(c[1], c[2], c[3], 1)
+      b.cleanLine:Show()
+      if pulse then
+        if not b.cleanPulse:IsPlaying() then b.cleanPulse:Play() end
+      elseif b.cleanPulse:IsPlaying() then
+        b.cleanPulse:Stop(); b.cleanLine:SetAlpha(1)
+      end
+    end
+    return
+  end
+  if b.cleanLine then b.cleanLine:Hide() end
   local skin = CurrentSkin()
   if skin.strip and b.slot then
     -- Minimal: schwarzer Rahmen, Status als Farbstreifen
@@ -1788,6 +1824,8 @@ function ns.ApplySkin()
   local S = CurrentSkin()
   local size, gap, inset = S.btn, S.gap, S.inset
   local pad = 6
+  local clean = TotemWatchDB.cleanLook          -- Clean Look (ruhigere Darstellung)
+  local gf = clean and 1.7 or 1.85               -- Leuchten: etwas enger und schwächer im Clean Look
 
   -- Leiste
   if frame.SetBackdrop then
@@ -1797,8 +1835,16 @@ function ns.ApplySkin()
       edgeSize = edgeSize, insets = { left = ins, right = ins, top = ins, bottom = ins } })
     frame:SetBackdropColor(unpack(S.bg))
     frame:SetBackdropBorderColor(unpack(S.edge))
+    if clean then
+      -- flacher, dunkler Hintergrund mit 1-px-Rand (durchsichtige Designs bleiben durchsichtig)
+      local a = math.min(S.bg[4] or 0, 0.55)
+      frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8",
+        tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+      frame:SetBackdropColor(0.04, 0.04, 0.05, a)
+      frame:SetBackdropBorderColor(0, 0, 0, a > 0 and 0.9 or 0)
+    end
   end
-  if S.title then
+  if S.title and not clean then
     title:Show()
     if not pcall(title.SetFont, title, "Fonts\\MORPHEUS.TTF", 13, "") then title:SetFontObject("GameFontNormal") end
     title:SetText("TotemWatch")
@@ -1806,7 +1852,7 @@ function ns.ApplySkin()
   else
     title:Hide()
   end
-  local top = S.title and 22 or 8                 -- oben: Titel bzw. schmaler Streifen zum Ziehen
+  local top = (S.title and not clean) and 22 or 8                 -- oben: Titel bzw. schmaler Streifen zum Ziehen
   if S.elemStrip then top = top + 6 end
 
   -- Totem-Knöpfe
@@ -1815,7 +1861,7 @@ function ns.ApplySkin()
     b:SetSize(size, size)
     b.icon:ClearAllPoints()
     b.icon:SetPoint("TOPLEFT", inset, -inset); b.icon:SetPoint("BOTTOMRIGHT", -inset, inset)
-    b.glow:SetSize(size * 1.85, size * 1.85)
+    b.glow:SetSize(size * gf, size * gf)
     -- Restzeit
     b.timer:ClearAllPoints()
     if S.timer == "inside" then
@@ -1888,7 +1934,7 @@ function ns.ApplySkin()
   local esize = S.extraBtn or size
   local function PlaceExtra(b, x, y, sz)
     b:SetSize(sz, sz)
-    if b.glow then b.glow:SetSize(sz * 1.85, sz * 1.85) end
+    if b.glow then b.glow:SetSize(sz * gf, sz * gf) end
     b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
   end
   if S.more then
@@ -1906,7 +1952,7 @@ function ns.ApplySkin()
     for _, b in ipairs({ castAll, callBtn, moveBtn, recallBtn }) do
       if wanted[b] then
         b:SetSize(esize + 6, esize + 6)
-        if b.glow then b.glow:SetSize((esize + 6) * 1.85, (esize + 6) * 1.85) end
+        if b.glow then b.glow:SetSize((esize + 6) * gf, (esize + 6) * gf) end
         b:ClearAllPoints()
         b:SetPoint("BOTTOMRIGHT", moreBtn, "TOPRIGHT", -i * (esize + 9), 4)
         i = i + 1
@@ -1935,7 +1981,7 @@ function ns.ApplySkin()
     local esize = S.extraBtn or size          -- Zusatzknöpfe dürfen größer sein als die Zeilen-Icons
     for _, b in ipairs(extras) do
       b:SetSize(esize, esize)
-      if b.glow then b.glow:SetSize(esize * 1.85, esize * 1.85) end
+      if b.glow then b.glow:SetSize(esize * gf, esize * gf) end
       if b:IsShown() then
         b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
         x = x + esize + 4
@@ -1948,7 +1994,7 @@ function ns.ApplySkin()
     local x = pad + 4 * (size + gap) + 6
     for _, b in ipairs(extras) do
       b:SetSize(size, size)
-      if b.glow then b.glow:SetSize(size * 1.85, size * 1.85) end
+      if b.glow then b.glow:SetSize(size * gf, size * gf) end
       if b:IsShown() then
         b:ClearAllPoints(); b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -top)
         x = x + size + gap
@@ -1970,9 +2016,45 @@ function ns.ApplySkin()
       top = (edgeSize > 1) and 2 or 1, bottom = (edgeSize > 1) and 2 or 1 } })
     hintBg:SetBackdropColor(unpack(S.hintBg))
     hintBg:SetBackdropBorderColor(unpack(S.hintEdge))
+    if clean then
+      hintBg:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", tile = false, insets = { left = 0, right = 0, top = 0, bottom = 0 } })
+      hintBg:SetBackdropColor(0, 0, 0, 0.45)
+    end
+  end
+  -- Schrift: im Clean Look eine schlichte Schrift mit Schatten statt dicker Umrandung
+  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn, callBtn, moveBtn, recallBtn }) do
+    for _, fs in ipairs({ b.timer, b.label }) do
+      if clean then
+        fs:SetFont(STANDARD_TEXT_FONT, 10, "")
+        fs:SetShadowOffset(1, -1); fs:SetShadowColor(0, 0, 0, 1)
+        fs:SetTextColor(0.85, 0.85, 0.85)
+      else
+        fs:SetFontObject("NumberFontNormal"); fs:SetTextColor(1, 1, 1)
+      end
+    end
+    b.farText:SetFont(STANDARD_TEXT_FONT, clean and 12 or 14, clean and "" or "OUTLINE")
+    b.farText:SetShadowOffset(1, -1); b.farText:SetShadowColor(0, 0, 0, 1)
+    if not clean then b.icon:SetVertexColor(1, 1, 1); b.icon:SetAlpha(1) end
+    if b.glow then b.glow:SetVertexColor(1, 0.85, 0.2, clean and 0.5 or 1) end
   end
   hintBg:SetWidth(math.max(frame:GetWidth(), 380))
   for _, fs in ipairs(hints) do fs:SetWidth(hintBg:GetWidth() - 12) end
+end
+
+-- Clean Look, nach jeder Aktualisierung: Mini-Symbole aus (stehen im Tooltip),
+-- ruhige Symbole leicht abgedunkelt, nur Knöpfe mit Handlungsbedarf in voller Farbe,
+-- leere Plätze als dunkles Feld statt Fragezeichen.
+function ns.CleanPost()
+  if not (TotemWatchDB and TotemWatchDB.cleanLook) then return end
+  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }) do
+    b.rec:Hide(); b.other:Hide(); b.cur:Hide()
+    SetGlow(b.recGlow, false)
+    local tex = b.icon:GetTexture()
+    local empty = tex == nil or tex == 134400 or (type(tex) == "string" and tex:find("QuestionMark") ~= nil)
+    b.icon:SetAlpha(empty and 0 or 1)
+    local v = CALM[b.statusKey or "NONE"] and 0.72 or 1
+    b.icon:SetVertexColor(v, v, v)
+  end
 end
 
 local function UpdateCooldown(b, spellName)
@@ -2619,6 +2701,7 @@ local function Refresh()
   end
 
   if state.fearAt and now - state.fearAt > 5 then state.fearAt = nil end
+  if ns.CleanPost then ns.CleanPost() end   -- Clean Look: ruhigere Darstellung nachziehen
 end
 
 ---------------------------------------------------------------------------
@@ -3258,6 +3341,11 @@ SlashCmdList.TOTEMWATCH = function(msg)
     end
   elseif cmd == "soundtest" or cmd == "testsound" then
     ns.TestWarnings()
+  elseif cmd == "clean" then
+    if InCombatLockdown() then p(L["Not possible in combat."]) return end
+    TotemWatchDB.cleanLook = not TotemWatchDB.cleanLook
+    ns.ApplySkin(); SafeCall("Display", Refresh)
+    p(L["Clean look: "] .. (TotemWatchDB.cleanLook and L["on"] or L["off"]))
   elseif cmd == "timers" then
     -- Diagnose: jeden Bossmod-Timer im Chat ausgeben
     ns.debugTimers = not ns.debugTimers
