@@ -374,3 +374,141 @@ function ns.FinishTutorial()
   tut.turnedOnTest = nil
   Note(L["Tour finished. Open it again with /tw tutorial or Shift-click on the minimap button."])
 end
+
+---------------------------------------------------------------------------
+-- "Neu in TotemWatch": erscheint einmal nach einem Update (nicht bei der ersten Installation –
+-- dann kommt die Einführung). Jederzeit wieder mit /tw news.
+---------------------------------------------------------------------------
+-- Neuigkeiten je Version (neueste zuerst). Kurz und für Spieler geschrieben, nicht der volle Changelog.
+local NEWS = {
+  { version = "1.4.0", pic = "calls", items = {
+    L["Templates for Call of the Elements, Ancestors and Spirits – create them with a name under /tw > Calls."],
+    L["Right-click the Call button to choose the call; the template name is shown next to it."],
+    L["Right-click the dotted grip left of the bar to put a template on your buttons – also in combat."],
+    L["The bar stays visible for a few seconds after combat, e.g. for Totemic Recall."],
+    L["The tour and the Help tab now explain everything with pictures."],
+  } },
+  { version = "1.3.0", items = {
+    L["Four new designs, the Clean look and round icons."],
+    L["Clearer options menu with tabs."],
+    L["Elements without a learned totem are hidden."],
+  } },
+}
+
+local function VersionNumber(v)
+  local a, b, c = tostring(v or ""):match("(%d+)%.(%d+)%.?(%d*)")
+  if not a then return 0 end
+  return tonumber(a) * 10000 + tonumber(b) * 100 + (tonumber(c) or 0)
+end
+
+local function CurrentVersion()
+  local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+  local v = get and get(ADDON, "Version")
+  if not v or v:find("project%-version") then v = NEWS[1].version end
+  return v
+end
+
+local news = CreateFrame("Frame", "TotemWatchNews", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+news:SetSize(460, 300)
+news:SetPoint("CENTER", 0, 80)
+news:SetFrameStrata("DIALOG")
+news:SetClampedToScreen(true)
+news:EnableMouse(true)
+news:SetMovable(true)
+news:RegisterForDrag("LeftButton")
+news:SetScript("OnDragStart", news.StartMoving)
+news:SetScript("OnDragStop", news.StopMovingOrSizing)
+news:Hide()
+if news.SetBackdrop then
+  news:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true, tileSize = 32, edgeSize = 32,
+    insets = { left = 11, right = 12, top = 12, bottom = 11 },
+  })
+end
+tinsert(UISpecialFrames, "TotemWatchNews")   -- mit Esc schließen
+
+local nLogo = news:CreateTexture(nil, "ARTWORK")
+nLogo:SetSize(40, 40)
+nLogo:SetPoint("TOPLEFT", 22, -20)
+if not nLogo:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\media\\logo") then nLogo:SetTexture(TotemIcon()) end
+
+local nTitle = news:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+nTitle:SetPoint("TOPLEFT", nLogo, "TOPRIGHT", 10, -2)
+local nSub = news:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+nSub:SetPoint("TOPLEFT", nTitle, "BOTTOMLEFT", 0, -3)
+
+local nBody = news:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+nBody:SetPoint("TOPLEFT", 26, -74)
+nBody:SetWidth(410)
+nBody:SetJustifyH("LEFT")
+nBody:SetSpacing(4)
+
+local nPicHolder = CreateFrame("Frame", nil, news)
+nPicHolder:SetPoint("TOPLEFT", nBody, "BOTTOMLEFT", 0, -10)
+nPicHolder:SetSize(410, 1)
+local nPics = {}
+
+local nClose = MakeButton(news, L["Close"], 110, function() news:Hide() end)
+nClose:SetPoint("BOTTOMRIGHT", -20, 18)
+local nOpts = MakeButton(news, L["Open options"], 130, function()
+  news:Hide()
+  if ns.OpenOptions then ns.OpenOptions() end
+end)
+nOpts:SetPoint("RIGHT", nClose, "LEFT", -8, 0)
+local nTour = MakeButton(news, L["Start tour"], 110, function()
+  news:Hide()
+  if ns.StartTutorial then ns.StartTutorial() end
+end)
+nTour:SetPoint("BOTTOMLEFT", 20, 18)
+
+news:SetScript("OnHide", function()
+  if TotemWatchDB then TotemWatchDB.newsSeen = CurrentVersion() end
+end)
+
+-- Neuigkeiten zeigen: alle Versionen, die neuer sind als "seit" (oder nur die neueste)
+function ns.ShowNews(since)
+  local cur = CurrentVersion()
+  local from = since and VersionNumber(since) or (VersionNumber(NEWS[1].version) - 1)
+  local lines, pic = {}, nil
+  for _, n in ipairs(NEWS) do
+    local num = VersionNumber(n.version)
+    if num > from and num <= math.max(VersionNumber(cur), VersionNumber(NEWS[1].version)) then
+      if #lines > 0 then lines[#lines + 1] = " " end
+      lines[#lines + 1] = "|cffffd100" .. format(L["Version %s"], n.version) .. "|r"
+      for _, it in ipairs(n.items) do lines[#lines + 1] = "|cffffd100•|r " .. it end
+      pic = pic or n.pic
+    end
+  end
+  if #lines == 0 then return false end
+  nTitle:SetText(L["What's new in TotemWatch"])
+  nSub:SetText(format(L["Version %s"], (cur:gsub("^v", ""))))
+  nBody:SetText(table.concat(lines, "\n"))
+  for _, f in pairs(nPics) do f:Hide() end
+  local picH = 0
+  if pic and ns.Illustration then
+    nPics[pic] = nPics[pic] or ns.Illustration(nPicHolder, pic, 410)
+    local f = nPics[pic]
+    if f then
+      f:ClearAllPoints(); f:SetPoint("TOPLEFT", nPicHolder, "TOPLEFT", 0, 0)
+      f.Refresh(); f:Show(); picH = f:GetHeight() + 10
+    end
+  end
+  news:SetHeight(74 + (nBody:GetStringHeight() or 100) + picH + 66)
+  news:Show()
+  return true
+end
+
+-- Nach dem Einloggen: nur nach einem Update und nur einmal je Version
+function ns.CheckNews()
+  if not TotemWatchDB then return end
+  local cur = CurrentVersion()
+  if not TotemWatchDB.tutorialDone then
+    TotemWatchDB.newsSeen = cur   -- Neuinstallation: die Einführung erklärt ohnehin alles
+    return
+  end
+  local seen = TotemWatchDB.newsSeen
+  if seen and VersionNumber(seen) >= VersionNumber(cur) then return end
+  ns.ShowNews(seen or "1.2.9")
+end

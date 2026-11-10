@@ -3675,6 +3675,14 @@ ev:SetScript("OnEvent", function(_, event, ...)
         if not InCombatLockdown() then SafeCall("Tutorial", ns.StartTutorial) end
       end)
     end
+    -- nach einem Update: kurz zeigen, was neu ist (einmal je Version)
+    if TotemWatchDB.tutorialDone and ns.CheckNews and C_Timer then
+      C_Timer.After(6, function()
+        if not InCombatLockdown() then SafeCall("News", ns.CheckNews) end
+      end)
+    elseif ns.CheckNews then
+      SafeCall("News", ns.CheckNews)
+    end
     SafeCall(L["Visibility"], ApplyVisibilityDriver)
     SafeCall(L["Buttons"], SetupSecure)
     SafeCall("Masque", ns.SetupMasque)
@@ -3903,6 +3911,8 @@ SlashCmdList.TOTEMWATCH = function(msg)
     else
       print(L["  No errors so far."])
     end
+  elseif cmd == "news" or cmd == "neu" or cmd == "changelog" then
+    if not (ns.ShowNews and ns.ShowNews()) then p(L["No news."]) end
   elseif cmd == "tutorial" or cmd == "tour" or cmd == "einführung" then
     if ns.StartTutorial then ns.StartTutorial() end
   elseif cmd == "minimap" then

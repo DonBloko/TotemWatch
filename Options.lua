@@ -791,7 +791,9 @@ function ns.CreateOptions()
   help:SetSpacing(4)
   help:SetText(L["Key bindings: Esc > Key Bindings > AddOns > TotemWatch.\n"] ..
     L["Commands: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw other <totem>"] .. "\n" ..
-    L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"])
+    L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"] .. "
+" ..
+    L["News: /tw news"])
   hy = hy - (help:GetStringHeight() or 60) - 20
   for _, t in ipairs(TABS) do
     if t.key == "help" then t.height = -hy + 10 end
