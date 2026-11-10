@@ -184,8 +184,8 @@ function ns.CreateOptions()
     { key = "look",      label = L["Look"],      height = 300 },
     { key = "bar",       label = L["Bar"],       height = 280 },
     { key = "alerts",    label = L["Warnings"],  height = 300 },
-    { key = "emergency", label = L["Emergency"], height = 280 },
-    { key = "help",      label = L["Help"],      height = 220 },
+    { key = "emergency", label = L["Emergency"], height = 260 },
+    { key = "help",      label = L["Help"],      height = 140 },
   }
   local pages, tabButtons = {}, {}
   local function ShowTab(key)
@@ -198,6 +198,11 @@ function ns.CreateOptions()
       end
     end
     scroll:SetVerticalScroll(0)
+    -- Scrollleiste nur zeigen, wenn der Inhalt nicht ins Fenster passt
+    local sb = scroll.ScrollBar or _G["TotemWatchOptionsScrollScrollBar"]
+    if sb and C_Timer then
+      C_Timer.After(0, function() sb:SetShown((scroll:GetVerticalScrollRange() or 0) > 1) end)
+    end
     if TotemWatchDB then TotemWatchDB.optTab = key end
   end
   for i, t in ipairs(TABS) do
@@ -358,38 +363,38 @@ function ns.CreateOptions()
   p = pages.emergency
   AddHeader(p, LX, -8, L["Emergency buttons"])
   AddNote(p, LX, -26, L["Each button always casts the same totem. It is almost invisible at rest and lights up when danger is coming."], 560)
-  AddCheck(p, LX, -50, "tremorButton", L["Emergency Tremor button"],
+  AddCheck(p, LX, -64, "tremorButton", L["Emergency Tremor button"],
     L["A big button that always casts Tremor Totem. It is dimmed and lights up when a fear is coming."],
     function() if ns.SetupEmergency then ns.SetupEmergency() end end, true)
-  AddCheck(p, LX, -76, "poisonButton", L["Emergency Poison Cleansing button"],
+  AddCheck(p, LX, -90, "poisonButton", L["Emergency Poison Cleansing button"],
     L["Always casts Poison Cleansing Totem. Lights up when enemies cast poison."],
     function() if ns.SetupEmergency then ns.SetupEmergency() end end, true)
-  AddCheck(p, LX, -102, "diseaseButton", L["Emergency Disease Cleansing button"],
+  AddCheck(p, LX, -116, "diseaseButton", L["Emergency Disease Cleansing button"],
     L["Always casts Disease Cleansing Totem. Lights up when enemies cast diseases."],
     function() if ns.SetupEmergency then ns.SetupEmergency() end end, true)
-  AddCheck(p, LX, -128, "groundingButton", L["Emergency Grounding button"],
+  AddCheck(p, LX, -142, "groundingButton", L["Emergency Grounding button"],
     L["Always casts Grounding Totem. Lights up when an enemy casts a dangerous spell (Polymorph, Hex, Fear …)."],
     function() if ns.SetupEmergency then ns.SetupEmergency() end end, true)
 
-  tremorSlider = AddSlider(p, RX, -50, L["Emergency button size"], 32, 120, 4,
+  tremorSlider = AddSlider(p, RX, -64, L["Emergency button size"], 32, 120, 4,
     function() return TotemWatchDB.tremorSize or 44 end,
     function(v)
       if InCombatLockdown() then return end
       TotemWatchDB.tremorSize = v
       if ns.SetupEmergency then ns.SetupEmergency() end
     end)
-  dimSlider = AddSlider(p, RX, -95, L["Emergency buttons visibility at rest (%)"], 0, 100, 5,
+  dimSlider = AddSlider(p, RX, -109, L["Emergency buttons visibility at rest (%)"], 0, 100, 5,
     function() return math.floor(((TotemWatchDB.tremorDim or 0.15) * 100) + 0.5) end,
     function(v) TotemWatchDB.tremorDim = v / 100 end)
 
   local moveTremor
-  moveTremor = AddButton(p, LX + 4, -176, L["Move emergency buttons"], 190, function()
+  moveTremor = AddButton(p, LX + 4, -190, L["Move emergency buttons"], 190, function()
     OutOfCombat(function()
       local on = ns.ToggleEmergencyMove and ns.ToggleEmergencyMove()
       moveTremor:SetText(on and L["Lock emergency buttons"] or L["Move emergency buttons"])
     end)
   end)
-  AddButton(p, LX + 200, -176, L["Attach emergency buttons to the bar"], 240, function()
+  AddButton(p, LX + 200, -190, L["Attach emergency buttons to the bar"], 240, function()
     OutOfCombat(function()
       if ns.emergencyMoving and ns.ToggleEmergencyMove then
         ns.ToggleEmergencyMove(false)
@@ -399,7 +404,7 @@ function ns.CreateOptions()
       Note(L["Emergency buttons attached to the bar."])
     end)
   end)
-  AddButton(p, LX + 4, -206, L["Test emergency alerts"], 190, function()
+  AddButton(p, LX + 4, -220, L["Test emergency alerts"], 190, function()
     if ns.TestEmergency then ns.TestEmergency() end
     Note(L["Simulating emergencies in 5 seconds."])
   end)
@@ -418,9 +423,6 @@ function ns.CreateOptions()
     L["Key bindings: Esc > Key Bindings > AddOns > TotemWatch.\n"] ..
     L["Commands: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw other <totem>"] .. "\n" ..
     L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"])
-  AddButton(p, LX + 4, -130, L["Start tour"], 160, function()
-    if ns.StartTutorial then ns.StartTutorial() end
-  end)
 
   panel:SetScript("OnShow", function()
     RefreshPanel()
