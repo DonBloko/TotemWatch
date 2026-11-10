@@ -3291,6 +3291,24 @@ local function Refresh()
         m.have and TotemName(m.have) or L["empty"], TotemName(m.want)))
     end
   end
+  -- Ruf der Elemente / Totemruf / Rückruf: Abklingzeit als Spirale und Restzeit auf dem Symbol
+  for _, b in ipairs({ callBtn, moveBtn, recallBtn }) do
+    if b:IsShown() then
+      local sp = b:GetAttribute("spell1")
+      UpdateCooldown(b, sp)
+      local txt = ""
+      local start, dur = SpellCooldown(sp)
+      if start and dur and not IsSecret(start) and not IsSecret(dur) and dur > 1.6 then
+        local left = start + dur - now
+        if left > 0 then txt = FormatTime(left) end
+      end
+      b.cdText = b.cdText or b.over:CreateFontString(nil, "OVERLAY")
+      b.cdText:SetFont(STANDARD_TEXT_FONT, math.max(9, math.floor((b:GetWidth() or 30) * 0.38)), "OUTLINE")
+      b.cdText:ClearAllPoints(); b.cdText:SetPoint("CENTER", b, "CENTER", 0, 0)
+      b.cdText:SetText(txt)
+      if b == callBtn then b.icon:SetDesaturated(txt ~= "") end   -- auf Abklingzeit: grau
+    end
+  end
   if callBtn:IsShown() then
     SetBorder(callBtn, ns.multicastMismatch and "WRONG" or "COVERED", false)
   end
