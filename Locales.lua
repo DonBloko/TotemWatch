@@ -450,3 +450,6 @@ L["Round icons test on. If the game stays stable, try /tw roundtest all. /tw rou
 L["Round icons: "] = "Runde Symbole: "
 L["Round icons (beta)"] = "Runde Symbole (Beta)"
 L["Shows the totem, weapon and shield icons as circles with a thin ring. The ring shows the status color."] = "Zeigt Totem-, Waffen- und Schild-Symbole als Kreise mit feinem Ring. Der Ring zeigt die Statusfarbe."
+L["|cffffd100Next:|r %s |cff888888(%s)|r – %s"] = "|cffffd100Als Nächstes:|r %s |cff888888(%s)|r – %s"
+L["Short hints (one line)"] = "Kurze Hinweise (eine Zeile)"
+L["Only the next step below the bar, plus how many more there are. Details are in the button tooltips."] = "Nur der nächste Schritt unter der Leiste, dazu die Anzahl weiterer. Details stehen im Tooltip der Knöpfe."

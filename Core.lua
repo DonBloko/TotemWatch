@@ -42,6 +42,7 @@ local DEFAULTS = {
   groundingButton = true, -- Notfall-Knopf Grounding
   cleanLook = true,     -- Clean Look: dünne Rahmen, Farbe nur bei Problemen, ruhige Symbole
   roundIcons = false,   -- runde Symbole (Beta)
+  shortHints = true,    -- nur eine Hinweiszeile (nächster Schritt)
 }
 
 ---------------------------------------------------------------------------
@@ -1858,7 +1859,11 @@ function ns.ApplySkin()
   local top = (S.title and not clean) and 22 or 8                 -- oben: Titel bzw. schmaler Streifen zum Ziehen
   if S.elemStrip then top = top + 6 end
 
-  -- Totem-Knöpfe
+  -- Totem-Knöpfe (Elemente ohne gelerntes Totem werden übersprungen, die anderen rücken auf)
+  local vis, nVis = {}, 0
+  for s = 1, 4 do
+    if slots[s].twKnown ~= false then nVis = nVis + 1; vis[s] = nVis end
+  end
   for s = 1, 4 do
     local b = slots[s]
     b:SetSize(size, size)
@@ -1909,11 +1914,12 @@ function ns.ApplySkin()
     b:ClearAllPoints()
     b:SetAlpha(1)   -- Fokus-Design dimmt im Betrieb; beim Wechsel zurücksetzen
     if S.bar == "right" or S.vertical then
-      b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -top - (s - 1) * (size + gap))
+      b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -top - ((vis[s] or 1) - 1) * (size + gap))
     else
-      b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad + (s - 1) * (size + gap), -top)
+      b:SetPoint("TOPLEFT", frame, "TOPLEFT", pad + ((vis[s] or 1) - 1) * (size + gap), -top)
     end
     SetBorder(b, "NONE", false)
+    if not vis[s] then b.timeBar:Hide() end   -- Element ohne gelerntes Totem: ganz ausblenden
   end
 
   -- Zusatzknöpfe (ALLE, Call, Totemic Call, Recall, Waffe, Schild)
@@ -1943,7 +1949,7 @@ function ns.ApplySkin()
   if S.more then
     -- Kompakt: Waffe/Schild klein rechts daneben, dann "...";
     -- die übrigen Zusatzknöpfe klappen über dem "..." auf
-    local x = pad + 4 * (size + gap) + 4
+    local x = pad + nVis * (size + gap) + 4
     local y = -top - (size - esize) / 2
     for _, b in ipairs({ weaponBtn, shieldBtn }) do
       if b:IsShown() then PlaceExtra(b, x, y, esize); x = x + esize + 3 end
@@ -1965,21 +1971,21 @@ function ns.ApplySkin()
     height = top + size + ((S.timer == "below") and 16 or 4)
   elseif S.extrasBelow or S.vertical then
     -- Zwei Ebenen / Senkrecht: alle Zusatzknöpfe als kleine Reihe darunter
-    local y = S.vertical and (-top - 4 * (size + gap) - 2) or (-top - size - 4)
+    local y = S.vertical and (-top - nVis * (size + gap) - 2) or (-top - size - 4)
     local x = pad
     for _, b in ipairs(extras) do
       if b:IsShown() then PlaceExtra(b, x, y, esize); x = x + esize + 3 end
     end
     if S.vertical then
       width = math.max(pad + size + 44, x + pad)
-      height = top + 4 * (size + gap) + ((x > pad) and (esize + 16) or 0) + 2
+      height = top + nVis * (size + gap) + ((x > pad) and (esize + 16) or 0) + 2
     else
-      width = math.max(pad + 4 * (size + gap) - gap + pad, x + pad)
+      width = math.max(pad + nVis * (size + gap) - gap + pad, x + pad)
       height = top + size + 4 + ((x > pad) and (esize + 16) or 0) + 2
     end
   elseif S.bar == "right" then
     -- Bars: Zusatzknöpfe in einer Reihe unter den Balken
-    local y = -top - 4 * (size + gap) - 3
+    local y = -top - nVis * (size + gap) - 3
     local x = pad
     local esize = S.extraBtn or size          -- Zusatzknöpfe dürfen größer sein als die Zeilen-Icons
     for _, b in ipairs(extras) do
@@ -1992,9 +1998,9 @@ function ns.ApplySkin()
     end
     width = math.max(pad + size + 3 + (S.barWidth or 200) + pad, x + pad)
     -- Platz für die Restzeit unter Waffe/Schild einplanen
-    height = top + 4 * (size + gap) + ((x > pad) and (esize + 18) or 0) + 4
+    height = top + nVis * (size + gap) + ((x > pad) and (esize + 18) or 0) + 4
   else
-    local x = pad + 4 * (size + gap) + 6
+    local x = pad + nVis * (size + gap) + 6
     for _, b in ipairs(extras) do
       b:SetSize(size, size)
       if b.glow then b.glow:SetSize(size * gf, size * gf) end
@@ -2155,6 +2161,14 @@ function ns.ApplyRound()
     castAll:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     hl = castAll:GetHighlightTexture()
     if hl then hl:SetVertexColor(1, 1, 1, 1) end
+  end
+
+  -- Zeitbalken unter runden Symbolen (Pillars): schmaler und feiner
+  if on and CurrentSkin().bar == "below" then
+    for s = 1, 4 do
+      local w = slots[s]:GetWidth() or 30
+      slots[s].timeBar:SetSize(w * 0.7, 2)
+    end
   end
 
   -- Element-Farbe (Pillars): kleiner farbiger Punkt über dem Kreis statt eines Balkens
@@ -2401,6 +2415,10 @@ local function SetupSecure()
   for s = 1, 4 do
     local ids = TotemIds(s)
     BuildFlyout(slots[s], ids)
+    -- Noch kein Totem dieses Elements gelernt: Knopf ganz ausblenden, bis eins gelernt ist
+    local knowsAny = FirstKnown(ids) ~= nil
+    slots[s].twKnown = knowsAny
+    if knowsAny then slots[s]:Show() else slots[s]:Hide() end
     local cur = KnownChoice(slots[s]:GetAttribute("spell1"), ids) or KnownChoice(choice["slot" .. s], ids)
     if not cur then
       local id = FirstKnown(ids)
@@ -2496,7 +2514,11 @@ local function Refresh()
   local hintLine, alertText = 1, nil
   -- Anzahl Hinweiszeilen je Design (Kompakt/Fokus: 1, Zwei Ebenen/Senkrecht: 0 = nur Tooltip)
   local hintMax = math.min(CurrentSkin().hints or MAX_HINTS, MAX_HINTS)
+  local short = TotemWatchDB.shortHints            -- nur eine Zeile: der nächste Schritt (+ Anzahl weiterer)
+  if short then hintMax = math.min(hintMax, 1) end
+  local hintWanted = 0
   local function hint(text)
+    hintWanted = hintWanted + 1
     if hintLine <= hintMax then hints[hintLine]:SetText(text); hintLine = hintLine + 1 end
   end
 
@@ -2637,7 +2659,11 @@ local function Refresh()
       local what = (status == "MISSING" and L["missing"] or status == "WRONG" and L["better"]
                     or status == "DUPLICATE" and L["duplicate, better"] or L["expiring"])
       local pick = (key ~= assignedKey) and L[" |cffffff00[right-click: choose]|r"] or ""
-      hint(format("|cff%s%s|r %s: |cffffffff%s|r – %s%s", col, ns.SLOT_NAMES[s], what, TotemName(key), reason or "", pick))
+      if short then
+        hint(format(L["|cffffd100Next:|r %s |cff888888(%s)|r – %s"], TotemName(key), ns.SLOT_NAMES[s], reason or ""))
+      else
+        hint(format("|cff%s%s|r %s: |cffffffff%s|r – %s%s", col, ns.SLOT_NAMES[s], what, TotemName(key), reason or "", pick))
+      end
     end
     if otherHint then
       hint(format(L["|cff%s%s|r |cff80c0ff(group)|r %s"], col, ns.SLOT_NAMES[s], otherHint))
@@ -2670,6 +2696,8 @@ local function Refresh()
       else
         local c = b.statusColor or STATUS_COLOR.NONE
         tb:SetStatusBarColor(c[1], c[2], c[3])
+        -- leerer Platz (kein Totem): keinen leeren grauen Balken zeigen
+        tb:SetShown(b:IsShown() and (tLeft or 0) > 0)
       end
     end
 
@@ -2835,6 +2863,11 @@ local function Refresh()
   end
 
   if TotemWatchDB.useBoss and state.boss and state.boss.note then hint(L["|cffaaaaaaNote: "] .. state.boss.note .. "|r") end
+  -- Kurze Hinweise: anzeigen, wie viele weitere es gibt (Rest steht im Tooltip der Knöpfe)
+  if short and hintLine > 1 and hintWanted > hintLine - 1 then
+    local last = hints[hintLine - 1]
+    last:SetText((last:GetText() or "") .. " |cff888888(+" .. (hintWanted - (hintLine - 1)) .. ")|r")
+  end
   if not TotemWatchDB.showHints then hintLine = 1 end
   for i = hintLine, MAX_HINTS do hints[i]:SetText("") end
   -- Hintergrund an die Zeilenzahl anpassen (unsichtbar ohne Hinweise)

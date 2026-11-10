@@ -5,6 +5,10 @@
 - **Clean look** (options menu → Design, or `/tw clean`, on by default in this beta): no box around the bar (transparent background), thin dark frames, status color only as a fine line where you have to act, calmer icons, softer glow, plain font with shadow, no mini icons (they are in the tooltip), empty slots as dark fields. Works with every design.
 - **Round icons (beta)** (options menu → Design, or `/tw round`): icons built from thin circular strips with a ring that shows the status color and a soft round glow – also for Call, Totemic Call, Recall, the ALL button (round blue disc) and the emergency buttons; in Pillars the element color becomes a small dot above the circle – no mask textures, so no crash risk.
 - Emergency buttons are smaller by default (44 instead of 64; adjustable in the options).
+- **Elements without a learned totem are hidden** (e.g. Air before level 30); the other buttons move together. They appear automatically when you learn the first totem.
+- **Short hints** (on by default, options → Recommendations): one line with the next step, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Turn it off for the full list.
+- Pillars: no empty gray time bar under a slot without a totem; with round icons the time bar is thinner.
+- Options menu: fixed overlapping checkboxes between the Warnings and Bar sections.
 - **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
   - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
   - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.

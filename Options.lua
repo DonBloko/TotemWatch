@@ -137,7 +137,7 @@ function ns.CreateOptions()
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -4)
   scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 4)
   local P = CreateFrame("Frame", nil, scroll)
-  P:SetSize(660, 1010)
+  P:SetSize(660, 1100)
   scroll:SetScrollChild(P)
   -- Inhalt so breit wie der sichtbare Bereich (nicht unter die Scrollleiste)
   scroll:SetScript("OnSizeChanged", function(self, w)
@@ -210,6 +210,8 @@ function ns.CreateOptions()
   AddButton(P, LX + 4, y - 184, L["Test warnings"], 180, function()
     if ns.TestWarnings then ns.TestWarnings() end
   end)
+  AddCheck(P, LX, y - 214, "shortHints", L["Short hints (one line)"],
+    L["Only the next step below the bar, plus how many more there are. Details are in the button tooltips."])
 
   AddHeader(P, RX, y, L["Warnings"])
   AddCheck(P, RX, y - 20, "sound", L["Warning sound"],
@@ -234,7 +236,7 @@ function ns.CreateOptions()
     L["Important warnings are read out loud, e.g. “Tremor Totem now!”."],
     function(on) if on and ns.Speak then ns.Speak(L["TotemWatch voice warnings on"], true) end end)
 
-  y = -350
+  y = -440
   AddHeader(P, LX, y, L["Bar"])
   AddCheck(P, LX, y - 20, "showAll", L["Cast-all button"], nil,
     function() ns.SetupSecure() end, true)
