@@ -204,6 +204,45 @@ ns.BOSS_NAMES = {
   ["viktor the vile"]  = { name = "Viktor the Vile",  water = { T("POISON_CLEANSE", "Leech Poison on the tank") } },
   ["the abandoned"]    = { name = "The Abandoned",    fire = { T("FROST_RES", "Frost Nova") } },
   ["rath'mael"]        = { name = "Rath'mael",        water = { T("FIRE_RES", "Flamestrike") } },
+  ---------------------------------------------------------------- Classic-Dungeons (vorläufig)
+  -- Wailing Caverns
+  ["lady anacondra"]   = { name = "Lady Anacondra",   earth = { T("TREMOR", "Sleep") } },
+  ["lord pythas"]      = { name = "Lord Pythas",      earth = { T("TREMOR", "Sleep") } },
+  ["lord serpentis"]   = { name = "Lord Serpentis",   earth = { T("TREMOR", "Sleep") } },
+  ["lord cobrahn"]     = { name = "Lord Cobrahn",     water = { T("POISON_CLEANSE", "Poison") } },
+  ["mutanus the devourer"] = { name = "Mutanus the Devourer", earth = { T("TREMOR", "Fear and sleep") } },
+  -- Blackfathom Deeps
+  ["twilight lord kelris"] = { name = "Twilight Lord Kelris", earth = { T("TREMOR", "Sleep") } },
+  -- Scarlet Monastery
+  ["high inquisitor whitemane"] = { name = "High Inquisitor Whitemane", earth = { T("TREMOR", "Deep Sleep") } },
+  -- Razorfen Downs
+  ["amnennar the coldbringer"] = { name = "Amnennar the Coldbringer", fire = { T("FROST_RES", "Frost damage") } },
+  -- Maraudon
+  ["noxxion"]          = { name = "Noxxion",          water = { T("POISON_CLEANSE", "Poison") } },
+  -- Sunken Temple
+  ["shade of eranikus"] = { name = "Shade of Eranikus", earth = { T("TREMOR", "Deep Sleep") } },
+  -- Blackrock Depths
+  ["lord incendius"]   = { name = "Lord Incendius",   water = { T("FIRE_RES", "Fire damage") } },
+  ["ambassador flamelash"] = { name = "Ambassador Flamelash", water = { T("FIRE_RES", "Fire damage") } },
+  ["magmus"]           = { name = "Magmus",           water = { T("FIRE_RES", "Fire damage") } },
+  ["emperor dagran thaurissan"] = { name = "Emperor Dagran Thaurissan", water = { T("FIRE_RES", "Fire damage") } },
+  -- Lower / Upper Blackrock Spire
+  ["mother smolderweb"] = { name = "Mother Smolderweb", water = { T("POISON_CLEANSE", "Poison") } },
+  ["pyroguard emberseer"] = { name = "Pyroguard Emberseer", water = { T("FIRE_RES", "Fire damage") } },
+  ["the beast"]        = { name = "The Beast",        earth = { T("TREMOR", "Terrifying Roar (fear)") },
+                                                      water = { T("FIRE_RES", "Fire damage") } },
+  ["general drakkisath"] = { name = "General Drakkisath", water = { T("FIRE_RES", "Fire damage") } },
+  -- Scholomance
+  ["lady illucia barov"] = { name = "Lady Illucia Barov", earth = { T("TREMOR", "Fear and charm") } },
+  ["ras frostwhisper"] = { name = "Ras Frostwhisper",  fire = { T("FROST_RES", "Frost damage") } },
+  ["lorekeeper polkelt"] = { name = "Lorekeeper Polkelt", water = { T("DISEASE_CLEANSE", "Disease") } },
+  -- Stratholme
+  ["nerub'enkan"]      = { name = "Nerub'enkan",      water = { T("POISON_CLEANSE", "Poison") } },
+  ["maleki the pallid"] = { name = "Maleki the Pallid", fire = { T("FROST_RES", "Frost damage") } },
+  ["hearthsinger forresten"] = { name = "Hearthsinger Forresten", earth = { T("TREMOR", "Sleep") } },
+  -- Dire Maul
+  ["captain kromcrush"] = { name = "Captain Kromcrush", earth = { T("TREMOR", "Fear") } },
+  ["hydrospawn"]       = { name = "Hydrospawn",       fire = { T("FROST_RES", "Frost damage") } },
 }
 
 -- Designs (Skins) der Leiste. Auswahl im Menü oder mit /tw skin <name>.
