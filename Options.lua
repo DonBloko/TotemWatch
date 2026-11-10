@@ -280,7 +280,8 @@ function ns.CreateOptions()
   end)
   tourBtn:ClearAllPoints()
   tourBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -16)
-n  -- Hinweis auf den Autor, ganz klein unten rechts
+
+  -- Hinweis auf den Autor, ganz klein unten rechts
   local credit = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   credit:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -20, 8)
   credit:SetText(L["made by DonBloko"])
