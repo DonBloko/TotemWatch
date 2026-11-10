@@ -736,6 +736,7 @@ ns.TotemRange = TotemRange
 ns.distInfo = {}   -- für /tw debug: [slot] = Text
 local function ScanDistance()
   for s = 1, 4 do state.far[s] = nil; ns.distInfo[s] = nil end
+  state.moveAdvice = nil   -- ohne aktuelle Messung keine (veraltete) Empfehlung für Totemic Call
   if not TotemWatchDB or not TotemWatchDB.distanceWarn then return end
   local px, py, pinst = PlayerPos()
   ns.posReadable = px ~= nil
