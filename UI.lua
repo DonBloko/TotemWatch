@@ -356,7 +356,11 @@ end
 
 function ns.StartTutorial()
   if not steps then BuildSteps() end
-  tIcon:SetTexture(TotemIcon())
+  -- TotemWatch-Logo (eigene Textur), sonst das Totem-Symbol
+  tIcon:SetTexCoord(0, 1, 0, 1)
+  if not tIcon:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\media\\logo") then
+    tIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93); tIcon:SetTexture(TotemIcon())
+  end
   tut:Show()
   ShowStep(1)
 end

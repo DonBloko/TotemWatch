@@ -10,6 +10,7 @@
 - Template editor shows totem icons and only lists totems you have learned.
 - `/tw bar` shows all three pages of the totem bar.
 - **Pictures that explain the bar**: the guided tour shows small pictures for moving the bar, clicking and the status colors, and the **Help** tab is now a reference page with an annotated overview of the bar and pictures for every feature (casting and choosing, colors, templates, calls, emergency buttons). The pictures follow your icon shape (round or square).
+- The guided tour shows the TotemWatch logo.
 - **Visible grip to move the bar**: a small dotted handle on the left of the bar (hidden when the bar is locked).
 - Fix: the bar now really stays visible for a few seconds after combat.
 
