@@ -44,6 +44,7 @@ local DEFAULTS = {
   roundIcons = true,    -- runde Symbole (Standard)
   shortHints = true,    -- nur eine Hinweiszeile (nächster Schritt)
   afterCombat = 8,      -- Sekunden, die die Leiste nach dem Kampf sichtbar bleibt
+  showTemplates = true, -- Vorlagen-Knopf links an der Leiste
 }
 
 ---------------------------------------------------------------------------
@@ -2612,6 +2613,125 @@ function ns.UpdateCallLabels()
   end
 end
 
+-- Vorlagen-Wechsel direkt an der Leiste: Knopf links neben der Leiste öffnet die Liste der
+-- Vorlagen; ein Klick legt die 4 Totems der Vorlage auf die TotemWatch-Knöpfe.
+-- Gesicherter Klick-Handler: funktioniert auch im Kampf (die Liste wird außerhalb vorbereitet).
+local TPL_ROW_SNIPPET = [[
+  for i = 1, 4 do
+    local sp = self:GetAttribute("tw" .. i)
+    local b = self:GetFrameRef("slot" .. i)
+    if sp and b then b:SetAttribute("spell1", sp) end
+  end
+  local all = self:GetFrameRef("all")
+  if all then
+    local s = ""
+    for i = 1, 4 do
+      local e = all:GetFrameRef("e" .. i)
+      local sp = e and e:GetAttribute("spell1")
+      if sp then
+        if s ~= "" then s = s .. ", " end
+        s = s .. sp
+      end
+    end
+    all:SetAttribute("macrotext1", "/castsequence reset=combat/12 " .. s)
+  end
+  self:GetParent():Hide()
+]]
+
+local tplBtn = CreateFrame("Button", "TotemWatchTemplates", frame, "SecureHandlerClickTemplate")
+tplBtn:SetSize(22, 22)
+tplBtn:SetPoint("RIGHT", frame, "LEFT", -18, 0)
+tplBtn:RegisterForClicks("AnyUp")
+tplBtn:Hide()
+tplBtn.bg = tplBtn:CreateTexture(nil, "BACKGROUND")
+tplBtn.bg:SetAllPoints(); tplBtn.bg:SetColorTexture(0, 0, 0, 0.6)
+tplBtn.icon = tplBtn:CreateTexture(nil, "ARTWORK")
+tplBtn.icon:SetPoint("TOPLEFT", 2, -2); tplBtn.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+tplBtn.icon:SetTexture("Interface\\Icons\\INV_Scroll_03")
+tplBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+tplBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+
+local tplList = CreateFrame("Frame", nil, tplBtn, "SecureHandlerBaseTemplate")
+tplList:SetPoint("BOTTOMLEFT", tplBtn, "TOPLEFT", 0, 4)
+tplList:SetFrameStrata("DIALOG")
+tplList:Hide()
+tplList.bg = tplList:CreateTexture(nil, "BACKGROUND")
+tplList.bg:SetAllPoints(); tplList.bg:SetColorTexture(0.03, 0.03, 0.04, 0.92)
+tplList.rows = {}
+tplBtn:SetFrameRef("list", tplList)
+tplBtn:SetAttribute("_onclick", [[
+  local l = self:GetFrameRef("list")
+  if l:IsShown() then l:Hide() else l:Show() end
+]])
+tplBtn:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+  GameTooltip:AddLine(L["Templates"], 1, 1, 1)
+  local tp = TotemWatchDB.activeTemplate and ns.TemplateById(TotemWatchDB.activeTemplate)
+  if tp then GameTooltip:AddLine(L["Template: "] .. tp.name, 0.6, 0.85, 1) end
+  GameTooltip:AddLine(L["Click: choose a template – its totems go on your TotemWatch buttons (also in combat)."], 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine(L["Create templates under /tw > Calls."], 0.5, 0.5, 0.5, true)
+  GameTooltip:Show()
+end)
+tplBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+ns.tplBtn = tplBtn
+
+-- Liste aufbauen (nur außerhalb des Kampfes: Attribute und Sichtbarkeit geschützter Knöpfe)
+function ns.BuildTemplateList()
+  if InCombatLockdown() then state.pendingSecure = true; return end
+  local tps = TotemWatchDB.templates or {}
+  local want = (TotemWatchDB.showTemplates ~= false) and #tps > 0
+  if want then tplBtn:Show() else tplBtn:Hide(); tplList:Hide() end
+  for i, tp in ipairs(tps) do
+    local row = tplList.rows[i]
+    if not row then
+      row = CreateFrame("Button", nil, tplList, "SecureHandlerClickTemplate")
+      row:SetSize(190, 24)
+      row:SetPoint("TOPLEFT", tplList, "TOPLEFT", 3, -3 - (i - 1) * 25)
+      row:RegisterForClicks("AnyUp")
+      for s = 1, 4 do row:SetFrameRef("slot" .. s, slots[s]) end
+      row:SetFrameRef("all", castAll)
+      row:SetAttribute("_onclick", TPL_ROW_SNIPPET)
+      row:SetHighlightTexture("Interface\\Buttons\\WHITE8X8", "ADD")
+      row:GetHighlightTexture():SetVertexColor(0.2, 0.5, 1, 0.35)
+      row.icons = {}
+      for s = 1, 4 do
+        local ic = row:CreateTexture(nil, "ARTWORK")
+        ic:SetSize(18, 18)
+        ic:SetPoint("LEFT", row, "LEFT", 3 + (s - 1) * 20, 0)
+        ic:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        row.icons[s] = ic
+      end
+      row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.label:SetPoint("LEFT", row, "LEFT", 88, 0)
+      row.label:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+      row.label:SetJustifyH("LEFT"); row.label:SetWordWrap(false)
+      -- nach dem (gesicherten) Klick: Vorlage merken und kurz melden
+      row:HookScript("OnClick", function(self)
+        TotemWatchDB.activeTemplate = self.tplId
+        local t = ns.TemplateById(self.tplId)
+        if t and ns.ShowMessage then ns.ShowMessage(L["Template: "] .. t.name, 0.6, 0.85, 1) end
+      end)
+      tplList.rows[i] = row
+    end
+    row.tplId = tp.id
+    row.label:SetText(tp.name)
+    for s = 1, 4 do
+      local key = tp.t and tp.t[s]
+      local ok = key and ns.TOTEMS[key] and IsKnown(key)
+      row:SetAttribute("tw" .. s, ok and TotemName(key) or nil)
+      if key and ns.TOTEMS[key] then
+        row.icons[s]:SetTexture(SpellIcon(ns.TOTEMS[key].id)); row.icons[s]:Show()
+        row.icons[s]:SetDesaturated(not ok)
+      else
+        row.icons[s]:Hide()
+      end
+    end
+    row:Show()
+  end
+  for i = #tps + 1, #tplList.rows do tplList.rows[i]:Hide() end
+  tplList:SetSize(196, math.max(1, #tps) * 25 + 6)
+end
+
 local function SetupSecure()
   if InCombatLockdown() then state.pendingSecure = true; return end
   state.pendingSecure = false
@@ -2691,6 +2811,7 @@ local function SetupSecure()
   ns.SetupTremor()
 
   RebuildCastAll()
+  if ns.BuildTemplateList then ns.BuildTemplateList() end   -- Vorlagen-Liste an der Leiste
   state.setupDone = true
 end
 ns.SetupSecure = SetupSecure

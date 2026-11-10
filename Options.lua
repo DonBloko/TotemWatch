@@ -431,6 +431,9 @@ function ns.CreateOptions()
     L["Moves your totems to you. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
   AddCheck(p, LX, -184, "showRecall", L["Totemic Recall button"],
     L["Removes your totems. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
+  AddCheck(p, LX, -210, "showTemplates", L["Template button"],
+    L["Button left of the bar: put one of your templates on the TotemWatch buttons with one click (also in combat)."],
+    function() if ns.BuildTemplateList then ns.BuildTemplateList() end end, true)
 
   local function applyVis() ns.ApplyVisibilityDriver(); ns.UpdateVisibility() end
   AddHeader(p, RX, -8, L["Visibility"])
@@ -466,6 +469,7 @@ function ns.CreateOptions()
   local function SyncNow()
     if ns.SyncMultiCast then ns.SyncMultiCast() end
     if ns.UpdateCallLabels then ns.UpdateCallLabels() end
+    if ns.BuildTemplateList then ns.BuildTemplateList() end
   end
   local function Templates() return TotemWatchDB.templates or {} end
   local function NewTemplate(name, t)
@@ -555,6 +559,7 @@ function ns.CreateOptions()
     if tp and txt and txt:match("%S") then
       tp.name = txt
       if ns.UpdateCallLabels then ns.UpdateCallLabels() end
+      if ns.BuildTemplateList then ns.BuildTemplateList() end
       RefreshPanel()
     end
   end
