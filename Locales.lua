@@ -444,3 +444,6 @@ L["Click: show/hide ALL, Call of the Elements, Totemic Call and Totemic Recall (
 L["Clean look"] = "Clean Look (ruhige Darstellung)"
 L["Thin dark frames, color only where you have to act, calmer icons, smaller glow and no mini icons (they are in the tooltip). Works with every design."] = "Dünne dunkle Rahmen, Farbe nur dort, wo du handeln musst, ruhigere Symbole, dezenteres Leuchten und keine Mini-Symbole (stehen im Tooltip). Funktioniert mit jedem Design."
 L["Clean look: "] = "Clean Look: "
+L["Round icons are not supported by this client."] = "Runde Symbole werden von diesem Client nicht unterstützt."
+L["Round icons off."] = "Runde Symbole aus."
+L["Round icons test on. If the game stays stable, try /tw roundtest all. /tw roundtest off switches back. (Not saved – after a /reload everything is square again.)"] = "Test runde Symbole an. Bleibt das Spiel stabil, probier /tw roundtest all. /tw roundtest off schaltet zurück. (Nicht gespeichert – nach /reload ist wieder alles eckig.)"
