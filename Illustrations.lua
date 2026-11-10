@@ -15,7 +15,7 @@ local ICON = {   -- Beispiel-Symbole (Zauber-IDs)
 }
 -- Schriftfarbe der Bilder: dasselbe Gold wie das Leuchten
 local GOLD = { 1, 0.85, 0.2 }
-local PLAIN = { 0.92, 0.92, 0.92 }   -- normale Beschriftung
+local PLAIN = GOLD   -- Beschriftungen in den Bildern ebenfalls in Gold
 local STATUS = {
   missing = { 1, 0.1, 0.1 }, expiring = { 1, 0.85, 0 }, wrong = { 1, 0.5, 0 },
   ok = { 0.1, 0.9, 0.1 }, calm = { 0.08, 0.08, 0.08 }, far = { 1, 0.55, 0.1 },
