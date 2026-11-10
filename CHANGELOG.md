@@ -1,9 +1,9 @@
 # TotemWatch – Changelog
 
-## 1.3.0 (beta)
+## 1.3.0
 
-- **Clean look** (options menu → Design, or `/tw clean`, on by default in this beta): no box around the bar (transparent background), thin dark frames, status color only as a fine line where you have to act, calmer icons, softer glow, plain font with shadow, no mini icons (they are in the tooltip), empty slots as dark fields. Works with every design.
-- **Round icons (beta)** (options menu → Design, or `/tw round`): icons built from thin circular strips with a ring that shows the status color and a soft round glow – also for Call, Totemic Call, Recall, the ALL button (round blue disc) and the emergency buttons; in Pillars the element color becomes a small dot above the circle – no mask textures, so no crash risk.
+- **Clean look** (options menu → Look, or `/tw clean`, on by default): no box around the bar (transparent background), thin dark frames, status color only as a fine line where you have to act, calmer icons, softer glow, plain font with shadow, no mini icons (they are in the tooltip), empty slots as dark fields. Works with every design.
+- **Round icons** (default for new installs) (options menu → Look, or `/tw round`): icons built from thin circular strips with a ring that shows the status color and a soft round glow – also for Call, Totemic Call, Recall, the ALL button (round blue disc) and the emergency buttons; in Pillars the element color becomes a small dot above the circle – no mask textures, so no crash risk.
 - Emergency buttons are smaller by default (44 instead of 64; adjustable in the options).
 - **The bar stays visible for a few seconds after combat** (default 8 s, options → Bar), e.g. for Totemic Recall.
 - Bars design: no extra hint line below (the bars already say what is missing).
@@ -17,7 +17,7 @@
 - **Clearer options menu** (`/tw`): five tabs – Look, Bar, Warnings, Emergency, Help – instead of one long page; related settings grouped in two columns. The Look tab uses drop-downs for design, style (Clean/Blizzard), icon shape (square/round) and hints (one line/full list/off). The menu remembers the last tab.
 - Guided tour: the design step now also asks whether icons should be square or round.
 - While the options menu is open, the bar is shown (test mode) on top of the window, so every change is visible right away; closing the menu restores it.
-- **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
+- **Four new designs** (options menu → Look, or `/tw skin <name>`):
   - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
   - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.
   - **Two rows** (`stacked`) – totems on top, all extra buttons as a small row below; hints only in the tooltip.

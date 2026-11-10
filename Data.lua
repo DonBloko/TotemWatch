@@ -224,27 +224,27 @@ ns.SKINS = {
     bg = { 0, 0, 0, 0.55 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },
   },
-  -- Beta-Designs zum Ausprobieren
+  -- Weitere Designs
   compact = {
-    name = "Compact (beta)", btn = 26, gap = 3, inset = 1, title = false, timer = "inside",
+    name = "Compact", btn = 26, gap = 3, inset = 1, title = false, timer = "inside",
     extraBtn = 18, more = true, hints = 1,
     bg = { 0, 0, 0, 0.6 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
   },
   focus = {
-    name = "Focus (beta)", btn = 30, gap = 4, inset = 1, title = false, timer = "below",
+    name = "Focus", btn = 30, gap = 4, inset = 1, title = false, timer = "below",
     focus = true, hints = 1,
     bg = { 0, 0, 0, 0 }, edge = { 0, 0, 0, 0 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
   },
   stacked = {
-    name = "Two rows (beta)", btn = 30, gap = 3, inset = 1, title = false, timer = "inside",
+    name = "Two rows", btn = 30, gap = 3, inset = 1, title = false, timer = "inside",
     extraBtn = 16, extrasBelow = true, hints = 0,
     bg = { 0, 0, 0, 0.6 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },
   },
   column = {
-    name = "Column (beta)", btn = 24, gap = 3, inset = 1, title = false, timer = "right",
+    name = "Column", btn = 24, gap = 3, inset = 1, title = false, timer = "right",
     extraBtn = 16, vertical = true, hints = 0,
     bg = { 0, 0, 0, 0 }, edge = { 0, 0, 0, 0 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.6 }, hintEdge = { 0, 0, 0, 1 },

@@ -41,7 +41,7 @@ local DEFAULTS = {
   diseaseButton = true, -- Notfall-Knopf Disease Cleansing
   groundingButton = true, -- Notfall-Knopf Grounding
   cleanLook = true,     -- Clean Look: dünne Rahmen, Farbe nur bei Problemen, ruhige Symbole
-  roundIcons = false,   -- runde Symbole (Beta)
+  roundIcons = true,    -- runde Symbole (Standard)
   shortHints = true,    -- nur eine Hinweiszeile (nächster Schritt)
   afterCombat = 8,      -- Sekunden, die die Leiste nach dem Kampf sichtbar bleibt
 }
