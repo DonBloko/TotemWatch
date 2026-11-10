@@ -552,23 +552,37 @@ local function MobDanger(name)
   return hit
 end
 
+-- Sichtbare Namensplaketten, über NAME_PLATE_UNIT_ADDED/REMOVED gepflegt (statt 40 Einheiten abzufragen)
+local plates = {}
+ns.plates = plates
+local PLATE_UNITS = {}
+for i = 1, 40 do PLATE_UNITS[i] = "nameplate" .. i end
+
+local function CheckMobName(u)
+  local ok, nm = pcall(UnitName, u)
+  if ok and type(nm) == "string" then
+    local d = MobDanger(nm)
+    if d and not state.mobDanger[d[1]] then state.mobDanger[d[1]] = nm .. ": " .. L[d[2]] end
+  end
+end
+
+local function CountEnemy(u)
+  if UnitExists(u) and UnitCanAttack("player", u) and UnitAffectingCombat(u) and not UnitIsDead(u) then
+    CheckMobName(u)
+    return 1
+  end
+  return 0
+end
+
 local function ScanEnemies()
   local n = 0
   state.mobDanger = state.mobDanger or {}
   wipe(state.mobDanger)
-  local function check(u)
-    local ok, nm = pcall(UnitName, u)
-    if ok and type(nm) == "string" then
-      local d = MobDanger(nm)
-      if d and not state.mobDanger[d[1]] then state.mobDanger[d[1]] = nm .. ": " .. L[d[2]] end
-    end
-  end
-  for i = 1, 40 do
-    local u = "nameplate" .. i
-    if UnitExists(u) and UnitCanAttack("player", u) and UnitAffectingCombat(u) and not UnitIsDead(u) then
-      n = n + 1
-      check(u)
-    end
+  local check = CheckMobName
+  if ns.plateEvents then
+    for u in pairs(plates) do n = n + CountEnemy(u) end
+  else
+    for i = 1, 40 do n = n + CountEnemy(PLATE_UNITS[i]) end
   end
   if UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target") then check("target") end
   state.enemies = n
@@ -1572,7 +1586,7 @@ local function CreateEmergencyButton(def)
   local slot = ns.TOTEMS[def.key].slot
   b:SetScript("OnUpdate", function(self, elapsed)
     acc = acc + elapsed
-    if acc < 0.1 then return end
+    if acc < 0.2 then return end   -- 5x pro Sekunde reicht (Countdown in ganzen Sekunden)
     acc = 0
     local now = GetTime()
     local have, name = TotemData(slot)
@@ -1608,6 +1622,13 @@ local function CreateEmergencyButton(def)
       self.tempShown = nil
       if ns.ApplyVisibilityDriver then ns.ApplyVisibilityDriver() end
     end
+  end)
+  -- für /tw cpu mitmessen (nur die Durchläufe, die wirklich etwas tun)
+  local inner = b:GetScript("OnUpdate")
+  b:SetScript("OnUpdate", function(self, elapsed)
+    if acc + elapsed < 0.2 or not ns.Timed then inner(self, elapsed); return end
+    local ok, err = ns.Timed("Emergency buttons", inner, self, elapsed)
+    if not ok then error(err, 0) end
   end)
 
   -- Verschieben: blaue Fläche über dem Knopf (ziehen, Rechtsklick = fixieren)
@@ -2318,7 +2339,7 @@ local function SetRound(b, on)
   local r = EnsureRound(b)
   local hl = b:GetHighlightTexture()
   if on then
-    r.src = nil
+    r.src = nil; r.vr = nil   -- Streifen beim nächsten Durchlauf neu einfärben
     r:Show(); r.ring:Show(); b.icon:Hide()
     LayoutRound(r)
     if b.cd then pcall(b.cd.SetSwipeTexture, b.cd, MEDIA .. "round_disc") end
@@ -2423,7 +2444,10 @@ function ns.RoundEmergency(b)
   end
   b.border:SetAlpha(0)
   local vr, vg, vb = b.icon:GetVertexColor()
-  for _, t in ipairs(r.strips) do t:SetVertexColor(vr, vg, vb) end
+  if r.vr ~= vr or r.vg ~= vg or r.vb ~= vb then
+    r.vr, r.vg, r.vb = vr, vg, vb
+    for _, t in ipairs(r.strips) do t:SetVertexColor(vr, vg, vb) end
+  end
   r.ring:SetVertexColor(b.rr or 0.08, b.rg or 0.08, b.rb or 0.08, 1)
 end
 
@@ -2442,8 +2466,12 @@ function ns.RoundPost()
       local vr, vg, vb = icon:GetVertexColor()
       local a = icon:GetAlpha()
       local desat = icon.IsDesaturated and icon:IsDesaturated() or false
-      for _, t in ipairs(r.strips) do
-        t:SetVertexColor(vr, vg, vb); t:SetAlpha(a); t:SetDesaturated(desat)
+      -- nur bei Änderung auf alle Streifen übertragen (spart viele Aufrufe pro Sekunde)
+      if r.vr ~= vr or r.vg ~= vg or r.vb ~= vb or r.va ~= a or r.vd ~= desat then
+        r.vr, r.vg, r.vb, r.va, r.vd = vr, vg, vb, a, desat
+        for _, t in ipairs(r.strips) do
+          t:SetVertexColor(vr, vg, vb); t:SetAlpha(a); t:SetDesaturated(desat)
+        end
       end
       if b.pulse and b.pulse:IsPlaying() then b.pulse:Stop() end
       b.border:SetAlpha(0)
@@ -3242,8 +3270,9 @@ local function Refresh()
   SafeCall(L["Shield"], function() if shieldBtn:IsShown() then
     local assigned = shieldBtn:GetAttribute("spell1")
     shieldBtn.icon:SetTexture(assigned and SpellIcon(idByName[assigned] or assigned) or "Interface\\Icons\\INV_Misc_QuestionMark")
-    wipe(shieldNames)
-    for _, id in ipairs(ns.SHIELD_SPELLS) do local n = SpellName(id); if n then shieldNames[n] = true end end
+    if not next(shieldNames) then   -- Namen ändern sich nicht: nur einmal einlesen
+      for _, id in ipairs(ns.SHIELD_SPELLS) do local n = SpellName(id); if n then shieldNames[n] = true end end
+    end
     local name, count, expires = FindPlayerBuff(shieldNames)
     local estimated = false
     if name == "SECRET" or IsSecret(count) or IsSecret(expires) then
@@ -3319,10 +3348,6 @@ local function Refresh()
     UpdateCooldown(shieldBtn, assigned)
   end end)
 
-  -- Call of the Elements / Totemic Call / Totemic Recall: Abklingzeit anzeigen
-  for _, b in ipairs({ callBtn, moveBtn, recallBtn }) do
-    if b:IsShown() then SafeCall("Totem spells", UpdateCooldown, b, b:GetAttribute("spell1")) end
-  end
   -- Zu weit weg: Totemic Call oder neu stellen? (Mana-Vergleich, siehe EvaluateTotemicCall)
   -- Keine Textzeile: der schlechtere Knopf wird ausgegraut, der bessere leuchtet.
   local adv = state.moveAdvice
@@ -3344,10 +3369,13 @@ local function Refresh()
         local left = start + dur - now
         if left > 0 then txt = FormatTime(left) end
       end
-      b.cdText = b.cdText or b.over:CreateFontString(nil, "OVERLAY")
-      b.cdText:SetFont(STANDARD_TEXT_FONT, math.max(9, math.floor((b:GetWidth() or 30) * 0.38)), "OUTLINE")
-      b.cdText:ClearAllPoints(); b.cdText:SetPoint("CENTER", b, "CENTER", 0, 0)
-      b.cdText:SetText(txt)
+      if not b.cdText then
+        b.cdText = b.over:CreateFontString(nil, "OVERLAY")
+        b.cdText:SetPoint("CENTER", b, "CENTER", 0, 0)
+      end
+      local fsz = math.max(9, math.floor((b:GetWidth() or 30) * 0.38))
+      if b.cdSize ~= fsz then b.cdSize = fsz; b.cdText:SetFont(STANDARD_TEXT_FONT, fsz, "OUTLINE") end   -- Schrift nur bei neuer Größe
+      if b.cdShown ~= txt then b.cdShown = txt; b.cdText:SetText(txt) end
       if b == callBtn then b.icon:SetDesaturated(txt ~= "") end   -- auf Abklingzeit: grau
     end
   end
@@ -3601,23 +3629,43 @@ check:SetScript("OnUpdate", function(self, elapsed)
   SafeCall(L["Pull check"], BuildCheck)   -- jede Sekunde neu, damit Behobenes sofort grün wird
 end)
 
+-- CPU-Messung für /tw cpu: Zeit je Teil in Millisekunden (debugprofilestop ist immer verfügbar)
+ns.prof = { since = GetTime() }
+local prof = ns.prof
+local profClock = debugprofilestop
+local function Timed(key, fn, ...)
+  if not profClock then return pcall(fn, ...) end
+  local t0 = profClock()
+  local ok, err = pcall(fn, ...)
+  local p = prof[key]
+  if not p then p = { ms = 0, n = 0, max = 0 }; prof[key] = p end
+  local d = profClock() - t0
+  p.ms, p.n = p.ms + d, p.n + 1
+  if d > p.max then p.max = d end
+  return ok, err
+end
+ns.Timed = Timed
+
 local elapsedAcc, slowAcc = 0, 0
 frame:SetScript("OnUpdate", function(_, elapsed)
   elapsedAcc = elapsedAcc + elapsed
   slowAcc = slowAcc + elapsed
   if slowAcc > 1 then
     slowAcc = 0
-    pcall(ScanEnemies)
-    ScanGroup()
-    pcall(ScanRange)   -- pcall: falls der Client Aura-Daten im Kampf sperrt
-    if not ns.combatLogAllowed then pcall(ScanOtherBuffs) end
+    Timed("Enemies", ScanEnemies)
+    Timed("Group", ScanGroup)
+    Timed("Range", ScanRange)   -- pcall: falls der Client Aura-Daten im Kampf sperrt
+    if not ns.combatLogAllowed then Timed("Other shamans", ScanOtherBuffs) end
     -- Leiste von Call of the Elements regelmäßig prüfen (du kannst sie auch selbst umstellen)
-    if not InCombatLockdown() and ns.SyncMultiCast then pcall(ns.SyncMultiCast) end
-    UpdateVisibility()
+    if not InCombatLockdown() and ns.SyncMultiCast then Timed("Totem bar sync", ns.SyncMultiCast) end
+    Timed("Visibility", UpdateVisibility)
   end
-  if elapsedAcc > 0.2 then
+  -- Anzeige: im Kampf 5x, sonst 2x pro Sekunde (Ereignisse wie Totem gestellt aktualisieren sofort)
+  if elapsedAcc > (state.inCombat and 0.2 or 0.5) then
     elapsedAcc = 0
-    SafeCall(L["Display"], Refresh)
+    if state.debuffDirty then state.debuffDirty = nil; Timed("Debuffs", ScanDebuffs) end
+    local ok, err = Timed("Display", Refresh)
+    if not ok then SafeCall(L["Display"], function() error(err, 0) end) end
   end
 end)
 
@@ -3746,6 +3794,11 @@ ev:RegisterEvent("PLAYER_TARGET_CHANGED")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 pcall(ev.RegisterEvent, ev, "PLAYER_ROLES_ASSIGNED")   -- Rollen geändert (nicht in jedem Client vorhanden)
+-- Namensplaketten als Liste pflegen; schlägt die Anmeldung fehl, werden weiter alle 40 abgefragt
+if pcall(ev.RegisterEvent, ev, "NAME_PLATE_UNIT_ADDED") and pcall(ev.RegisterEvent, ev, "NAME_PLATE_UNIT_REMOVED") then
+  ns.plateEvents = true
+  for i = 1, 40 do if UnitExists(PLATE_UNITS[i]) then plates[PLATE_UNITS[i]] = true end end
+end
 ev:RegisterEvent("PLAYER_TOTEM_UPDATE")
 if ev.RegisterUnitEvent then
   ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
@@ -3827,6 +3880,15 @@ ns.ResetPosition = function()
 end
 
 ev:SetScript("OnEvent", function(_, event, ...)
+  if event == "NAME_PLATE_UNIT_ADDED" then
+    local u = ...
+    if type(u) == "string" then plates[u] = true end
+    return
+  elseif event == "NAME_PLATE_UNIT_REMOVED" then
+    local u = ...
+    if type(u) == "string" then plates[u] = nil end
+    return
+  end
   if event == "ADDON_LOADED" then
     local name = ...
     if name == ADDON then
@@ -3944,7 +4006,9 @@ ev:SetScript("OnEvent", function(_, event, ...)
     ScanGroup()
   elseif event == "UNIT_AURA" then
     local unit = ...
-    if isGroupUnit[unit] and state.inCombat then pcall(ScanDebuffs) end
+    if isGroupUnit[unit] and state.inCombat then
+      if frame:IsVisible() then state.debuffDirty = true else pcall(ScanDebuffs) end   -- sichtbar: im nächsten Takt gesammelt
+    end
   elseif event == "PLAYER_TOTEM_UPDATE" then
     local slot = ...
     if slot and not IsSecret(slot) and slot >= 1 and slot <= 4 then
@@ -4254,6 +4318,33 @@ SlashCmdList.TOTEMWATCH = function(msg)
     TotemWatchDB.prePull = true
     ns.RunPrePullCheck(L["manual"], 20)
     TotemWatchDB.prePull = old
+  elseif cmd == "cpu" then
+    -- Rechenzeit je Teil (gemessen mit debugprofilestop) und Speicher
+    local prof = ns.prof
+    if arg == "reset" then
+      for k in pairs(prof) do if k ~= "since" then prof[k] = nil end end
+      prof.since = GetTime()
+      p(L["CPU measurement reset."])
+      return
+    end
+    local secs = math.max(1, GetTime() - (prof.since or GetTime()))
+    p(format(L["CPU use over the last %d s:"], floor(secs)))
+    local keys, total = {}, 0
+    for k, v in pairs(prof) do if k ~= "since" then keys[#keys + 1] = k; total = total + v.ms end end
+    table.sort(keys, function(a, b) return prof[a].ms > prof[b].ms end)
+    for _, k in ipairs(keys) do
+      local v = prof[k]
+      print(format(L["  %s: %.2f ms/s (avg %.3f ms, max %.2f ms, %d runs)"], k, v.ms / secs, v.ms / math.max(1, v.n), v.max, v.n))
+    end
+    print(format(L["  Total: %.2f ms per second (%.3f%% of the time)"], total / secs, total / secs / 10))
+    local upd = (C_AddOns and C_AddOns.UpdateAddOnMemoryUsage) or UpdateAddOnMemoryUsage
+    local mem = (C_AddOns and C_AddOns.GetAddOnMemoryUsage) or GetAddOnMemoryUsage
+    if upd and mem then
+      pcall(upd)
+      local ok, kb = pcall(mem, ADDON)
+      if ok and type(kb) == "number" then print(format(L["  Memory: %.0f KB"], kb)) end
+    end
+    print(L["  Reset: /tw cpu reset"])
   elseif cmd == "probe" then
     -- Welche Daten liefert der Client gerade (im Kampf testen!)?
     local function pack(...) return { n = select("#", ...), ... } end
@@ -4370,6 +4461,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
     print(L["  /tw reset – reset position"])
     print(L["  /tw check – show the pull check now (otherwise automatic on pull timer / ready check)"])
     print(L["  /tw probe – test in combat which data the game allows"])
+    print(L["  /tw cpu – how much CPU time TotemWatch uses"])
     print(L["  /tw bar – Call of the Elements bar diagnostics"])
     print(L["  /tw skin <classic|minimal|pillars|bars> – change the design"])
     print(L["  /tw msg – move the messages in the middle of the screen"])
