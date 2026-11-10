@@ -13,6 +13,8 @@ local ICON = {   -- Beispiel-Symbole (Zauber-IDs)
   fire = 3599, earth = 8075, water = 5675, air = 8512,
   tremor = 8143, poison = 8166, call = 66842, ancestors = 66843, weapon = 8017, shield = 324,
 }
+-- Schriftfarbe der Bilder: dasselbe Gold wie das Leuchten
+local GOLD = { 1, 0.85, 0.2 }
 local STATUS = {
   missing = { 1, 0.1, 0.1 }, expiring = { 1, 0.85, 0 }, wrong = { 1, 0.5, 0 },
   ok = { 0.1, 0.9, 0.1 }, calm = { 0.08, 0.08, 0.08 }, far = { 1, 0.55, 0.1 },
@@ -174,15 +176,15 @@ SCENES.click = function(parent, w)
   ic[#ic + 1] = Icon(f, 98, -60, 32, ICON.water, "ok", false, "2m")
   Mouse(f, 22, -10, "left")
   Arrow(f, 26, -36, "up", 22)
-  Text(f, L["Left-click: cast"], 52, -16, { 0.62, 0.88, 0.8 })
-  Text(f, L["Glowing = cast now"], 14, -110, { 1, 0.82, 0 }, 10)
+  Text(f, L["Left-click: cast"], 52, -16, GOLD)
+  Text(f, L["Glowing = cast now"], 14, -110, GOLD, 10)
   -- rechts: Auswahl über dem Knopf (drei kleine Symbole übereinander)
   local x0 = 236
   ic[#ic + 1] = Icon(f, x0, -60, 32, ICON.earth, "ok", false)
   ic[#ic + 1] = Icon(f, x0 + 4, -34, 24, ICON.tremor)
   ic[#ic + 1] = Icon(f, x0 + 4, -8, 24, 8071)
   Mouse(f, x0 + 40, -62, "right")
-  local lab = Text(f, L["Right-click: choose another totem"], x0 + 70, -60, { 0.52, 0.72, 0.92 }, 10)
+  local lab = Text(f, L["Right-click: choose another totem"], x0 + 70, -60, GOLD, 10)
   lab:SetWidth(w - (x0 + 70) - 8)
   lab:SetWordWrap(true)
   return f
@@ -223,7 +225,7 @@ SCENES.grip = function(parent, w)
   Mouse(f, gx - 30, -58, "left")
   Arrow(f, gx - 32, -88, "left", 22)
   Arrow(f, gx - 8, -88, "right", 22)
-  Text(f, L["Drag: move the bar"], 10, -14, { 0.62, 0.88, 0.8 })
+  Text(f, L["Drag: move the bar"], 10, -14, GOLD)
   -- Vorlagen-Liste
   local lx = 210
   Mouse(f, lx - 34, -56, "right")
@@ -237,9 +239,9 @@ SCENES.grip = function(parent, w)
       t:SetTexture(Tex(sp)); t:SetTexCoord(0.08, 0.92, 0.08, 0.92)
       t:SetSize(14, 14); t:SetPoint("TOPLEFT", f, "TOPLEFT", lx + 4 + (s - 1) * 16, -40 - (r - 1) * 21)
     end
-    Text(f, names[r], lx + 72, -41 - (r - 1) * 21, r == 2 and { 0.52, 0.72, 0.92 } or nil, 10)
+    Text(f, names[r], lx + 72, -41 - (r - 1) * 21, r == 2 and GOLD or nil, 10)
   end
-  Text(f, L["Right-click: your templates"], lx, -14, { 0.52, 0.72, 0.92 })
+  Text(f, L["Right-click: your templates"], lx, -14, GOLD)
   return f
 end
 
@@ -254,7 +256,7 @@ SCENES.calls = function(parent, w)
     local y = -12 - (i - 1) * 26
     f.icons[#f.icons + 1] = Icon(f, 104, y, 22, r[1])
     Text(f, r[2], 132, y - 4, { 1, 1, 1 }, 11)
-    Text(f, r[3], 290, y - 4, { 0.52, 0.72, 0.92 }, 11)
+    Text(f, r[3], 290, y - 4, GOLD, 11)
   end
   Text(f, L["Left-click casts the chosen call – its totems come from the template."], 104, -76, { 0.8, 0.8, 0.8 }, 10)
   return f
