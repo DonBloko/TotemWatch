@@ -1827,7 +1827,9 @@ function ns.ApplySkin()
   local size, gap, inset = S.btn, S.gap, S.inset
   local pad = 6
   local clean = TotemWatchDB.cleanLook          -- Clean Look (ruhigere Darstellung)
-  local gf = clean and 1.7 or 1.85               -- Leuchten: etwas enger und schwächer im Clean Look
+  -- Leuchten: eckig immer in normaler Größe (enger liegt der Ring auf dem Symbolrand und fällt nicht auf);
+  -- der runde Leucht-Kreis ist auf 1,7 ausgelegt
+  local gf = (clean and TotemWatchDB.roundIcons) and 1.7 or 1.85
 
   -- Leiste
   if frame.SetBackdrop then
