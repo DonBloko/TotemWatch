@@ -441,7 +441,17 @@ local function ScanGroup()
       if u ~= "player" then
         local _, cls = UnitClass(u)
         local power = UnitPowerType(u)
-        if cls == "WARRIOR" or cls == "ROGUE" or cls == "PALADIN" then
+        -- Gruppenrolle (Gruppensuche / Rollenabfrage), wenn gesetzt: Heiler zählen als Zauberer
+        local role
+        if UnitGroupRolesAssigned then
+          local ok, r = pcall(UnitGroupRolesAssigned, u)
+          if ok and (r == "HEALER" or r == "TANK" or r == "DAMAGER") then role = r end
+        end
+        if role == "HEALER" then
+          caster = caster + 1
+        elseif cls == "DRUID" and role == "TANK" then
+          melee = melee + 1
+        elseif cls == "WARRIOR" or cls == "ROGUE" or cls == "PALADIN" then
           melee = melee + 1
           if cls == "ROGUE" then rogues = rogues + 1 end
         elseif cls == "DRUID" and (power == 1 or power == 3) then
@@ -3706,6 +3716,7 @@ ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 ev:RegisterEvent("PLAYER_TARGET_CHANGED")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:RegisterEvent("GROUP_ROSTER_UPDATE")
+pcall(ev.RegisterEvent, ev, "PLAYER_ROLES_ASSIGNED")   -- Rollen geändert (nicht in jedem Client vorhanden)
 ev:RegisterEvent("PLAYER_TOTEM_UPDATE")
 if ev.RegisterUnitEvent then
   ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
@@ -3900,7 +3911,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
       end
     end
     UpdateVisibility()
-  elseif event == "GROUP_ROSTER_UPDATE" then
+  elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ROLES_ASSIGNED" then
     ScanGroup()
   elseif event == "UNIT_AURA" then
     local unit = ...
