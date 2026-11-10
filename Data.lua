@@ -325,3 +325,22 @@ ns.EMERGENCY_KEYWORDS = {
     "frostblitz", "schattenblitz", "feuerball", "kettenblitz", "blitzschlag", "manabrand",
   },
 }
+
+-- Gefährliche Monster (keine Bosse): exakter Name oder Stichwort im Namen (klein geschrieben).
+-- Wird im Kampf über Namensplaketten und Ziel erkannt und als Empfehlung mit niedriger Priorität
+-- (nach Boss-Regeln, vor dem Standard) genutzt. VORLÄUFIG.
+ns.MOB_NAMES = {
+  ["druid of the fang"] = { "TREMOR", "Sleep" },
+}
+ns.MOB_KEYWORDS = {
+  -- Gift
+  { "POISON_CLEANSE", "Poison", { "spider", "widow", "recluse", "tarantula", "scorpid", "scorpion", "venom",
+                                  "adder", "viper", "cobra", "spinne", "witwe", "skorpid", "skorpion", "natter", "viper", "kobra" } },
+  -- Krankheit
+  { "DISEASE_CLEANSE", "Disease", { "ghoul", "plague", "rotting", "diseased", "zombie", "festering", "ghast",
+                                    "ghul", "seuchen", "verrott", "verfaul" } },
+  -- Furcht
+  { "TREMOR", "Fear", { "warlock", "banshee", "hexenmeister", "todesfee" } },
+  -- Feuer
+  { "FIRE_RES", "Fire damage", { "fire elemental", "flamewaker", "firelord", "lava surger", "feuerelementar", "flammenschuppe" } },
+}

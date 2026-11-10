@@ -390,6 +390,7 @@ local NEWS = {
     L["Smarter recommendations: the weapon enchant is chosen by your role and weapon, every reason says why (e.g. how many melee are in your group), and the hint line shows the most urgent step first."],
     L["Bosses of the new Forever dungeons are now also recognized by name (first rules for Ruins of Lordaeron)."],
     L["Rules for many classic dungeon bosses: Tremor against sleep and fear, cleansing totems against poison and disease, resistances against fire and frost."],
+    L["Known dangerous monsters too: spiders and scorpids (poison), ghouls and plague mobs (disease), warlocks and banshees (fear) and more – the matching totem is recommended."],
   } },
   { version = "1.3.0", items = {
     L["Four new designs, the Clean look and round icons."],

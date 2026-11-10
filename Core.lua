@@ -495,14 +495,46 @@ local function ScanDebuffs()
   state.poison, state.disease = poison, disease
 end
 
+-- Monster-Gefahren aus Namen: liefert Totem-Schlüssel und Grund (z. B. "TREMOR", "Druid of the Fang: Schlaf")
+local mobCache = {}
+local function MobDanger(name)
+  if not name or IsSecret(name) then return nil end
+  local n = lower(name)
+  local hit = mobCache[n]
+  if hit ~= nil then return hit or nil end
+  local r = ns.MOB_NAMES and ns.MOB_NAMES[n]
+  if r then hit = { r[1], r[2] } end
+  if not hit and ns.MOB_KEYWORDS then
+    for _, rule in ipairs(ns.MOB_KEYWORDS) do
+      for _, w in ipairs(rule[3]) do
+        if find(n, w, 1, true) then hit = { rule[1], rule[2] }; break end
+      end
+      if hit then break end
+    end
+  end
+  mobCache[n] = hit or false
+  return hit
+end
+
 local function ScanEnemies()
   local n = 0
+  state.mobDanger = state.mobDanger or {}
+  wipe(state.mobDanger)
+  local function check(u)
+    local ok, nm = pcall(UnitName, u)
+    if ok and type(nm) == "string" then
+      local d = MobDanger(nm)
+      if d and not state.mobDanger[d[1]] then state.mobDanger[d[1]] = nm .. ": " .. L[d[2]] end
+    end
+  end
   for i = 1, 40 do
     local u = "nameplate" .. i
     if UnitExists(u) and UnitCanAttack("player", u) and UnitAffectingCombat(u) and not UnitIsDead(u) then
       n = n + 1
+      check(u)
     end
   end
+  if UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target") then check("target") end
   state.enemies = n
 end
 
@@ -793,6 +825,14 @@ local function Recommend(slot)
   if boss and boss[ns.SLOT_KEYS[slot]] then
     for _, e in ipairs(boss[ns.SLOT_KEYS[slot]]) do
       add(e[1], (state.bossName or boss.name or "Boss") .. ": " .. e[2])
+    end
+  end
+
+  -- 2b) Gefährliche Monster in der Nähe (Namensplaketten, Ziel)
+  if state.mobDanger then
+    for key, why in pairs(state.mobDanger) do
+      local t = ns.TOTEMS[key]
+      if t and t.slot == slot then add(key, why) end
     end
   end
 
@@ -1425,6 +1465,8 @@ local function DangerFor(key, now)
   if (key == "POISON_CLEANSE" and state.poison >= 2) or (key == "DISEASE_CLEANSE" and state.disease >= 2) then
     return 2, L["NOW!"]
   end
+  -- gefährliches Monster in der Nähe (z. B. Spinnen = Gift): halb hell
+  if state.mobDanger and state.mobDanger[key] and (state.inCombat or state.test) then return 1, "" end
   -- Boss ist für diese Gefahr bekannt (Boss-Regel empfiehlt das Totem): halb hell
   local boss = TotemWatchDB.useBoss and state.boss
   if boss then
@@ -3815,6 +3857,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
     state.inCombat = false
     state.aurasBlocked = false   -- nach dem Kampf dürfen Auren wieder gelesen werden
     state.fearUntil, state.poison, state.disease = 0, 0, 0
+    if state.mobDanger then wipe(state.mobDanger) end
     if not IsEncounterInProgress or not IsEncounterInProgress() then ClearBoss() end
     wipe(state.lastRec)   -- Empfehlungen neu auf die Knöpfe legen
     wipe(state.slotMsg)   -- im nächsten Kampf wieder melden
