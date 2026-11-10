@@ -923,6 +923,46 @@ frame:SetScript("OnDragStop", function(self)
   TotemWatchDB.point, TotemWatchDB.x, TotemWatchDB.y = p, x, y
 end)
 
+-- Griff zum Verschieben: links neben der Leiste, gut sichtbar (vor allem im Clean Look ohne Titel).
+-- Nur sichtbar, wenn die Leiste nicht gesperrt ist.
+local grip = CreateFrame("Frame", nil, frame)
+grip:SetWidth(12)
+grip:SetPoint("TOPRIGHT", frame, "TOPLEFT", -2, 0)
+grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", -2, 0)
+grip:EnableMouse(true)
+grip:RegisterForDrag("LeftButton")
+grip.bg = grip:CreateTexture(nil, "BACKGROUND")
+grip.bg:SetAllPoints(); grip.bg:SetColorTexture(0, 0, 0, 0.45)
+grip.dots = {}
+for r = 1, 3 do
+  for c = 1, 2 do
+    local d = grip:CreateTexture(nil, "ARTWORK")
+    d:SetSize(2, 2)
+    d:SetColorTexture(0.85, 0.85, 0.85, 1)
+    d:SetPoint("CENTER", grip, "CENTER", (c - 1.5) * 4, (2 - r) * 4)
+    grip.dots[#grip.dots + 1] = d
+  end
+end
+grip:SetAlpha(0.55)
+grip:SetScript("OnEnter", function(self)
+  self:SetAlpha(1)
+  GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+  GameTooltip:AddLine(L["Drag to move TotemWatch"], 1, 1, 1)
+  GameTooltip:AddLine(L["Lock it under /tw > Bar > Lock window – the grip then disappears."], 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end)
+grip:SetScript("OnLeave", function(self) self:SetAlpha(0.55); GameTooltip:Hide() end)
+grip:SetScript("OnDragStart", function()
+  if not TotemWatchDB.locked and not InCombatLockdown() then frame:StartMoving() end
+end)
+grip:SetScript("OnDragStop", function()
+  if InCombatLockdown() then return end
+  frame:StopMovingOrSizing()
+  local p, _, _, x, y = frame:GetPoint()
+  TotemWatchDB.point, TotemWatchDB.x, TotemWatchDB.y = p, x, y
+end)
+ns.grip = grip
+
 local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 title:SetPoint("TOPLEFT", 8, -6)
 title:SetText(L["|cff0070deTotemWatch|r  |cff888888(drag here)|r"])
@@ -3027,6 +3067,7 @@ local function Refresh()
 
   if state.fearAt and now - state.fearAt > 5 then state.fearAt = nil end
   if ns.FixLayers then ns.FixLayers() end      -- obere Ebene (Leuchten, Zahlen) immer über dem Knopf
+  if ns.grip then ns.grip:SetShown(not TotemWatchDB.locked) end   -- Griff nur, wenn nicht gesperrt
   if ns.CleanPost then ns.CleanPost() end   -- Clean Look: ruhigere Darstellung nachziehen
   if ns.RoundPost then ns.RoundPost() end     -- runde Symbole: Streifen angleichen, Ring einfärben
 end

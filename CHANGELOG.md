@@ -7,6 +7,8 @@
 - **Call button with selection**: right-click the Call button to choose which call it casts (Elements, Ancestors or Spirits); the choice is saved. The tooltip shows the totems of the chosen call.
 - TotemWatch now recognizes all three calls when you cast them, so the totem timers are right in combat, too.
 - `/tw bar` shows all three pages of the totem bar.
+- **Visible grip to move the bar**: a small dotted handle on the left of the bar (hidden when the bar is locked).
+- Fix: the bar now really stays visible for a few seconds after combat.
 
 ## 1.3.0
 

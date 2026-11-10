@@ -229,7 +229,7 @@ local function BuildSteps()
     },
     { -- 3 Platzieren
       title = L["Place the bar"],
-      text = L["Drag the bar by its top edge to where you want it.\nYou can also move the big warning messages: click the button, drag the blue area, then right-click it."],
+      text = L["Drag the bar by the dotted grip on its left to where you want it.\nYou can also move the big warning messages: click the button, drag the blue area, then right-click it."],
       build = function(f)
         local move = MakeButton(f, L["Move messages"], 160, function(self)
           local on = ns.ToggleMessageMove()
