@@ -2,32 +2,32 @@
 
 ## 1.3.0
 
-- **Clean look** (options menu → Look, or `/tw clean`, on by default): no box around the bar (transparent background), thin dark frames, status color only as a fine line where you have to act, calmer icons, softer glow, plain font with shadow, no mini icons (they are in the tooltip), empty slots as dark fields. Works with every design.
-- **Round icons** (default for new installs) (options menu → Look, or `/tw round`): icons built from thin circular strips with a ring that shows the status color and a soft round glow – also for Call, Totemic Call, Recall, the ALL button (round blue disc) and the emergency buttons; in Pillars the element color becomes a small dot above the circle – no mask textures, so no crash risk.
-- Emergency buttons are smaller by default (44 instead of 64; adjustable in the options).
+### New
+- **Four new designs** (options → Look, or `/tw skin <name>`):
+  - **Compact** – only the totems are big; weapon and shield small; ALL, Call of the Elements, Totemic Call and Totemic Recall behind a "..." button (opens in combat, too).
+  - **Focus** – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.
+  - **Two rows** – totems on top, all extra buttons as a small row below.
+  - **Column** – a narrow column, e.g. next to your character, with the remaining time beside each totem.
+- **Clean look** (on by default, `/tw clean`): no box around the bar, thin dark frames, status color only where you have to act, calmer icons, plain font. Works with every design; switch back to the Blizzard style any time.
+- **Round icons** (default for new installs, `/tw round`): totems, weapon, shield, the Call buttons, ALL and the emergency buttons as circles with a ring in the status color and a soft round glow. Built without mask textures, so no crash risk.
+- **Short hints**: one line with the next step below the bar, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Full list or off in the options.
 - **The bar stays visible for a few seconds after combat** (default 8 s, options → Bar), e.g. for Totemic Recall.
-- Bars design: no extra hint line below (the bars already say what is missing).
-- Compact design: more room for the remaining time under weapon and shield; the "..." button is round with round icons and opens to the right (no longer over the emergency buttons).
-- The "ALL" text scales with the button size (no longer sticks out of the small buttons in Two rows, Column and Compact).
-- **Elements without a learned totem are hidden** (e.g. Air before level 30); the other buttons move together. They appear automatically when you learn the first totem.
-- **Short hints** (on by default, options → Recommendations): one line with the next step, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Turn it off for the full list.
-- Pillars: no empty gray time bar under a slot without a totem; with round icons the time bar is thinner.
-- Clean look: counts (shield charges, players out of range) are a small badge at the bottom right and no longer overlap "far" or the remaining time.
-- Clean look with square icons: the status line and glow are clearly visible now (they were too faint on bright ground); in Blizzard style the ready Call/Recall buttons get a neutral ring with round icons. New `/tw look` prints the display state for bug reports. Fixed the glow sometimes being drawn behind the totem buttons.
-- **Clearer options menu** (`/tw`): five tabs – Look, Bar, Warnings, Emergency, Help – instead of one long page; related settings grouped in two columns. The Look tab uses drop-downs for design, style (Clean/Blizzard), icon shape (square/round) and hints (one line/full list/off). The menu remembers the last tab.
-- Guided tour: the design step now also asks whether icons should be square or round.
-- While the options menu is open, the bar is shown (test mode) on top of the window, so every change is visible right away; closing the menu restores it.
-- **Four new designs** (options menu → Look, or `/tw skin <name>`):
-  - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
-  - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.
-  - **Two rows** (`stacked`) – totems on top, all extra buttons as a small row below; hints only in the tooltip.
-  - **Column** (`column`) – a narrow column (e.g. next to your character) with the remaining time beside each totem.
+- **Elements without a learned totem are hidden** (e.g. Air before level 30); the other buttons move together and the missing one appears when you learn it.
 
-## 1.2.2
+### Improved
+- **Clearer options menu** (`/tw`): five tabs – Look, Bar, Warnings, Emergency, Help. The Look tab uses drop-downs for design, style, icon shape and hints. While the menu is open, the bar is shown on top of it so you see every change right away.
+- Guided tour: choose square or round icons in the design step.
+- Emergency buttons are smaller by default (44 instead of 64, adjustable).
+- **Range in dungeons**: the game hides your position in instances, so no yards can be shown there – if you yourself are out of range, the button now says *far*, the hint says "you are out of range of …" and the center message appears.
+- Pillars: the element color is a small dot above round icons; no empty time bar under an empty slot.
+- Bars: no extra hint line (the bars already say what is missing).
+- Counts (shield charges, players out of range) and the "ALL" text fit small buttons and no longer overlap other text.
+- New `/tw look` shows the display state – handy for bug reports.
 
-- **Fix:** the totem range/distance was sometimes missing when the game reported a new totem before the cast event (no or an old position was stored). The position is now taken when the totem appears.
-- **Range in dungeons:** the game hides your position in instances, so no yards can be shown there. If you yourself are missing a totem buff, the button now says *far* with an orange frame, the hint says "you are out of range of …", and the center message appears (instead of only a red "1").
-- The yards display on the button no longer disappears when a locked value causes a problem earlier in the update.
+### Fixed
+- The distance to a totem was sometimes missing when the game reported the totem before the cast.
+- The yards display on a button could disappear when a locked value caused a problem.
+- Clean look with square icons: the status line and glow were too faint on bright ground.
 
 ## 1.2.1
 
