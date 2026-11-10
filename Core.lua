@@ -1328,12 +1328,14 @@ callBtn:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine(self:GetAttribute("spell1") or "Call of the Elements", 1, 1, 1)
   GameTooltip:AddLine(L["Drops all 4 totems at once."], 0.8, 0.8, 0.8, true)
-  GameTooltip:AddLine(L["Totems on its bar:"], 1, 0.82, 0)
   -- welcher Ruf liegt auf dem Knopf? -> dessen Seite und Vorlage zeigen
   local cur, call = self:GetAttribute("spell1"), ns.CALLS[1]
   for _, c in ipairs(ns.CALLS) do
     if ns.callNames and ns.callNames[c.key] == cur then call = c end
   end
+  local tname = ns.CallTemplateName and ns.CallTemplateName(call.key)
+  GameTooltip:AddLine(L["Template: "] .. (tname or L["no template"]), 0.6, 0.85, 1)
+  GameTooltip:AddLine(L["Totems on its bar:"], 1, 0.82, 0)
   local pageKeys = (ns.pageKeys and ns.pageKeys[call.page]) or (call.page == 1 and ns.multicastKeys) or {}
   for s = 1, 4 do
     local key = pageKeys[s]
@@ -2511,10 +2513,27 @@ local function SyncPage(page, wantFor)
   return keys, mismatch, actionFor
 end
 
--- Vorlage eines Rufs: [Element] = Totem-Schlüssel (nur gelernte Totems werden gesetzt)
+-- Benannte Vorlagen: TotemWatchDB.templates = { { id = 1, name = "AoE", t = { [Element] = Totem } }, ... }
+-- Jeder Ruf nutzt eine Vorlage: TotemWatchDB.callTemplate[Ruf] = Vorlagen-ID
+function ns.TemplateById(id)
+  for _, tp in ipairs(TotemWatchDB.templates or {}) do
+    if tp.id == id then return tp end
+  end
+end
+function ns.CallTemplate(callKey)
+  local id = TotemWatchDB.callTemplate and TotemWatchDB.callTemplate[callKey]
+  return id and ns.TemplateById(id)
+end
+-- Name, der zu einem Ruf angezeigt wird (Vorlage oder "folgt den Knöpfen")
+function ns.CallTemplateName(callKey)
+  if callKey == "elements" and TotemWatchDB.syncCall then return L["your buttons"] end
+  local tp = ns.CallTemplate(callKey)
+  return tp and tp.name or nil
+end
+-- Gewünschtes Totem eines Rufs für ein Element (nur gelernte Totems werden gesetzt)
 local function PresetWant(callKey, slot)
-  local p = TotemWatchDB.presets and TotemWatchDB.presets[callKey]
-  local k = p and p[slot]
+  local tp = ns.CallTemplate(callKey)
+  local k = tp and tp.t and tp.t[slot]
   if k and ns.TOTEMS[k] and IsKnown(k) then return k end
   return nil
 end
@@ -2556,6 +2575,40 @@ function ns.SyncMultiCast()
   if failed > 0 and TotemWatchDB.syncCall and not ns.syncWarned then
     ns.syncWarned = true
     print("|cff0070deTotemWatch|r: " .. L["Could not update the Call of the Elements bar automatically. Please set the totems on the bar yourself – TotemWatch shows which ones differ. (/tw bar for details)"])
+  end
+end
+
+-- Ruf-Auswahl (Rechtsklick auf den Ruf-Knopf): neben jedem Ruf den Namen seiner Vorlage zeigen;
+-- beim Auswählen kurz "Ruf – Vorlage" in der Bildschirmmitte melden.
+function ns.UpdateCallLabels()
+  local fly = callBtn.flyout
+  if not fly or not fly.buttons then return end
+  for _, fb in ipairs(fly.buttons) do
+    if not fb.label then
+      fb.label = fb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      fb.label:SetPoint("LEFT", fb, "RIGHT", 6, 0)
+      fb.label:SetJustifyH("LEFT")
+      fb.labelBg = fb:CreateTexture(nil, "BACKGROUND")
+      fb.labelBg:SetPoint("TOPLEFT", fb.label, "TOPLEFT", -4, 3)
+      fb.labelBg:SetPoint("BOTTOMRIGHT", fb.label, "BOTTOMRIGHT", 4, -3)
+      fb.labelBg:SetColorTexture(0, 0, 0, 0.7)
+      fb:HookScript("OnClick", function(self, button)
+        if button ~= "LeftButton" or not self.callKey then return end
+        local nm = ns.CallTemplateName(self.callKey)
+        if ns.ShowMessage then
+          ns.ShowMessage((SpellName(self.spellId) or "") .. (nm and (" – " .. nm) or ""), 0.6, 0.85, 1)
+        end
+      end)
+    end
+    fb.callKey = nil
+    local nm = fb.spellId and SpellName(fb.spellId)
+    for _, c in ipairs(ns.CALLS) do
+      if ns.callNames and nm and ns.callNames[c.key] == nm then fb.callKey = c.key end
+    end
+    local tname = fb.callKey and ns.CallTemplateName(fb.callKey)
+    fb.label:SetText(tname or ("|cff888888" .. L["no template"] .. "|r"))
+    fb.label:SetShown(fb:IsShown())
+    fb.labelBg:SetShown(fb:IsShown())
   end
 end
 
@@ -2609,6 +2662,7 @@ local function SetupSecure()
     for _, c in ipairs(ns.CALLS) do if ns.callNames[c.key] then ns.callName = ns.callNames[c.key]; break end end
   end
   BuildFlyout(callBtn, callIds)   -- Rechtsklick: Ruf auswählen
+  if ns.UpdateCallLabels then ns.UpdateCallLabels() end   -- Vorlagen-Namen neben der Auswahl
   local callCur = KnownChoice(choice.call, callIds) or ns.callName
   ns.moveName = FindKnownSpell({}, ns.MOVE_NAMES)
   ns.recallName = FindKnownSpell({}, ns.RECALL_NAMES)
@@ -3457,9 +3511,25 @@ ev:SetScript("OnEvent", function(_, event, ...)
       for k, v in pairs(DEFAULTS) do if TotemWatchDB[k] == nil then TotemWatchDB[k] = v end end
       TotemWatchDB.choice = TotemWatchDB.choice or {}
       TotemWatchDB.manual = TotemWatchDB.manual or {}   -- [slot] = von dir festgelegtes Totem
-      -- Vorlagen der drei Rufe: [Ruf][Element] = Totem
-      TotemWatchDB.presets = TotemWatchDB.presets or {}
-      for _, c in ipairs(ns.CALLS) do TotemWatchDB.presets[c.key] = TotemWatchDB.presets[c.key] or {} end
+      -- Benannte Vorlagen für die Rufe (Elemente / Ahnen / Geister)
+      TotemWatchDB.templates = TotemWatchDB.templates or {}
+      TotemWatchDB.callTemplate = TotemWatchDB.callTemplate or {}
+      TotemWatchDB.nextTemplateId = TotemWatchDB.nextTemplateId or 1
+      -- Einmalig: Vorlagen aus der Testversion (je Ruf eine) in benannte Vorlagen umwandeln
+      if TotemWatchDB.presets then
+        for _, c in ipairs(ns.CALLS) do
+          local pr = TotemWatchDB.presets[c.key]
+          if pr and next(pr) then
+            local id = TotemWatchDB.nextTemplateId
+            TotemWatchDB.nextTemplateId = id + 1
+            local t = {}
+            for s = 1, 4 do t[s] = pr[s] end
+            table.insert(TotemWatchDB.templates, { id = id, name = L[c.names[1]], t = t })
+            TotemWatchDB.callTemplate[c.key] = TotemWatchDB.callTemplate[c.key] or id
+          end
+        end
+        TotemWatchDB.presets = nil
+      end
       -- Einmalig: alter Standard 0.35 auf den neuen, durchsichtigeren Standard setzen
       if TotemWatchDB.tremorDim == 0.35 and not TotemWatchDB.tremorDimSet then TotemWatchDB.tremorDim = 0.15 end
       TotemWatchDB.tremorDimSet = true

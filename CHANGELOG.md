@@ -3,8 +3,8 @@
 ## 1.4.0
 
 ### New
-- **Templates for all three calls** (options → Calls): pick the 4 totems for **Call of the Elements**, **Call of the Ancestors** and **Call of the Spirits** right in TotemWatch. TotemWatch puts them on the game's totem bar for you (out of combat) – no need to set up the bar yourself. "Take from buttons" saves your current TotemWatch buttons as a template, "Put on buttons" loads a template onto them.
-- **Call button with selection**: right-click the Call button to choose which call it casts (Elements, Ancestors or Spirits); the choice is saved. The tooltip shows the totems of the chosen call.
+- **Named templates for all three calls** (options → Calls): save as many templates as you like with a name (e.g. "Dungeon AoE", "Raid melee"), each with 4 totems, and choose which template **Call of the Elements**, **Call of the Ancestors** and **Call of the Spirits** use. TotemWatch puts the totems on the game's totem bar for you (out of combat) – no need to set up the bar yourself. "Take from buttons" saves your current TotemWatch buttons, "Put on buttons" loads a template onto them. Call of the Elements can also simply follow your TotemWatch buttons.
+- **Call button with selection**: right-click the Call button to choose which call it casts (Elements, Ancestors or Spirits) – the name of each call's template is shown next to it, and a short message names the chosen template. The tooltip shows the template and its totems.
 - TotemWatch now recognizes all three calls when you cast them, so the totem timers are right in combat, too.
 - `/tw bar` shows all three pages of the totem bar.
 - **Visible grip to move the bar**: a small dotted handle on the left of the bar (hidden when the bar is locked).

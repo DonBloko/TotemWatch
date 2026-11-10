@@ -126,6 +126,7 @@ end
 -- items = { { value = ..., text = "..." }, ... }
 local openList
 local function AddDropdown(parent, x, y, label, width, items, getter, setter, tooltip, needsOOC)
+  -- items: feste Liste { { value, text }, ... } oder eine Funktion, die die Liste beim Öffnen liefert
   local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
   title:SetPoint("TOPLEFT", x, y)
   title:SetText(label)
@@ -141,15 +142,16 @@ local function AddDropdown(parent, x, y, label, width, items, getter, setter, to
   end
   b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   b.text:SetPoint("LEFT", 8, 0); b.text:SetPoint("RIGHT", -22, 0); b.text:SetJustifyH("LEFT")
+  b.text:SetWordWrap(false)
   b.arrow = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   b.arrow:SetPoint("RIGHT", -8, 0); b.arrow:SetText("v")
   b:SetHighlightTexture("Interface\\Buttons\\WHITE8X8", "ADD")
   b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
+  b.title = title
 
   -- Liste
   local list = CreateFrame("Frame", nil, b, BackdropTemplateMixin and "BackdropTemplate" or nil)
   list:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2)
-  list:SetSize(width, #items * 22 + 6)
   list:SetFrameStrata("FULLSCREEN_DIALOG")
   list:SetFrameLevel(b:GetFrameLevel() + 20)
   if list.SetBackdrop then
@@ -161,36 +163,55 @@ local function AddDropdown(parent, x, y, label, width, items, getter, setter, to
   list:Hide()
   list:EnableMouse(true)
 
+  local function Items() return (type(items) == "function") and items() or items end
+
   local function Refresh()
     local cur = getter()
-    for _, it in ipairs(items) do
+    b.text:SetText("")
+    for _, it in ipairs(Items()) do
       if it.value == cur then b.text:SetText(it.text) end
     end
   end
   b.Refresh = Refresh
 
-  for i, it in ipairs(items) do
-    local row = CreateFrame("Button", nil, list)
-    row:SetSize(width - 6, 22)
-    row:SetPoint("TOPLEFT", 3, -3 - (i - 1) * 22)
-    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    row.text:SetPoint("LEFT", 6, 0)
-    row.text:SetText(it.text)
-    row:SetHighlightTexture("Interface\\Buttons\\WHITE8X8", "ADD")
-    row:GetHighlightTexture():SetVertexColor(0.2, 0.5, 1, 0.35)
-    row:SetScript("OnClick", function()
-      list:Hide(); openList = nil
-      local apply = function() setter(it.value) end
-      if needsOOC then OutOfCombat(apply) else apply() end
-      Refresh()
-    end)
+  local rows = {}
+  local function BuildRows()
+    local its = Items()
+    for i, it in ipairs(its) do
+      local row = rows[i]
+      if not row then
+        row = CreateFrame("Button", nil, list)
+        row:SetSize(width - 6, 22)
+        row:SetPoint("TOPLEFT", 3, -3 - (i - 1) * 22)
+        row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.text:SetPoint("LEFT", 6, 0); row.text:SetPoint("RIGHT", -4, 0)
+        row.text:SetJustifyH("LEFT"); row.text:SetWordWrap(false)
+        row:SetHighlightTexture("Interface\\Buttons\\WHITE8X8", "ADD")
+        row:GetHighlightTexture():SetVertexColor(0.2, 0.5, 1, 0.35)
+        row:SetScript("OnClick", function(self)
+          list:Hide(); openList = nil
+          local v = self.value
+          local apply = function() setter(v) end
+          if needsOOC then OutOfCombat(apply) else apply() end
+          Refresh()
+        end)
+        rows[i] = row
+      end
+      row.value = it.value
+      row.text:SetText(it.text)
+      row:Show()
+    end
+    for i = #its + 1, #rows do rows[i]:Hide() end
+    list:SetSize(width, math.max(1, #its) * 22 + 6)
   end
+  BuildRows()
 
   b:SetScript("OnClick", function()
     if list:IsShown() then
       list:Hide(); openList = nil
     else
       if openList then openList:Hide() end
+      BuildRows()
       list:Show(); openList = list
     end
   end)
@@ -423,75 +444,161 @@ function ns.CreateOptions()
   end)
 
   -----------------------------------------------------------------------
-  -- Rufe: Vorlagen für Ruf der Elemente / Ahnen / Geister
+  -- Rufe: benannte Vorlagen und welcher Ruf welche Vorlage nutzt
   -----------------------------------------------------------------------
   p = pages.calls
-  AddHeader(p, LX, -8, L["Call templates"])
-  AddNote(p, LX, -26, L["Choose which 4 totems each call drops. TotemWatch puts them on the game's totem bar for you (out of combat) – you don't have to set up the bar yourself."], 590)
+  local function SyncNow()
+    if ns.SyncMultiCast then ns.SyncMultiCast() end
+    if ns.UpdateCallLabels then ns.UpdateCallLabels() end
+  end
+  local function Templates() return TotemWatchDB.templates or {} end
+  local function NewTemplate(name, t)
+    local id = TotemWatchDB.nextTemplateId or 1
+    TotemWatchDB.nextTemplateId = id + 1
+    TotemWatchDB.templates = TotemWatchDB.templates or {}
+    table.insert(TotemWatchDB.templates, { id = id, name = name, t = t or {} })
+    return id
+  end
+  local function TotemKeyFromSpell(sp)
+    for k in pairs(ns.TOTEMS) do if ns.TotemName(k) == sp then return k end end
+  end
+  local editId   -- welche Vorlage gerade bearbeitet wird
+  local function CurrentTpl()
+    if editId and not ns.TemplateById(editId) then editId = nil end
+    if not editId and Templates()[1] then editId = Templates()[1].id end
+    return editId and ns.TemplateById(editId)
+  end
 
-  local function SyncNow() if ns.SyncMultiCast then ns.SyncMultiCast() end end
+  -- 1) Welcher Ruf nutzt welche Vorlage?
+  AddHeader(p, LX, -8, L["Which template does each call use?"])
   local callStatus = {}
   for ci, c in ipairs(ns.CALLS) do
     local x = LX + (ci - 1) * 200
-    local head = AddHeader(p, x, -64, L[c.names[1]])
-    callStatus[c.key] = AddNote(p, x, -80, "", 190)
-
-    if c.key == "elements" then
-      AddCheck(p, x - 4, -96, "syncCall", L["Follow my TotemWatch buttons"],
-        L["Call of the Elements always drops the totems on your TotemWatch buttons. Turn this off to use the template below instead."],
-        SyncNow, true)
-    end
-
-    for s = 1, 4 do
-      local items = { { value = false, text = L["– none –"] } }
-      local keys = {}
-      for key, t in pairs(ns.TOTEMS) do if t.slot == s then keys[#keys + 1] = key end end
-      table.sort(keys, function(a, b) return (ns.TotemName(a) or a) < (ns.TotemName(b) or b) end)
-      for _, key in ipairs(keys) do items[#items + 1] = { value = key, text = ns.TotemName(key) or key } end
-      AddDropdown(p, x, -126 - (s - 1) * 52, ns.SLOT_NAMES[s], 186, items,
-        function() return (TotemWatchDB.presets[c.key] or {})[s] or false end,
-        function(v)
-          TotemWatchDB.presets[c.key] = TotemWatchDB.presets[c.key] or {}
-          TotemWatchDB.presets[c.key][s] = v or nil
-          SyncNow()
-        end, nil, true)
-    end
-
-    -- Vorlage aus den aktuellen Knöpfen übernehmen / auf die Knöpfe legen
-    AddButton(p, x, -342, L["Take from buttons"], 186, function()
-      OutOfCombat(function()
-        TotemWatchDB.presets[c.key] = TotemWatchDB.presets[c.key] or {}
-        for s = 1, 4 do
-          local sp = ns.slots[s]:GetAttribute("spell1")
-          local key
-          for k in pairs(ns.TOTEMS) do if ns.TotemName(k) == sp then key = k end end
-          TotemWatchDB.presets[c.key][s] = key
-        end
+    AddDropdown(p, x, -28, L[c.names[1]], 186,
+      function()
+        local its = {}
+        if c.key == "elements" then its[#its + 1] = { value = "buttons", text = L["Follow my TotemWatch buttons"] } end
+        its[#its + 1] = { value = false, text = L["– no template –"] }
+        for _, tp in ipairs(Templates()) do its[#its + 1] = { value = tp.id, text = tp.name } end
+        return its
+      end,
+      function()
+        if c.key == "elements" and TotemWatchDB.syncCall then return "buttons" end
+        return TotemWatchDB.callTemplate[c.key] or false
+      end,
+      function(v)
+        if c.key == "elements" then TotemWatchDB.syncCall = (v == "buttons") end
+        if v ~= "buttons" then TotemWatchDB.callTemplate[c.key] = v or nil end
         SyncNow(); RefreshPanel()
-        Note(format(L["Template saved: %s"], L[c.names[1]]))
-      end)
-    end)
-    AddButton(p, x, -370, L["Put on buttons"], 186, function()
-      OutOfCombat(function()
-        local pr = TotemWatchDB.presets[c.key] or {}
-        for s = 1, 4 do
-          local key = pr[s]
-          if key and ns.IsKnown(key) then ns.slots[s]:SetAttribute("spell1", ns.TotemName(key)) end
-        end
-        if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end
-        Note(format(L["Template loaded onto the buttons: %s"], L[c.names[1]]))
-      end)
-    end)
+      end,
+      L["Choose a saved template for this call. TotemWatch puts its totems on the game's totem bar (out of combat)."], true)
+    callStatus[c.key] = AddNote(p, x, -74, "", 186)
   end
-  -- Zustand je Ruf (gelernt? Elemente folgt den Knöpfen?)
+
+  -- 2) Vorlagen bearbeiten
+  AddHeader(p, LX, -108, L["Edit templates"])
+  AddNote(p, LX, -126, L["Create templates with a name (e.g. \"Dungeon AoE\", \"Raid melee\") and choose above which call uses which template."], 590)
+
+  local editDrop = AddDropdown(p, LX, -150, L["Template"], 230,
+    function()
+      local its = {}
+      for _, tp in ipairs(Templates()) do its[#its + 1] = { value = tp.id, text = tp.name } end
+      if #its == 0 then its[1] = { value = false, text = L["– no templates yet –"] } end
+      return its
+    end,
+    function() local tp = CurrentTpl(); return tp and tp.id or false end,
+    function(v) editId = v or nil; RefreshPanel() end)
+
+  AddButton(p, LX + 240, -168, L["New"], 90, function()
+    editId = NewTemplate(format(L["Template %d"], #Templates() + 1))
+    RefreshPanel()
+  end)
+  AddButton(p, LX + 336, -168, L["Delete"], 90, function()
+    if not editId then return end
+    for i, tp in ipairs(Templates()) do
+      if tp.id == editId then table.remove(TotemWatchDB.templates, i); break end
+    end
+    for k, id in pairs(TotemWatchDB.callTemplate) do if id == editId then TotemWatchDB.callTemplate[k] = nil end end
+    editId = nil
+    OutOfCombat(SyncNow)
+    RefreshPanel()
+  end)
+
+  -- Name
+  local nameLabel = p:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  nameLabel:SetPoint("TOPLEFT", LX, -204)
+  nameLabel:SetText(L["Name"])
+  local nameBox = CreateFrame("EditBox", nil, p, "InputBoxTemplate")
+  nameBox:SetSize(224, 22)
+  nameBox:SetPoint("TOPLEFT", LX + 6, -222)
+  nameBox:SetAutoFocus(false)
+  nameBox:SetMaxLetters(32)
+  local function SaveName()
+    local tp = CurrentTpl()
+    local txt = nameBox:GetText()
+    if tp and txt and txt:match("%S") then
+      tp.name = txt
+      if ns.UpdateCallLabels then ns.UpdateCallLabels() end
+      RefreshPanel()
+    end
+  end
+  nameBox:SetScript("OnEnterPressed", function(self) SaveName(); self:ClearFocus() end)
+  nameBox:SetScript("OnEditFocusLost", SaveName)
+  nameBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
+  -- 4 Elemente der bearbeiteten Vorlage
+  for s = 1, 4 do
+    local items = { { value = false, text = L["– none –"] } }
+    local keys = {}
+    for key, t in pairs(ns.TOTEMS) do if t.slot == s then keys[#keys + 1] = key end end
+    table.sort(keys, function(a, b) return (ns.TotemName(a) or a) < (ns.TotemName(b) or b) end)
+    for _, key in ipairs(keys) do items[#items + 1] = { value = key, text = ns.TotemName(key) or key } end
+    local col, row = (s - 1) % 2, math.floor((s - 1) / 2)
+    AddDropdown(p, LX + col * 240, -256 - row * 52, ns.SLOT_NAMES[s], 230, items,
+      function()
+        local tp = CurrentTpl()
+        return (tp and tp.t[s]) or false
+      end,
+      function(v)
+        local tp = CurrentTpl()
+        if not tp then Note(L["Create or choose a template first."]) return end
+        tp.t[s] = v or nil
+        SyncNow()
+      end, nil, true)
+  end
+
+  AddButton(p, LX + 4, -372, L["Take from buttons"], 190, function()
+    OutOfCombat(function()
+      local t = {}
+      for s = 1, 4 do t[s] = TotemKeyFromSpell(ns.slots[s]:GetAttribute("spell1")) end
+      local tp = CurrentTpl()
+      if tp then tp.t = t else editId = NewTemplate(format(L["Template %d"], #Templates() + 1), t) end
+      SyncNow(); RefreshPanel()
+      Note(format(L["Template saved: %s"], ns.TemplateById(editId).name))
+    end)
+  end)
+  AddButton(p, LX + 200, -372, L["Put on buttons"], 190, function()
+    OutOfCombat(function()
+      local tp = CurrentTpl()
+      if not tp then return end
+      for s = 1, 4 do
+        local key = tp.t[s]
+        if key and ns.IsKnown(key) then ns.slots[s]:SetAttribute("spell1", ns.TotemName(key)) end
+      end
+      if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end
+      Note(format(L["Template loaded onto the buttons: %s"], tp.name))
+    end)
+  end)
+
+  -- Zustand: Ruf gelernt? Name im Eingabefeld passend zur gewählten Vorlage
   dropdowns[#dropdowns + 1] = { Refresh = function()
+    if editId and not ns.TemplateById(editId) then editId = nil end
+    if not editId and Templates()[1] then editId = Templates()[1].id end
+    local tp = CurrentTpl()
+    if not nameBox:HasFocus() then nameBox:SetText(tp and tp.name or "") end
     for _, c in ipairs(ns.CALLS) do
       local learned = ns.callNames and ns.callNames[c.key]
-      local txt
-      if not learned then txt = "|cff888888" .. L["not learned yet"] .. "|r"
-      elseif c.key == "elements" and TotemWatchDB.syncCall then txt = "|cff80c0ff" .. L["follows your buttons"] .. "|r"
-      else txt = "|cff60ff60" .. L["uses this template"] .. "|r" end
-      callStatus[c.key]:SetText(txt)
+      callStatus[c.key]:SetText(learned and "" or ("|cff888888" .. L["not learned yet"] .. "|r"))
     end
   end }
 
