@@ -181,7 +181,7 @@ local function BuildSteps()
     },
     { -- 2 Design
       title = L["Choose a design"],
-      text = L["Pick the look you like best. The bar changes immediately."],
+      text = L["Pick the look you like best and whether the icons should be square or round. The bar changes immediately."],
       build = function(f)
         f.skinButtons = {}
         for i, key in ipairs(ns.SKIN_ORDER) do
@@ -197,12 +197,34 @@ local function BuildSteps()
           b:SetPoint("TOPLEFT", ((i - 1) % 4) * 103, -math.floor((i - 1) / 4) * 26)
           f.skinButtons[key] = b
         end
+        -- Symbole: eckig oder rund
+        local function markShape()
+          if TotemWatchDB.roundIcons then
+            f.roundBtn:LockHighlight(); f.squareBtn:UnlockHighlight()
+          else
+            f.squareBtn:LockHighlight(); f.roundBtn:UnlockHighlight()
+          end
+        end
+        local function setShape(round)
+          OutOfCombat(function()
+            TotemWatchDB.roundIcons = round
+            ns.ApplySkin(); ns.SafeCall("Display", ns.Refresh)
+            markShape()
+          end)
+        end
+        f.squareBtn = MakeButton(f, L["Square icons"], 150, function() setShape(false) end)
+        f.squareBtn:SetPoint("TOPLEFT", 0, -60)
+        f.roundBtn = MakeButton(f, L["Round icons"], 150, function() setShape(true) end)
+        f.roundBtn:SetPoint("TOPLEFT", 155, -60)
+        f.markShape = markShape
       end,
+      controlsHeight = 3 * 26 + 12,   -- 2 Reihen Designs + Reihe eckig/rund
       onShow = function(f)
         EnsureTestMode()
         for k, btn in pairs(f.skinButtons) do
           if k == TotemWatchDB.skin then btn:LockHighlight() else btn:UnlockHighlight() end
         end
+        if f.markShape then f.markShape() end
       end,
     },
     { -- 3 Platzieren
