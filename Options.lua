@@ -424,7 +424,22 @@ function ns.CreateOptions()
     L["Commands: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw other <totem>"] .. "\n" ..
     L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"])
 
+  -- Solange das Menü offen ist: Leiste im Testmodus zeigen und über das Optionsfenster legen,
+  -- damit jede Änderung sofort sichtbar ist. Beim Schließen wieder wie vorher.
+  panel:SetScript("OnHide", function()
+    if InCombatLockdown() then return end
+    if panel.autoTest and ns.state.test then ns.ToggleTest() end
+    panel.autoTest = nil
+    if panel.oldStrata then ns.frame:SetFrameStrata(panel.oldStrata); panel.oldStrata = nil end
+  end)
   panel:SetScript("OnShow", function()
+    if not InCombatLockdown() then
+      if not ns.state.test then ns.ToggleTest(); panel.autoTest = true end
+      if not panel.oldStrata then
+        panel.oldStrata = ns.frame:GetFrameStrata()
+        ns.frame:SetFrameStrata("FULLSCREEN_DIALOG")
+      end
+    end
     RefreshPanel()
     local want = TotemWatchDB and TotemWatchDB.optTab
     local found = false

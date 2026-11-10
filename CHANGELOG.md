@@ -11,6 +11,7 @@
 - Clean look: counts (shield charges, players out of range) are a small badge at the bottom right and no longer overlap "far" or the remaining time.
 - **Clearer options menu** (`/tw`): five tabs – Look, Bar, Warnings, Emergency, Help – instead of one long page; related settings grouped in two columns. The menu remembers the last tab.
 - Guided tour: the design step now also asks whether icons should be square or round.
+- While the options menu is open, the bar is shown (test mode) on top of the window, so every change is visible right away; closing the menu restores it.
 - **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
   - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
   - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.
