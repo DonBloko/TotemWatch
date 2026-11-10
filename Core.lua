@@ -331,14 +331,21 @@ local function TrackCast(spellID)
     for _, t in pairs(tracked) do t.x, t.y, t.inst = px, py, pinst end
     return
   end
-  -- Call of the Elements: die abgeglichenen Totems der Totem-Leiste stehen jetzt
-  if ns.callName and spellName == ns.callName then
-    local now, px, py, pinst = GetTime(), PlayerPos()
-    for slot, key in pairs(ns.multicastKeys or {}) do
-      tracked[slot] = { key = key, start = now, duration = ns.TOTEM_DURATION[key] or 120, checked = false,
-                        x = px, y = py, inst = pinst }
+  -- Ruf der Elemente / Ahnen / Geister: die Totems der jeweiligen Seite der Totem-Leiste stehen jetzt
+  for _, c in ipairs(ns.CALLS) do
+    local nm = ns.callNames and ns.callNames[c.key]
+    if nm and spellName == nm then
+      local keys = (ns.pageKeys and ns.pageKeys[c.page]) or (c.page == 1 and ns.multicastKeys) or {}
+      local now, px, py, pinst = GetTime(), PlayerPos()
+      for slot, key in pairs(keys) do
+        if key then
+          local learned = TotemWatchDB and TotemWatchDB.durations and TotemWatchDB.durations[ns.TOTEMS[key].id]
+          tracked[slot] = { key = key, start = now, duration = learned or ns.TOTEM_DURATION[key] or 120, checked = false,
+                            x = px, y = py, inst = pinst }
+        end
+      end
+      return
     end
-    return
   end
   local key = KeyFromName(spellName)
   if not key then return end
@@ -1220,6 +1227,10 @@ shieldBtn.dbKey = "shield"
 
 -- Call of the Elements (alle 4 auf einmal), Totemic Call (Totems herholen), Totemic Recall (alle entfernen)
 local callBtn = CreateCastButton("TotemWatchCall", 9 + 7 * GAP + 6)
+callBtn.dbKey = "call"   -- gewählter Ruf (Elemente / Ahnen / Geister) wird gespeichert
+callBtn:HookScript("OnAttributeChanged", function(self, attr, value)
+  if attr == "spell1" and value then self.icon:SetTexture(SpellIcon(value) or "Interface\\Icons\\INV_Misc_QuestionMark") end
+end)
 local moveBtn = CreateCastButton("TotemWatchMove", 9 + 8 * GAP + 6)
 local recallBtn = CreateCastButton("TotemWatchRecall", 9 + 9 * GAP + 6)
 callBtn:Hide(); moveBtn:Hide(); recallBtn:Hide()
@@ -1278,15 +1289,31 @@ callBtn:SetScript("OnEnter", function(self)
   GameTooltip:AddLine(self:GetAttribute("spell1") or "Call of the Elements", 1, 1, 1)
   GameTooltip:AddLine(L["Drops all 4 totems at once."], 0.8, 0.8, 0.8, true)
   GameTooltip:AddLine(L["Totems on its bar:"], 1, 0.82, 0)
+  -- welcher Ruf liegt auf dem Knopf? -> dessen Seite und Vorlage zeigen
+  local cur, call = self:GetAttribute("spell1"), ns.CALLS[1]
+  for _, c in ipairs(ns.CALLS) do
+    if ns.callNames and ns.callNames[c.key] == cur then call = c end
+  end
+  local pageKeys = (ns.pageKeys and ns.pageKeys[call.page]) or (call.page == 1 and ns.multicastKeys) or {}
   for s = 1, 4 do
-    local key = ns.multicastKeys and ns.multicastKeys[s]
-    local assigned = slots[s]:GetAttribute("spell1")
-    local want = assigned and KeyFromName(assigned)
+    local key = pageKeys[s]
+    local want
+    if call.page == 1 and TotemWatchDB.syncCall then
+      local assigned = slots[s]:GetAttribute("spell1")
+      want = assigned and KeyFromName(assigned)
+    else
+      want = ns.PresetWant and ns.PresetWant(call.key, s) or key
+    end
     if key then
       local ok = (key == want)
       GameTooltip:AddLine("  " .. TotemName(key) .. (ok and "" or ("  |cffff6060(" .. L["TotemWatch: "] .. (want and TotemName(want) or "-") .. ")|r")),
         ok and 0.6 or 1, ok and 1 or 0.6, ok and 0.6 or 0.4)
     end
+  end
+  local known = 0
+  for _, c in ipairs(ns.CALLS) do if ns.callNames and ns.callNames[c.key] then known = known + 1 end end
+  if known > 1 then
+    GameTooltip:AddLine(L["Right-click: choose the call · templates: /tw > Calls"], 0.5, 0.5, 0.5, true)
   end
   GameTooltip:Show()
 end)
@@ -2353,22 +2380,26 @@ end
 ns.ActionTotemKey = ActionTotemKey
 
 -- Welche Aktions-Plätze nutzt die Totem-Leiste des Spiels wirklich?
--- Die Blizzard-Knöpfe der Leiste (MultiCastActionButton1-4) kennen ihren Platz selbst.
--- Nur wenn es diese Knöpfe nicht gibt, gilt die WotLK-Annahme 133-136.
-function ns.MultiCastActions()
+-- Seite 1 = Ruf der Elemente (MultiCastActionButton1-4), Seite 2 = Ruf der Ahnen (5-8),
+-- Seite 3 = Ruf der Geister (9-12). Die Blizzard-Knöpfe kennen ihren Platz selbst;
+-- nur wenn es sie nicht gibt, gilt die WotLK-Annahme 133-136 / 137-140 / 141-144.
+function ns.MultiCastActions(page)
+  page = page or 1
+  local first = (page - 1) * 4
   local list = {}
   for i = 1, 4 do
-    local btn = _G["MultiCastActionButton" .. i]
+    local btn = _G["MultiCastActionButton" .. (first + i)]
     local a = btn and btn.action
     if (not a) and btn and btn.GetAttribute then a = btn:GetAttribute("action") end
     if type(a) == "number" and not IsSecret(a) then list[i] = a end
   end
   if list[1] and list[2] and list[3] and list[4] then
-    ns.multicastSource = "MultiCastActionButton1-4"
+    if page == 1 then ns.multicastSource = "MultiCastActionButton1-4" end
     return list
   end
-  ns.multicastSource = format("default %d-%d", ns.MULTICAST_BASE + 1, ns.MULTICAST_BASE + 4)
-  return { ns.MULTICAST_BASE + 1, ns.MULTICAST_BASE + 2, ns.MULTICAST_BASE + 3, ns.MULTICAST_BASE + 4 }
+  local base = ns.MULTICAST_BASE + first
+  if page == 1 then ns.multicastSource = format("default %d-%d", base + 1, base + 4) end
+  return { base + 1, base + 2, base + 3, base + 4 }
 end
 
 -- Rechtsklick auf ein Totem im Auswahlmenü legt es auf die Leiste von Call of the Elements.
@@ -2402,12 +2433,11 @@ function ns.UpdateFlyoutMultispell()
   end
 end
 
-function ns.SyncMultiCast()
-  ns.multicastKeys = ns.multicastKeys or {}
-  ns.multicastMismatch = nil
-  if InCombatLockdown() or not callBtn:IsShown() then return end
-  local actions = ns.MultiCastActions()
-
+-- Eine Seite der Totem-Leiste abgleichen: wantFor(slot) liefert das gewünschte Totem
+-- (Schlüssel) oder nil (nicht ändern). Ergebnis: was jetzt pro Element auf der Seite liegt,
+-- Abweichungen und welcher Aktions-Platz zu welchem Element gehört.
+local function SyncPage(page, wantFor)
+  local actions = ns.MultiCastActions(page)
   -- Welche Aktion gehört zu welchem Element? Zuerst aus dem, was schon auf der Leiste liegt,
   -- für leere Plätze die Standard-Reihenfolge (Erde, Feuer, Wasser, Luft).
   local slotOf, used = {}, {}
@@ -2423,33 +2453,66 @@ function ns.SyncMultiCast()
       end
     end
   end
-
-  local failed, mismatch = 0, {}
+  local keys, actionFor, mismatch = {}, {}, {}
   for i = 1, 4 do
     local action, slot = actions[i], slotOf[i]
-    if slot then
-      ns.multicastActionForSlot = ns.multicastActionForSlot or {}
-      ns.multicastActionForSlot[slot] = action
-    end
-    local assigned = slot and slots[slot]:GetAttribute("spell1")
-    local want = assigned and KeyFromName(assigned)
+    if slot then actionFor[slot] = action end
+    local want = slot and wantFor(slot)
     -- 1) setzen (wenn gewünscht und möglich)
-    if want and TotemWatchDB.syncCall and SetMultiCastSpell and ActionTotemKey(action) ~= want then
-      local id = SpellIdFromName(assigned)
+    if want and SetMultiCastSpell and ActionTotemKey(action) ~= want then
+      local id = SpellIdFromName(TotemName(want)) or ns.TOTEMS[want].id
       if id then pcall(SetMultiCastSpell, action, id) end
     end
     -- 2) Kontrolle: was liegt jetzt wirklich auf der Leiste?
     local have = ActionTotemKey(action)
-    if slot then ns.multicastKeys[slot] = have end
-    if want and have ~= want then
-      failed = failed + 1
-      mismatch[#mismatch + 1] = { slot = slot, have = have, want = want }
+    if slot then keys[slot] = have end
+    if want and have ~= want then mismatch[#mismatch + 1] = { slot = slot, have = have, want = want } end
+  end
+  return keys, mismatch, actionFor
+end
+
+-- Vorlage eines Rufs: [Element] = Totem-Schlüssel (nur gelernte Totems werden gesetzt)
+local function PresetWant(callKey, slot)
+  local p = TotemWatchDB.presets and TotemWatchDB.presets[callKey]
+  local k = p and p[slot]
+  if k and ns.TOTEMS[k] and IsKnown(k) then return k end
+  return nil
+end
+ns.PresetWant = PresetWant
+
+function ns.SyncMultiCast()
+  ns.multicastKeys = ns.multicastKeys or {}
+  ns.pageKeys = ns.pageKeys or {}
+  ns.multicastMismatch = nil
+  if InCombatLockdown() then return end
+  local anyCall = false
+  for _, c in ipairs(ns.CALLS) do
+    local known = ns.callNames and ns.callNames[c.key]
+    if known then
+      anyCall = true
+      local wantFor
+      if c.page == 1 and TotemWatchDB.syncCall then
+        -- Ruf der Elemente folgt den TotemWatch-Knöpfen (wie bisher)
+        wantFor = function(slot)
+          local assigned = slots[slot]:GetAttribute("spell1")
+          return assigned and KeyFromName(assigned)
+        end
+      else
+        wantFor = function(slot) return PresetWant(c.key, slot) end
+      end
+      local keys, mismatch, actionFor = SyncPage(c.page, wantFor)
+      ns.pageKeys[c.page] = keys
+      if c.page == 1 then
+        ns.multicastKeys = keys
+        ns.multicastActionForSlot = actionFor
+        ns.multicastMismatch = (#mismatch > 0) and mismatch or nil
+      end
     end
   end
-  ns.multicastMismatch = (#mismatch > 0) and mismatch or nil
+  if not anyCall then return end
   ns.UpdateFlyoutMultispell()
+  local failed = ns.multicastMismatch and #ns.multicastMismatch or 0
   ns.syncResult = (failed == 0) and "ok" or (SetMultiCastSpell and "set, but not applied" or "SetMultiCastSpell missing")
-
   if failed > 0 and TotemWatchDB.syncCall and not ns.syncWarned then
     ns.syncWarned = true
     print("|cff0070deTotemWatch|r: " .. L["Could not update the Call of the Elements bar automatically. Please set the totems on the bar yourself – TotemWatch shows which ones differ. (/tw bar for details)"])
@@ -2493,6 +2556,20 @@ local function SetupSecure()
 
   -- Call of the Elements / Totemic Recall: nur wenn gelernt (gibt es evtl. nicht in jeder Spielversion)
   ns.callName = FindKnownSpell(ns.CALL_IDS, ns.CALL_NAMES)
+  -- Alle drei Rufe (Elemente, Ahnen, Geister): welche sind gelernt, welcher liegt auf dem Ruf-Knopf?
+  ns.callNames = {}
+  local callIds = {}
+  for _, c in ipairs(ns.CALLS) do
+    local nm = FindKnownSpell({ c.id }, c.names)
+    ns.callNames[c.key] = nm
+    if nm then callIds[#callIds + 1] = SpellIdFromName(nm) or c.id end
+  end
+  if not ns.callName then
+    -- Ruf der Elemente nicht gefunden, aber ein anderer Ruf: den als Standard nehmen
+    for _, c in ipairs(ns.CALLS) do if ns.callNames[c.key] then ns.callName = ns.callNames[c.key]; break end end
+  end
+  BuildFlyout(callBtn, callIds)   -- Rechtsklick: Ruf auswählen
+  local callCur = KnownChoice(choice.call, callIds) or ns.callName
   ns.moveName = FindKnownSpell({}, ns.MOVE_NAMES)
   ns.recallName = FindKnownSpell({}, ns.RECALL_NAMES)
   -- Manakosten jetzt einlesen (außerhalb des Kampfes lesbar), für den Vergleich im Kampf
@@ -2500,7 +2577,7 @@ local function SetupSecure()
     if IsKnown(key) then ManaCost(TotemName(key)) end
   end
   ManaCost(ns.moveName)
-  for _, pair in ipairs({ { callBtn, ns.callName, TotemWatchDB.showCall },
+  for _, pair in ipairs({ { callBtn, callCur, TotemWatchDB.showCall },
                           { moveBtn, ns.moveName, TotemWatchDB.showMove },
                           { recallBtn, ns.recallName, TotemWatchDB.showRecall } }) do
     local b, spell, wanted = pair[1], pair[2], pair[3]
@@ -3308,6 +3385,9 @@ end
 
 -- für Options.lua
 ns.frame = frame
+ns.slots = slots
+ns.TotemName = TotemName
+ns.IsKnown = IsKnown
 ns.ApplyPosition = ApplyPosition
 ns.ApplyVisibilityDriver = ApplyVisibilityDriver
 ns.UpdateVisibility = UpdateVisibility
@@ -3335,6 +3415,9 @@ ev:SetScript("OnEvent", function(_, event, ...)
       for k, v in pairs(DEFAULTS) do if TotemWatchDB[k] == nil then TotemWatchDB[k] = v end end
       TotemWatchDB.choice = TotemWatchDB.choice or {}
       TotemWatchDB.manual = TotemWatchDB.manual or {}   -- [slot] = von dir festgelegtes Totem
+      -- Vorlagen der drei Rufe: [Ruf][Element] = Totem
+      TotemWatchDB.presets = TotemWatchDB.presets or {}
+      for _, c in ipairs(ns.CALLS) do TotemWatchDB.presets[c.key] = TotemWatchDB.presets[c.key] or {} end
       -- Einmalig: alter Standard 0.35 auf den neuen, durchsichtigeren Standard setzen
       if TotemWatchDB.tremorDim == 0.35 and not TotemWatchDB.tremorDimSet then TotemWatchDB.tremorDim = 0.15 end
       TotemWatchDB.tremorDimSet = true
@@ -3668,6 +3751,15 @@ SlashCmdList.TOTEMWATCH = function(msg)
         local k = type(a) == "number" and ActionTotemKey(a)
         print(format("  MultiCastActionButton%d: action=%s %s", i, tostring(a), k and TotemName(k) or ""))
       end
+    end
+    -- Alle drei Rufe: Seite, Aktions-Plätze und was dort liegt
+    for _, c in ipairs(ns.CALLS) do
+      local a = ns.MultiCastActions(c.page)
+      local keys = ns.pageKeys and ns.pageKeys[c.page] or {}
+      local list = {}
+      for s = 1, 4 do list[#list + 1] = ns.SLOT_NAMES[s] .. "=" .. (keys[s] and TotemName(keys[s]) or "-") end
+      print(format("  %s (%s): page %d, actions %d-%d: %s", c.names[1], tostring(ns.callNames and ns.callNames[c.key] or L["not learned yet"]),
+        c.page, a[1], a[4], table.concat(list, ", ")))
     end
     -- Funktionen und Fenster im Client, die mit der Totem-Leiste zu tun haben
     local apis, frames = {}, {}

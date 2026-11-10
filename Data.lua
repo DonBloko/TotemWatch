@@ -71,6 +71,12 @@ ns.SHIELD_SPELLS = {
 ns.RECALL_NAMES = { "Totemic Recall", "Totemischer Rückruf" }
 ns.MOVE_NAMES   = { "Totemic Call", "Totemruf" }
 ns.CALL_IDS     = { 66842 }
+-- Die drei Rufe und ihre Seite auf der Totem-Leiste des Spiels (je 4 Totems)
+ns.CALLS = {
+  { key = "elements",  id = 66842, page = 1, names = { "Call of the Elements", "Ruf der Elemente" } },
+  { key = "ancestors", id = 66843, page = 2, names = { "Call of the Ancestors", "Ruf der Ahnen" } },
+  { key = "spirits",   id = 66844, page = 3, names = { "Call of the Spirits", "Ruf der Geister" } },
+}
 ns.CALL_NAMES   = { "Call of the Elements", "Ruf der Elemente" }
 -- Aktions-IDs der Totem-Leiste für "Call of the Elements" (Seite 1): 133-136
 ns.MULTICAST_BASE = 132

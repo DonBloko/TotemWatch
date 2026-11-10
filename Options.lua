@@ -272,6 +272,7 @@ function ns.CreateOptions()
   local TABS = {
     { key = "look",      label = L["Look"],      height = 330 },
     { key = "bar",       label = L["Bar"],       height = 300 },
+    { key = "calls",     label = L["Calls"],     height = 520 },
     { key = "alerts",    label = L["Warnings"],  height = 300 },
     { key = "emergency", label = L["Emergency"], height = 260 },
     { key = "help",      label = L["Help"],      height = 140 },
@@ -299,7 +300,7 @@ function ns.CreateOptions()
     page:SetAllPoints(P)
     page:Hide()
     pages[t.key] = page
-    local b = AddButton(panel, 16 + (i - 1) * 116, -60, t.label, 112, function() ShowTab(t.key) end)
+    local b = AddButton(panel, 16 + (i - 1) * 104, -60, t.label, 100, function() ShowTab(t.key) end)
     tabButtons[t.key] = b
   end
   -- Trennlinie unter den Reitern
@@ -420,6 +421,79 @@ function ns.CreateOptions()
   AddButton(p, LX + 194, -248, L["Reset position"], 180, function()
     OutOfCombat(function() ns.ResetPosition(); RefreshPanel() end)
   end)
+
+  -----------------------------------------------------------------------
+  -- Rufe: Vorlagen für Ruf der Elemente / Ahnen / Geister
+  -----------------------------------------------------------------------
+  p = pages.calls
+  AddHeader(p, LX, -8, L["Call templates"])
+  AddNote(p, LX, -26, L["Choose which 4 totems each call drops. TotemWatch puts them on the game's totem bar for you (out of combat) – you don't have to set up the bar yourself."], 590)
+
+  local function SyncNow() if ns.SyncMultiCast then ns.SyncMultiCast() end end
+  local callStatus = {}
+  for ci, c in ipairs(ns.CALLS) do
+    local x = LX + (ci - 1) * 200
+    local head = AddHeader(p, x, -64, L[c.names[1]])
+    callStatus[c.key] = AddNote(p, x, -80, "", 190)
+
+    if c.key == "elements" then
+      AddCheck(p, x - 4, -96, "syncCall", L["Follow my TotemWatch buttons"],
+        L["Call of the Elements always drops the totems on your TotemWatch buttons. Turn this off to use the template below instead."],
+        SyncNow, true)
+    end
+
+    for s = 1, 4 do
+      local items = { { value = false, text = L["– none –"] } }
+      local keys = {}
+      for key, t in pairs(ns.TOTEMS) do if t.slot == s then keys[#keys + 1] = key end end
+      table.sort(keys, function(a, b) return (ns.TotemName(a) or a) < (ns.TotemName(b) or b) end)
+      for _, key in ipairs(keys) do items[#items + 1] = { value = key, text = ns.TotemName(key) or key } end
+      AddDropdown(p, x, -126 - (s - 1) * 52, ns.SLOT_NAMES[s], 186, items,
+        function() return (TotemWatchDB.presets[c.key] or {})[s] or false end,
+        function(v)
+          TotemWatchDB.presets[c.key] = TotemWatchDB.presets[c.key] or {}
+          TotemWatchDB.presets[c.key][s] = v or nil
+          SyncNow()
+        end, nil, true)
+    end
+
+    -- Vorlage aus den aktuellen Knöpfen übernehmen / auf die Knöpfe legen
+    AddButton(p, x, -342, L["Take from buttons"], 186, function()
+      OutOfCombat(function()
+        TotemWatchDB.presets[c.key] = TotemWatchDB.presets[c.key] or {}
+        for s = 1, 4 do
+          local sp = ns.slots[s]:GetAttribute("spell1")
+          local key
+          for k in pairs(ns.TOTEMS) do if ns.TotemName(k) == sp then key = k end end
+          TotemWatchDB.presets[c.key][s] = key
+        end
+        SyncNow(); RefreshPanel()
+        Note(format(L["Template saved: %s"], L[c.names[1]]))
+      end)
+    end)
+    AddButton(p, x, -370, L["Put on buttons"], 186, function()
+      OutOfCombat(function()
+        local pr = TotemWatchDB.presets[c.key] or {}
+        for s = 1, 4 do
+          local key = pr[s]
+          if key and ns.IsKnown(key) then ns.slots[s]:SetAttribute("spell1", ns.TotemName(key)) end
+        end
+        if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end
+        Note(format(L["Template loaded onto the buttons: %s"], L[c.names[1]]))
+      end)
+    end)
+  end
+  -- Zustand je Ruf (gelernt? Elemente folgt den Knöpfen?)
+  dropdowns[#dropdowns + 1] = { Refresh = function()
+    for _, c in ipairs(ns.CALLS) do
+      local learned = ns.callNames and ns.callNames[c.key]
+      local txt
+      if not learned then txt = "|cff888888" .. L["not learned yet"] .. "|r"
+      elseif c.key == "elements" and TotemWatchDB.syncCall then txt = "|cff80c0ff" .. L["follows your buttons"] .. "|r"
+      else txt = "|cff60ff60" .. L["uses this template"] .. "|r" end
+      callStatus[c.key]:SetText(txt)
+    end
+  end }
 
   -----------------------------------------------------------------------
   -- Warnungen (inkl. Empfehlungen und Meldungen)
