@@ -2245,6 +2245,7 @@ function ns.RoundPost()
       if b.pulse and b.pulse:IsPlaying() then b.pulse:Stop() end
       b.border:SetAlpha(0)
       if b.cleanLine then b.cleanLine:Hide() end
+      if b.strip then b.strip:Hide() end   -- Minimal-Farbstreifen: der Ring zeigt den Status schon
       local c = b.statusColor
       if c and b.statusKey and not CALM[b.statusKey] then
         r.ring:SetVertexColor(c[1], c[2], c[3], 1)
