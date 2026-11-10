@@ -8,6 +8,9 @@
 - **Switch templates at the bar**: right-click the dotted grip left of the bar to open your templates; one click puts the 4 totems of a template on your TotemWatch buttons – also in combat (options → Bar).
 - TotemWatch now recognizes all three calls when you cast them, so the totem timers are right in combat, too.
 - Template editor shows totem icons and only lists totems you have learned.
+- **Smarter weapon enchant**: chosen by your role (talents) and weapon – Windfury for melee from level 30, Rockbiter before that, Flametongue for casters and healers. The tooltip and the hint say why; your own choice is kept.
+- **Reasons with numbers**: recommendations say why, e.g. "Strength for melee (3 melee)".
+- **Most urgent first**: the hint line now shows missing totems before out-of-range, wrong and expiring ones.
 - `/tw bar` shows all three pages of the totem bar.
 - **Pictures that explain the bar**: the guided tour shows small pictures for moving the bar, clicking and the status colors, and the **Help** tab is now a reference page with an annotated overview of the bar and pictures for every feature (casting and choosing, colors, templates, calls, emergency buttons). The pictures follow your icon shape (round or square).
 - The guided tour shows the TotemWatch logo.

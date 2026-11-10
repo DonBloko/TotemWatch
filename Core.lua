@@ -798,16 +798,19 @@ local function Recommend(slot)
 
   -- 3) Standard je nach Gruppe
   local melee, caster, solo = state.melee, state.caster, state.groupSize <= 1
+  -- Grund mit Gruppenangabe, z. B. "Stärke für Nahkämpfer (3 Nahkämpfer)"
+  local function M(text) return solo and (text .. " (" .. L["solo"] .. ")") or (text .. " (" .. format(L["%d melee"], melee) .. ")") end
+  local function C(text) return text .. " (" .. format(L["%d casters"], caster) .. ")" end
   if slot == ns.FIRE then
     if state.enemies >= 3 then
       add("MAGMA", format(L["%d enemies – AoE"], state.enemies))
       add("FIRE_NOVA", format(L["%d enemies – AoE"], state.enemies))
     end
-    if caster >= melee and not solo then add("TOTEM_OF_WRATH", L["Spell crit for casters"]) end
-    if melee >= 2 then add("FLAMETONGUE", L["Weapon proc for melee"]) end
+    if caster >= melee and not solo then add("TOTEM_OF_WRATH", C(L["Spell crit for casters"])) end
+    if melee >= 2 then add("FLAMETONGUE", M(L["Weapon proc for melee"])) end
     add("SEARING", L["Extra damage"])
   elseif slot == ns.EARTH then
-    if melee >= 1 or solo then add("STRENGTH", L["Strength for melee"]) end
+    if melee >= 1 or solo then add("STRENGTH", M(L["Strength for melee"])) end
     add("STONESKIN", L["Less melee damage taken"])
   elseif slot == ns.WATER then
     local okHp, lowHp = pcall(function() return UnitHealth("player") / math.max(1, UnitHealthMax("player")) < 0.6 end)
@@ -818,12 +821,12 @@ local function Recommend(slot)
     add("HEALING_STREAM", L["Healing"])
   elseif slot == ns.AIR then
     if melee >= 2 or solo then
-      add("WINDFURY", L["Melee in group"])
-      add("GRACE_OF_AIR", L["Agility for melee"])
+      add("WINDFURY", M(L["Melee in group"]))
+      add("GRACE_OF_AIR", M(L["Agility for melee"]))
     end
     if caster > melee then
-      add("WRATH_OF_AIR", L["Spell power for casters"])
-      add("TRANQUIL_AIR", L["Less threat for casters"])
+      add("WRATH_OF_AIR", C(L["Spell power for casters"]))
+      add("TRANQUIL_AIR", C(L["Less threat for casters"]))
     end
     add("GRACE_OF_AIR", L["Agility"])
     add("WINDFURY", L["Melee buff"])
@@ -1110,6 +1113,11 @@ local function CreateCastButton(name, x)
         local k = value and KeyFromName(value)
         local rec = state.curRec and state.curRec[self.slot]
         TotemWatchDB.manual[self.slot] = (k and k ~= rec) and k or nil
+      end
+      -- Waffe: selbst gewählt (nicht die Empfehlung)? Dann bleibt deine Wahl
+      if self.dbKey == "weapon" and not ns.autoAssigning and ns.WeaponRecommend then
+        local id = ns.WeaponRecommend()
+        TotemWatchDB.weaponManual = (value and id and SpellName(id) ~= value) and true or nil
       end
       -- Totem-Leiste von Call of the Elements nachziehen (nur außerhalb des Kampfes möglich)
       if self.slot and ns.SyncMultiCast and not InCombatLockdown() then ns.SyncMultiCast() end
@@ -1677,6 +1685,18 @@ local function SimpleTooltip(b, titleText, extra)
   end)
 end
 SimpleTooltip(weaponBtn, L["Weapon"], L["Note: oils/stones also count as an enchant."])
+weaponBtn:HookScript("OnEnter", function(self)
+  if not ns.WeaponRecommend then return end
+  local id, why = ns.WeaponRecommend()
+  if id then
+    GameTooltip:AddLine(L["Recommended: "] .. (SpellName(id) or "?"), 1, 0.82, 0)
+    if why then GameTooltip:AddLine(why, 0.8, 0.8, 0.8, true) end
+    if TotemWatchDB.weaponManual then
+      GameTooltip:AddLine(L["Chosen by you – pick the recommended enchant to let TotemWatch choose again."], 0.6, 0.8, 1, true)
+    end
+    GameTooltip:Show()
+  end
+end)
 SimpleTooltip(shieldBtn, L["Shield"])
 
 -- Meldungen in der Bildschirmmitte (groß, mit Umrandung, blenden aus)
@@ -2393,12 +2413,61 @@ local function KnownChoice(saved, ids)
   end
 end
 
-local function DefaultWeaponSpell()
-  local equipLoc = ItemEquipInfo(GetInventoryItemLink("player", 16))
-  local twoHand = (equipLoc == "INVTYPE_2HWEAPON")
-  if twoHand and IsKnownId(8232) then return 8232 end
-  return FirstKnown({ 8024, 8017, 8232, 8033 })
+-- Rolle grob aus den Talenten (außerhalb des Kampfes lesbar): "melee", "caster" oder nil
+local function PlayerRole()
+  if not GetTalentTabInfo then return nil end
+  local pts = {}
+  for tab = 1, 3 do
+    local ok, a, b, c, d, e = pcall(GetTalentTabInfo, tab)
+    -- je nach Client steht die Punktzahl an 3. oder 5. Stelle
+    local p = ok and (tonumber(e) or tonumber(c)) or 0
+    if IsSecret(p) then p = 0 end
+    pts[tab] = p or 0
+  end
+  local ele, enh, resto = pts[1], pts[2], pts[3]
+  if ele + enh + resto < 5 then return nil end
+  if enh >= ele and enh >= resto then return "melee" end
+  return "caster"
 end
+
+-- Waffen-Empfehlung: liefert Zauber-ID und Grund
+-- Classic: Windzorn ist für Nahkämpfer das Beste (ab Stufe 30), davor Felsbeißer;
+-- Zauberer/Heiler profitieren von Waffenverzauberungen kaum – Flammenzunge als Standard.
+local function WeaponRecommend()
+  local equipLoc = ItemEquipInfo(GetInventoryItemLink("player", 16))
+  local ohLoc = ItemEquipInfo(GetInventoryItemLink("player", 17))
+  local twoHand = (equipLoc == "INVTYPE_2HWEAPON")
+  local holdsCasterItem = (ohLoc == "INVTYPE_HOLDABLE") or (ohLoc == "INVTYPE_SHIELD")
+  local role = PlayerRole()
+  if not role then
+    if twoHand then role = "melee" elseif holdsCasterItem then role = "caster" else role = "melee" end
+  end
+  if role == "melee" then
+    if IsKnownId(8232) then
+      return 8232, twoHand and L["Best for melee – strongest with a slow two-hander"] or L["Best for melee"]
+    end
+    if IsKnownId(8017) then return 8017, L["More attack power for melee (until you learn Windfury at level 30)"] end
+  else
+    if IsKnownId(8024) then return 8024, L["Casters and healers hardly benefit from weapon enchants – Flametongue adds a little damage"] end
+  end
+  local id = FirstKnown({ 8232, 8017, 8024, 8033 })
+  return id, id and L["Only enchant you know"] or nil
+end
+ns.WeaponRecommend = WeaponRecommend
+local function DefaultWeaponSpell() return (WeaponRecommend()) end
+
+-- Außerhalb des Kampfes: Waffen-Knopf auf die Empfehlung setzen (wenn nicht selbst gewählt)
+local function AutoWeapon()
+  if InCombatLockdown() or not TotemWatchDB.auto or TotemWatchDB.weaponManual then return end
+  local id = WeaponRecommend()
+  local nm = id and SpellName(id)
+  if nm and weaponBtn:GetAttribute("spell1") ~= nm then
+    ns.autoAssigning = true
+    weaponBtn:SetAttribute("spell1", nm)
+    ns.autoAssigning = false
+  end
+end
+ns.AutoWeapon = AutoWeapon
 
 local function TotemIds(slot)
   local ids = {}
@@ -2743,7 +2812,10 @@ local function SetupSecure()
   local wKnown = BuildFlyout(weaponBtn, ns.WEAPON_SPELLS)
   local wCur = KnownChoice(choice.weapon, ns.WEAPON_SPELLS)
   if not wCur then local id = DefaultWeaponSpell(); wCur = id and SpellName(id) end
+  ns.autoAssigning = true                    -- Wiederherstellen ist keine eigene Wahl
   weaponBtn:SetAttribute("spell1", wCur)
+  ns.autoAssigning = false
+  if ns.AutoWeapon then ns.AutoWeapon() end   -- auf die Empfehlung setzen (wenn nicht selbst gewählt)
   if #wKnown > 0 and TotemWatchDB.showWeapon then weaponBtn:Show() else weaponBtn:Hide() end
 
   local sKnown = BuildFlyout(shieldBtn, ns.SHIELD_SPELLS)
@@ -2850,6 +2922,10 @@ local function Refresh()
   end
 
   -- Totems (jeder Slot einzeln abgesichert; Restzeit zuerst, damit sie immer läuft)
+  -- Hinweise der Totem-Plätze nach Dringlichkeit sammeln: 1 fehlt, 2 außer Reichweite,
+  -- 3 falsch/doppelt, 4 läuft ab, 5 andere außer Reichweite, 6 Gruppe
+  local pending = {}
+  local function slotHint(prio, text) pending[#pending + 1] = { prio, #pending, text } end
   local function doSlot(s)
     local b = slots[s]
     -- Restzeit zuerst (läuft auch, wenn danach etwas ausfällt)
@@ -2950,16 +3026,16 @@ local function Refresh()
     local far = state.far[s]
     local rng = state.range[s]
     if far then
-      hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are %d yd from %s (range %d yd)"],
+      slotHint(2, format(L["|cff%s%s|r |cffffa040Distance:|r you are %d yd from %s (range %d yd)"],
         col, ns.SLOT_NAMES[s], far.dist, far.name, far.range))
     elseif rng and rng.self then
       -- ohne Position (Dungeon): wenigstens klar sagen, dass DU zu weit weg bist
-      hint(format(L["|cff%s%s|r |cffffa040Distance:|r you are out of range of %s"], col, ns.SLOT_NAMES[s], rng.name or "?"))
+      slotHint(2, format(L["|cff%s%s|r |cffffa040Distance:|r you are out of range of %s"], col, ns.SLOT_NAMES[s], rng.name or "?"))
     end
     if rng then
       b.label:SetText("|cffff3030" .. rng.count .. "|r")
       b.rangeInfo = format(L["Out of range: %s"], rng.names)
-      hint(format(L["|cff%s%s|r |cffff6060Range:|r %d out of range (%s)"], col, ns.SLOT_NAMES[s], rng.count, rng.names))
+      slotHint(5, format(L["|cff%s%s|r |cffff6060Range:|r %d out of range (%s)"], col, ns.SLOT_NAMES[s], rng.count, rng.names))
     else
       b.label:SetText("")
       b.rangeInfo = far and format(L["You are %d yd away (range %d yd)"], far.dist, far.range) or nil
@@ -2986,14 +3062,15 @@ local function Refresh()
       local what = (status == "MISSING" and L["missing"] or status == "WRONG" and L["better"]
                     or status == "DUPLICATE" and L["duplicate, better"] or L["expiring"])
       local pick = (key ~= assignedKey) and L[" |cffffff00[right-click: choose]|r"] or ""
+      local prio = (status == "MISSING") and 1 or ((status == "WRONG" or status == "DUPLICATE") and 3 or 4)
       if short then
-        hint(format(L["|cffffd100Next:|r %s |cff888888(%s)|r – %s"], TotemName(key), ns.SLOT_NAMES[s], reason or ""))
+        slotHint(prio, format(L["|cffffd100Next:|r %s |cff888888(%s)|r – %s"], TotemName(key), ns.SLOT_NAMES[s], reason or ""))
       else
-        hint(format("|cff%s%s|r %s: |cffffffff%s|r – %s%s", col, ns.SLOT_NAMES[s], what, TotemName(key), reason or "", pick))
+        slotHint(prio, format("|cff%s%s|r %s: |cffffffff%s|r – %s%s", col, ns.SLOT_NAMES[s], what, TotemName(key), reason or "", pick))
       end
     end
     if otherHint then
-      hint(format(L["|cff%s%s|r |cff80c0ff(group)|r %s"], col, ns.SLOT_NAMES[s], otherHint))
+      slotHint(6, format(L["|cff%s%s|r |cff80c0ff(group)|r %s"], col, ns.SLOT_NAMES[s], otherHint))
     end
 
     -- Zeitbalken je Design (Pillars: unter dem Knopf, Bars: mit Name und Restzeit)
@@ -3033,6 +3110,8 @@ local function Refresh()
     end
   end
   for s = 1, 4 do SafeCall("Totem", doSlot, s) end
+  table.sort(pending, function(a, b) if a[1] ~= b[1] then return a[1] < b[1] end return a[2] < b[2] end)
+  for _, h in ipairs(pending) do hint(h[3]) end
   -- Fokus-Design: nur Knöpfe mit Handlungsbedarf hell, alles andere fast unsichtbar
   -- (SetAlpha ist auch im Kampf erlaubt; die Knöpfe bleiben klickbar)
   if CurrentSkin().focus then
@@ -3068,7 +3147,11 @@ local function Refresh()
     weaponBtn.timer:SetText(FormatTime(left))
     weaponBtn.label:SetText("")
     UpdateCooldown(weaponBtn, assigned)
-    if missing and assigned then hint(L["|cffffd100Weapon|r missing: |cffffffff"] .. assigned .. "|r") end
+    if missing and assigned then
+      local _, why = WeaponRecommend()
+      local recName = SpellName((WeaponRecommend()))
+      hint(L["|cffffd100Weapon|r missing: |cffffffff"] .. assigned .. "|r" .. ((why and recName == assigned) and (" – " .. why) or ""))
+    end
   end end)
 
   -- Schild
@@ -3693,7 +3776,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
     ScanSpellbook(); BuildNameLookup()
     if state.setupDone then SetupSecure() end
   elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-    if state.setupDone and not InCombatLockdown() and not TotemWatchDB.choice.weapon then SetupSecure() end
+    if state.setupDone and not InCombatLockdown() then AutoWeapon() end   -- andere Waffe: Empfehlung neu prüfen
   elseif event == "PLAYER_REGEN_DISABLED" then
     state.inCombat = true
     -- Dieses Ereignis kommt kurz VOR der Kampfsperre: Anzeigen ist hier noch erlaubt.
@@ -3842,6 +3925,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
   elseif cmd == "auto" then
     TotemWatchDB.auto = not TotemWatchDB.auto; wipe(state.lastRec)
     wipe(TotemWatchDB.manual)   -- eigene Festlegungen aufheben
+    TotemWatchDB.weaponManual = nil
     p(L["Auto-assign recommended totems to buttons: "] .. (TotemWatchDB.auto and L["on"] or L["off"]))
   elseif cmd == "ooc" then
     TotemWatchDB.showOOC = not TotemWatchDB.showOOC; ApplyVisibilityDriver(); UpdateVisibility()

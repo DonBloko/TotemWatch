@@ -387,6 +387,7 @@ local NEWS = {
     L["Right-click the dotted grip left of the bar to put a template on your buttons – also in combat."],
     L["The bar stays visible for a few seconds after combat, e.g. for Totemic Recall."],
     L["The tour and the Help tab now explain everything with pictures."],
+    L["Smarter recommendations: the weapon enchant is chosen by your role and weapon, every reason says why (e.g. how many melee are in your group), and the hint line shows the most urgent step first."],
   } },
   { version = "1.3.0", items = {
     L["Four new designs, the Clean look and round icons."],

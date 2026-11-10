@@ -654,6 +654,8 @@ function ns.CreateOptions()
     function()
       wipe(ns.state.lastRec)
       if TotemWatchDB.manual then wipe(TotemWatchDB.manual) end   -- eigene Festlegungen aufheben
+      TotemWatchDB.weaponManual = nil
+      if ns.AutoWeapon then ns.AutoWeapon() end
     end)
   AddCheck(p, LX, -54, "useBoss", L["Use boss rules"],
     L["Recommendations per boss (detected via Blizzard, DBM or BigWigs)."])
