@@ -535,20 +535,16 @@ function ns.CreateOptions()
 
   -- Solange das Menü offen ist: Leiste im Testmodus zeigen und über das Optionsfenster legen,
   -- damit jede Änderung sofort sichtbar ist. Beim Schließen wieder wie vorher.
-  panel:SetScript("OnHide", function()
-    if InCombatLockdown() then return end
-    if panel.autoTest and ns.state.test then ns.ToggleTest() end
-    panel.autoTest = nil
-    if panel.oldStrata then ns.frame:SetFrameStrata(panel.oldStrata); panel.oldStrata = nil end
-  end)
+  -- Ausgeschaltet wird erst, wenn das GANZE Optionsfenster schließt (Forevers Optionsfenster
+  -- blendet die Seite beim Öffnen kurz aus und wieder ein – das darf die Vorschau nicht beenden).
+  local host = SettingsPanel or InterfaceOptionsFrame
+  if host and host.HookScript then
+    host:HookScript("OnHide", function() if ns.OptionsPreviewOff then ns.OptionsPreviewOff() end end)
+  else
+    panel:SetScript("OnHide", function() if ns.OptionsPreviewOff then ns.OptionsPreviewOff() end end)
+  end
   panel:SetScript("OnShow", function()
-    if not InCombatLockdown() then
-      if not ns.state.test then ns.ToggleTest(); panel.autoTest = true end
-      if not panel.oldStrata then
-        panel.oldStrata = ns.frame:GetFrameStrata()
-        ns.frame:SetFrameStrata("FULLSCREEN_DIALOG")
-      end
-    end
+    if ns.OptionsPreviewOn then ns.OptionsPreviewOn() end
     RefreshPanel()
     local want = TotemWatchDB and TotemWatchDB.optTab
     local found = false
@@ -568,8 +564,26 @@ function ns.CreateOptions()
   end
 end
 
+-- Vorschau: solange das Menü offen ist, Leiste im Testmodus über dem Optionsfenster zeigen
+local previewTest, previewStrata
+function ns.OptionsPreviewOn()
+  if InCombatLockdown() then return end
+  if not ns.state.test then ns.ToggleTest(); previewTest = true end
+  if not previewStrata then
+    previewStrata = ns.frame:GetFrameStrata()
+    ns.frame:SetFrameStrata("FULLSCREEN_DIALOG")
+  end
+end
+function ns.OptionsPreviewOff()
+  if InCombatLockdown() then return end
+  if previewTest and ns.state.test then ns.ToggleTest() end
+  previewTest = nil
+  if previewStrata then ns.frame:SetFrameStrata(previewStrata); previewStrata = nil end
+end
+
 function ns.OpenOptions()
   if not panel then ns.CreateOptions() end
+  ns.OptionsPreviewOn()
   if Settings and Settings.OpenToCategory and category then
     Settings.OpenToCategory(category.GetID and category:GetID() or category.ID)
   elseif InterfaceOptionsFrame_OpenToCategory then
