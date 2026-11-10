@@ -35,7 +35,7 @@ local DEFAULTS = {
   speak = false,        -- Warnungen vorlesen (Text-to-Speech)
   useMasque = true,     -- Knöpfe mit Masque gestalten, falls installiert
   tremorButton = true,  -- Notfall-Knopf "Emergency Tremor"
-  tremorSize = 64,      -- Größe des Notfall-Knopfs
+  tremorSize = 44,      -- Größe des Notfall-Knopfs
   tremorDim = 0.15,     -- Sichtbarkeit der Notfall-Knöpfe in Ruhe (0 = unsichtbar, 1 = voll)
   poisonButton = true,  -- Notfall-Knopf Poison Cleansing
   diseaseButton = true, -- Notfall-Knopf Disease Cleansing
@@ -1187,6 +1187,7 @@ RegisterClicks(castAll)
 castAll:SetAttribute("type1", "macro")
 do
   local bg = castAll:CreateTexture(nil, "BACKGROUND")
+  castAll.bg = bg
   bg:SetAllPoints(); bg:SetColorTexture(0.05, 0.25, 0.55, 1)
   local t = castAll:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   t:SetPoint("CENTER"); t:SetText(L["ALL"])
@@ -1411,26 +1412,27 @@ local function CreateEmergencyButton(def)
     local dim = (TotemWatchDB and TotemWatchDB.tremorDim) or 0.15
     if active then
       self:SetAlpha(1)
-      self.border:SetColorTexture(0.1, 0.9, 0.1, 1)
+      self.border:SetColorTexture(0.1, 0.9, 0.1, 1); self.rr, self.rg, self.rb = 0.1, 0.9, 0.1
       SetGlow(self.glow, false)
       self.text:SetText(L["Active"])
       self.text:SetTextColor(0.4, 1, 0.4)
     elseif level == 2 then
       self:SetAlpha(1)
-      self.border:SetColorTexture(1, 0.1, 0.1, 1)
+      self.border:SetColorTexture(1, 0.1, 0.1, 1); self.rr, self.rg, self.rb = 1, 0.1, 0.1
       SetGlow(self.glow, true)
       self.text:SetText(text or ""); self.text:SetTextColor(1, 0.3, 0.3)
     elseif level == 1 then
       self:SetAlpha(math.max(dim, 0.6))
-      self.border:SetColorTexture(1, 0.55, 0.1, 1)
+      self.border:SetColorTexture(1, 0.55, 0.1, 1); self.rr, self.rg, self.rb = 1, 0.55, 0.1
       SetGlow(self.glow, false)
       self.text:SetText("")
     else
       self:SetAlpha(ns.emergencyMoving and 1 or dim)
-      self.border:SetColorTexture(0.15, 0.15, 0.15, 1)
+      self.border:SetColorTexture(0.15, 0.15, 0.15, 1); self.rr, self.rg, self.rb = 0.08, 0.08, 0.08
       SetGlow(self.glow, false)
       self.text:SetText("")
     end
+    if self.roundIcon and ns.RoundEmergency then ns.RoundEmergency(self) end
     -- Nur wegen einer Warnung außerhalb des Kampfes eingeblendet: danach wieder normale Sichtbarkeit
     if self.tempShown and not level and not InCombatLockdown() then
       self.tempShown = nil
@@ -2088,7 +2090,7 @@ local function EnsureRound(b)
   r.strips = {}
   for i = 1, ROUND_ROWS do r.strips[i] = r:CreateTexture(nil, "ARTWORK") end
   r:SetScript("OnSizeChanged", LayoutRound)
-  r.ring = b.over:CreateTexture(nil, "OVERLAY", nil, 1)
+  r.ring = (b.over or b):CreateTexture(nil, "OVERLAY", nil, 1)
   r.ring:SetTexture(MEDIA .. "round_ring")
   r.ring:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -1, 1)
   r.ring:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, -1)
@@ -2105,7 +2107,7 @@ local function SetRound(b, on)
     r.src = nil
     r:Show(); r.ring:Show(); b.icon:Hide()
     LayoutRound(r)
-    pcall(b.cd.SetSwipeTexture, b.cd, MEDIA .. "round_disc")
+    if b.cd then pcall(b.cd.SetSwipeTexture, b.cd, MEDIA .. "round_disc") end
     if b.glow then b.glow:SetTexture(MEDIA .. "round_glow") end      -- weicher runder Leucht-Kreis
     b:SetHighlightTexture(MEDIA .. "round_disc", "ADD")
     hl = b:GetHighlightTexture()
@@ -2113,7 +2115,7 @@ local function SetRound(b, on)
   else
     r:Hide(); r.ring:Hide(); b.icon:Show()
     b.border:SetAlpha(1)
-    pcall(b.cd.SetSwipeTexture, b.cd, "Interface\\Buttons\\WHITE8X8")
+    if b.cd then pcall(b.cd.SetSwipeTexture, b.cd, "Interface\\Buttons\\WHITE8X8") end
     if b.glow then b.glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border") end
     b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     hl = b:GetHighlightTexture()
@@ -2123,14 +2125,67 @@ end
 
 local ROUND_BUTTONS
 local function RoundButtons()
-  ROUND_BUTTONS = ROUND_BUTTONS or { slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }
+  ROUND_BUTTONS = ROUND_BUTTONS or { slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn,
+                                     callBtn, moveBtn, recallBtn }
   return ROUND_BUTTONS
 end
 
 -- Ein/aus laut Einstellung (aus ApplySkin, außerhalb des Kampfes)
 function ns.ApplyRound()
-  local on = TotemWatchDB and TotemWatchDB.roundIcons and not ns.masqueGroup
+  local on = TotemWatchDB and TotemWatchDB.roundIcons and not ns.masqueGroup and true or false
   for _, b in ipairs(RoundButtons()) do SetRound(b, on) end
+
+  -- Notfall-Knöpfe ebenfalls rund
+  for _, e in ipairs(ns.emergency or {}) do
+    SetRound(e.btn, on)
+    if on and e.btn.roundIcon then e.btn.roundIcon.src = nil; ns.RoundEmergency(e.btn) end
+  end
+
+  -- ALLE-Knopf: runde blaue Fläche statt Quadrat
+  local hl
+  if on then
+    castAll.bg:SetTexture(MEDIA .. "round_disc")
+    castAll.bg:SetVertexColor(0.05, 0.25, 0.55, 1)
+    castAll:SetHighlightTexture(MEDIA .. "round_disc", "ADD")
+    hl = castAll:GetHighlightTexture()
+    if hl then hl:SetVertexColor(1, 1, 1, 0.3) end
+  else
+    castAll.bg:SetVertexColor(1, 1, 1, 1)
+    castAll.bg:SetColorTexture(0.05, 0.25, 0.55, 1)
+    castAll:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    hl = castAll:GetHighlightTexture()
+    if hl then hl:SetVertexColor(1, 1, 1, 1) end
+  end
+
+  -- Element-Farbe (Pillars): kleiner farbiger Punkt über dem Kreis statt eines Balkens
+  for s = 1, 4 do
+    local st = slots[s].elemStrip
+    if st:IsShown() then
+      if on then
+        local r, g, b = HexColor(ns.SLOT_COLORS[s])
+        st:SetTexture(MEDIA .. "round_disc")
+        st:SetVertexColor(r, g, b, 1)
+        st:ClearAllPoints()
+        st:SetSize(7, 7)
+        st:SetPoint("BOTTOM", slots[s], "TOP", 0, 3)
+      else
+        st:SetVertexColor(1, 1, 1, 1)   -- ApplySkin hat die Farbleiste schon wieder gesetzt
+      end
+    end
+  end
+end
+
+-- Notfall-Knopf rund: Symbol übernehmen, eckigen Rahmen ausblenden, Ring in der Zustandsfarbe
+function ns.RoundEmergency(b)
+  local r = b.roundIcon
+  if not (r and r:IsShown()) then return end
+  local tex = b.icon:GetTexture()
+  if tex ~= r.src then
+    r.src = tex
+    for _, t in ipairs(r.strips) do t:SetTexture(tex) end
+  end
+  b.border:SetAlpha(0)
+  r.ring:SetVertexColor(b.rr or 0.08, b.rg or 0.08, b.rb or 0.08, 1)
 end
 
 -- Nach jeder Aktualisierung: Streifen an das echte Symbol angleichen (Bild, Farbe, Helligkeit),
@@ -2151,7 +2206,7 @@ function ns.RoundPost()
       for _, t in ipairs(r.strips) do
         t:SetVertexColor(vr, vg, vb); t:SetAlpha(a); t:SetDesaturated(desat)
       end
-      if b.pulse:IsPlaying() then b.pulse:Stop() end
+      if b.pulse and b.pulse:IsPlaying() then b.pulse:Stop() end
       b.border:SetAlpha(0)
       if b.cleanLine then b.cleanLine:Hide() end
       local c = b.statusColor
@@ -3200,6 +3255,9 @@ ev:SetScript("OnEvent", function(_, event, ...)
       -- Einmalig: alter Standard 0.35 auf den neuen, durchsichtigeren Standard setzen
       if TotemWatchDB.tremorDim == 0.35 and not TotemWatchDB.tremorDimSet then TotemWatchDB.tremorDim = 0.15 end
       TotemWatchDB.tremorDimSet = true
+      -- Einmalig: Notfall-Knöpfe kleiner (etwa Totem-Größe) statt des alten Standards 64
+      if TotemWatchDB.tremorSize == 64 and not TotemWatchDB.tremorSizeSet then TotemWatchDB.tremorSize = 44 end
+      TotemWatchDB.tremorSizeSet = true
       -- Einmalig: "in Dungeons/Raids immer anzeigen" einschalten (Testversion hatte "aus" gespeichert)
       if not TotemWatchDB.instanceDefaultsSet then
         TotemWatchDB.showInDungeon, TotemWatchDB.showInRaid = true, true
