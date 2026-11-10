@@ -737,20 +737,65 @@ function ns.CreateOptions()
     Note(L["Simulating emergencies in 5 seconds."])
   end)
 
+
   -----------------------------------------------------------------------
-  -- Hilfe
+  -- Hilfe: Nachschlage-Seite mit Bildern
   -----------------------------------------------------------------------
   p = pages.help
-  AddHeader(p, LX, -8, L["Help"])
+  local HW = 590
+  local hy = -8
+  local function Section(title, kind, text)
+    AddHeader(p, LX, hy, title)
+    hy = hy - 20
+    if kind and ns.Illustration then
+      local pic = ns.Illustration(p, kind, HW)
+      if pic then
+        pic:SetPoint("TOPLEFT", p, "TOPLEFT", LX, hy)
+        hy = hy - pic:GetHeight() - 8
+        dropdowns[#dropdowns + 1] = pic   -- bei jedem Öffnen an die Symbolform anpassen
+      end
+    end
+    if text then
+      local fs = p:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+      fs:SetPoint("TOPLEFT", LX, hy)
+      fs:SetWidth(HW); fs:SetJustifyH("LEFT"); fs:SetSpacing(3)
+      fs:SetText(text)
+      hy = hy - (fs:GetStringHeight() or 14) - 6
+    end
+    hy = hy - 14
+  end
+
+  Section(L["Overview"], "overview",
+    L["|cffffd1001|r Grip: drag to move, right-click for your templates\n" ..
+      "|cffffd1002|r Totem buttons: left-click casts, right-click chooses – the glowing one is what you need now\n" ..
+      "|cffffd1003|r ALL: casts your totems one after another (click repeatedly or use a key)\n" ..
+      "|cffffd1004|r Call: casts Call of the Elements / Ancestors / Spirits – right-click chooses the call\n" ..
+      "|cffffd1005|r Weapon enchant and shield with their remaining time\n" ..
+      "|cffffd1006|r Hint line: the next step and how many more there are"])
+  Section(L["Casting and choosing totems"], "click",
+    L["In the selection, right-click a totem to put it on the Call of the Elements bar without casting it."])
+  Section(L["What the colors mean"], "status",
+    L["The ring (round icons) or the line under the button (square icons) shows the status. In dungeons the game hides your position – then the button says “far” instead of the yards."])
+  Section(L["Moving the bar and templates"], "grip",
+    L["Create and name templates under the Calls tab. A template puts 4 totems on your buttons with one click – also in combat."])
+  Section(L["Calls"], "calls")
+  Section(L["Emergency buttons"], "emergency",
+    L["Test them any time with /tw sos test. Size, visibility and position are in the Emergency tab."])
+
+  AddHeader(p, LX, hy, L["Commands and key bindings"])
+  hy = hy - 22
   local help = p:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-  help:SetPoint("TOPLEFT", LX, -30)
-  help:SetWidth(580)
+  help:SetPoint("TOPLEFT", LX, hy)
+  help:SetWidth(HW)
   help:SetJustifyH("LEFT")
   help:SetSpacing(4)
-  help:SetText(L["Usage: left-click casts the totem, right-click opens the selection.\n"] ..
-    L["Key bindings: Esc > Key Bindings > AddOns > TotemWatch.\n"] ..
+  help:SetText(L["Key bindings: Esc > Key Bindings > AddOns > TotemWatch.\n"] ..
     L["Commands: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw other <totem>"] .. "\n" ..
     L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"])
+  hy = hy - (help:GetStringHeight() or 60) - 20
+  for _, t in ipairs(TABS) do
+    if t.key == "help" then t.height = -hy + 10 end
+  end
 
   -- Solange das Menü offen ist: Leiste im Testmodus zeigen und über das Optionsfenster legen,
   -- damit jede Änderung sofort sichtbar ist. Beim Schließen wieder wie vorher.

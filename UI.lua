@@ -125,9 +125,14 @@ tText:SetWidth(412)
 tText:SetJustifyH("LEFT")
 tText:SetSpacing(3)
 
+-- Bild des jeweiligen Schritts (zwischen Text und Bedienelementen)
+local picHolder = CreateFrame("Frame", nil, tut)
+picHolder:SetPoint("TOPLEFT", tText, "BOTTOMLEFT", 0, -10)
+picHolder:SetSize(412, 1)
+
 -- Bereich für die Bedienelemente des jeweiligen Schritts
 local content = CreateFrame("Frame", nil, tut)
-content:SetPoint("TOPLEFT", tText, "BOTTOMLEFT", 0, -12)
+content:SetPoint("TOPLEFT", picHolder, "BOTTOMLEFT", 0, -10)
 content:SetSize(412, 110)
 
 local function MakeButton(parent, text, width, onClick)
@@ -229,6 +234,7 @@ local function BuildSteps()
     },
     { -- 3 Platzieren
       title = L["Place the bar"],
+      pic = "grip",
       text = L["Drag the bar by the dotted grip on its left to where you want it.\nYou can also move the big warning messages: click the button, drag the blue area, then right-click it."],
       build = function(f)
         local move = MakeButton(f, L["Move messages"], 160, function(self)
@@ -252,6 +258,7 @@ local function BuildSteps()
     },
     { -- 4 Bedienung
       title = L["How to use the bar"],
+      pic = "click",
       text = L["|cffffd100Left-click|r a totem button to drop that totem.\n|cffffd100Right-click|r it to choose another totem.\nA |cffffd100glowing|r button is what you should press now.\n|cffffd100Red|r = missing, |cffffd100yellow|r = expiring, |cffffd100orange|r = a better totem exists.\nIn the selection menu, |cffffd100right-click|r a totem to put it on your Call of the Elements bar – this also works in combat."],
       onShow = EnsureTestMode,
     },
@@ -275,6 +282,7 @@ local function BuildSteps()
     },
     { -- 6 Warnungen
       title = L["Warnings"],
+      pic = "status",
       text = L["Choose how TotemWatch warns you. You can change all of this later in the options."],
       controlsHeight = 5 * 24 + 4,   -- 5 Häkchen untereinander
       build = function(f)
@@ -317,6 +325,17 @@ local function ShowStep(i)
   tTitle:SetText(s.title)
   tStep:SetText(string.format(L["Step %d of %d"], i, #steps))
   tText:SetText(s.text)
+  -- Bild: beim ersten Mal bauen, sonst nur an Symbolform anpassen
+  for _, o in ipairs(steps) do if o.picFrame then o.picFrame:Hide() end end
+  local picH = 1
+  if s.pic and ns.Illustration then
+    if not s.picFrame then
+      s.picFrame = ns.Illustration(picHolder, s.pic, 412)
+      if s.picFrame then s.picFrame:SetPoint("TOPLEFT", picHolder, "TOPLEFT", 0, 0) end
+    end
+    if s.picFrame then s.picFrame.Refresh(); s.picFrame:Show(); picH = s.picFrame:GetHeight() end
+  end
+  picHolder:SetHeight(picH)
   s.frame:Show()
   if s.onShow then s.onShow(s.frame) end
   navBack:SetEnabled(i > 1)
@@ -325,7 +344,7 @@ local function ShowStep(i)
   -- Fensterhöhe an den Text anpassen
   local textH = tText:GetStringHeight() or 60
   local controls = s.controlsHeight or ((s.build and 70) or 0)
-  tut:SetHeight(math.max(220, 72 + textH + 12 + controls + 60))
+  tut:SetHeight(math.max(220, 72 + textH + 12 + ((picH > 1) and (picH + 10) or 0) + controls + 60))
 end
 
 function ns.TutorialGo(dir)

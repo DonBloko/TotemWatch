@@ -14,5 +14,6 @@
 Locales.lua
 Data.lua
 Core.lua
+Illustrations.lua
 Options.lua
 UI.lua
