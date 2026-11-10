@@ -806,14 +806,22 @@ function ns.EvaluateTotemicCall()
     end
   end
   if count == 0 then return end
+  -- Zeitfaktor: Totemic Call ist 1 Zauber, Neustellen sind "count" Zauber (je eine globale Abklingzeit).
+  -- Jede gesparte Abklingzeit ist etwas Mana wert – im Kampf mehr (dort zählt jede Sekunde).
+  local saved = count - 1
+  local perCast = (count > 0 and redrop > 0) and (redrop / count) or 0
+  local gcdWorth = perCast * (state.inCombat and 0.5 or 0.25)
+  local bonus = saved * gcdWorth
   local useCall
   if costsKnown then
-    useCall = callCost < lost
+    useCall = callCost < lost + bonus
   else
-    useCall = (fracSum / count) > 0.30   -- Ersatzregel ohne Manakosten
+    -- Ersatzregel ohne Manakosten: je mehr Totems, desto eher lohnt sich der eine Zauber
+    useCall = (fracSum / count) > math.max(0.10, 0.30 - 0.10 * saved)
   end
   state.moveAdvice = {
     useCall = useCall, costsKnown = costsKnown, callCost = callCost,
+    saved = saved, bonus = floor(bonus + 0.5),
     redrop = floor(redrop + 0.5), lost = floor(lost + 0.5),
     avgPct = floor(fracSum / count * 100 + 0.5), names = table.concat(names, ", "),
   }
@@ -1428,6 +1436,12 @@ moveBtn:SetScript("OnEnter", function(self)
       GameTooltip:AddLine(L["Worth it now – cheaper than re-dropping."], 0.4, 1, 0.4, true)
     else
       GameTooltip:AddLine(L["Not worth it now – re-drop the totems instead."], 1, 0.8, 0.2, true)
+    end
+    if adv.costsKnown then
+      GameTooltip:AddLine(format(L["Lost time left: %d mana · re-drop: %d mana"], adv.lost or 0, adv.redrop or 0), 0.7, 0.7, 0.7, true)
+    end
+    if (adv.saved or 0) > 0 then
+      GameTooltip:AddLine(format(L["Saves %d casts (worth about %d mana)"], adv.saved, adv.bonus or 0), 0.7, 0.7, 0.7, true)
     end
   end
   GameTooltip:Show()

@@ -10,6 +10,7 @@
 - Template editor shows totem icons and only lists totems you have learned.
 - **Smarter weapon enchant**: chosen by your role (talents) and weapon – Windfury for melee from level 30, Rockbiter before that, Flametongue for casters and healers. The tooltip and the hint say why; your own choice is kept.
 - Flametongue Totem is only recommended when it helps: at least 2 melee without rogue poisons and no Windfury Totem yet (both are weapon enchants and overwrite each other). Healers (by their group role) do not count as melee. Otherwise Searing Totem.
+- Totemic Call also counts the time it saves: one cast instead of re-dropping every totem is worth some extra mana (more in combat). The tooltip shows the numbers.
 - Not enough mana: the button turns blue-grey like on the Blizzard action bars (totems, weapon enchant, shield, calls and emergency buttons).
 - **Less CPU use**: the bar updates 2x per second out of combat (5x in combat, events still update instantly), round icons and texts only redraw when something changes, enemy nameplates are tracked by event, aura scans are bundled. New command /tw cpu shows how much time TotemWatch uses.
 - **Reasons with numbers**: recommendations say why, e.g. "Strength for melee (3 melee)".
