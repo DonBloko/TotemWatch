@@ -521,3 +521,7 @@ L["Click: choose a template – its totems go on your TotemWatch buttons (also i
 L["Create templates under /tw > Calls."] = "Vorlagen anlegen unter /tw > Rufe."
 L["Template button"] = "Vorlagen-Knopf"
 L["Button left of the bar: put one of your templates on the TotemWatch buttons with one click (also in combat)."] = "Knopf links an der Leiste: eine deiner Vorlagen mit einem Klick auf die TotemWatch-Knöpfe legen (auch im Kampf)."
+L["Right-click: templates – put one on your TotemWatch buttons (also in combat)."] = "Rechtsklick: Vorlagen – eine auf deine TotemWatch-Knöpfe legen (auch im Kampf)."
+L["Lock it under /tw > Bar > Lock window."] = "Sperren unter /tw > Leiste > Fenster sperren."
+L["Templates on the grip (right-click)"] = "Vorlagen am Griff (Rechtsklick)"
+L["Right-click the dotted grip left of the bar to put one of your templates on the TotemWatch buttons (also in combat)."] = "Rechtsklick auf den gepunkteten Griff links an der Leiste legt eine deiner Vorlagen auf die TotemWatch-Knöpfe (auch im Kampf)."

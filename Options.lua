@@ -431,8 +431,8 @@ function ns.CreateOptions()
     L["Moves your totems to you. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
   AddCheck(p, LX, -184, "showRecall", L["Totemic Recall button"],
     L["Removes your totems. Only shown if you know the spell."], function() ns.SetupSecure() end, true)
-  AddCheck(p, LX, -210, "showTemplates", L["Template button"],
-    L["Button left of the bar: put one of your templates on the TotemWatch buttons with one click (also in combat)."],
+  AddCheck(p, LX, -210, "showTemplates", L["Templates on the grip (right-click)"],
+    L["Right-click the dotted grip left of the bar to put one of your templates on the TotemWatch buttons (also in combat)."],
     function() if ns.BuildTemplateList then ns.BuildTemplateList() end end, true)
 
   local function applyVis() ns.ApplyVisibilityDriver(); ns.UpdateVisibility() end

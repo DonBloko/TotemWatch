@@ -924,9 +924,10 @@ frame:SetScript("OnDragStop", function(self)
   TotemWatchDB.point, TotemWatchDB.x, TotemWatchDB.y = p, x, y
 end)
 
--- Griff zum Verschieben: links neben der Leiste, gut sichtbar (vor allem im Clean Look ohne Titel).
--- Nur sichtbar, wenn die Leiste nicht gesperrt ist.
-local grip = CreateFrame("Frame", nil, frame)
+-- Griff links neben der Leiste: Linksklick ziehen = verschieben, Rechtsklick = Vorlagen wählen.
+-- Gesicherter Knopf, damit die Vorlagen-Liste auch im Kampf aufgeht.
+local grip = CreateFrame("Button", "TotemWatchGrip", frame, "SecureHandlerClickTemplate")
+grip:RegisterForClicks("RightButtonUp")
 grip:SetWidth(12)
 grip:SetPoint("TOPRIGHT", frame, "TOPLEFT", -2, 0)
 grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", -2, 0)
@@ -949,7 +950,12 @@ grip:SetScript("OnEnter", function(self)
   self:SetAlpha(1)
   GameTooltip:SetOwner(self, "ANCHOR_LEFT")
   GameTooltip:AddLine(L["Drag to move TotemWatch"], 1, 1, 1)
-  GameTooltip:AddLine(L["Lock it under /tw > Bar > Lock window – the grip then disappears."], 0.8, 0.8, 0.8, true)
+  if ns.gripTemplates then
+    GameTooltip:AddLine(L["Right-click: templates – put one on your TotemWatch buttons (also in combat)."], 0.6, 0.85, 1, true)
+    local tp = TotemWatchDB.activeTemplate and ns.TemplateById and ns.TemplateById(TotemWatchDB.activeTemplate)
+    if tp then GameTooltip:AddLine(L["Template: "] .. tp.name, 0.6, 0.85, 1) end
+  end
+  GameTooltip:AddLine(L["Lock it under /tw > Bar > Lock window."], 0.5, 0.5, 0.5, true)
   GameTooltip:Show()
 end)
 grip:SetScript("OnLeave", function(self) self:SetAlpha(0.55); GameTooltip:Hide() end)
@@ -2638,49 +2644,29 @@ local TPL_ROW_SNIPPET = [[
   self:GetParent():Hide()
 ]]
 
-local tplBtn = CreateFrame("Button", "TotemWatchTemplates", frame, "SecureHandlerClickTemplate")
-tplBtn:SetSize(22, 22)
-tplBtn:SetPoint("RIGHT", frame, "LEFT", -18, 0)
-tplBtn:RegisterForClicks("AnyUp")
-tplBtn:Hide()
-tplBtn.bg = tplBtn:CreateTexture(nil, "BACKGROUND")
-tplBtn.bg:SetAllPoints(); tplBtn.bg:SetColorTexture(0, 0, 0, 0.6)
-tplBtn.icon = tplBtn:CreateTexture(nil, "ARTWORK")
-tplBtn.icon:SetPoint("TOPLEFT", 2, -2); tplBtn.icon:SetPoint("BOTTOMRIGHT", -2, 2)
-tplBtn.icon:SetTexture("Interface\\Icons\\INV_Scroll_03")
-tplBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-tplBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-
-local tplList = CreateFrame("Frame", nil, tplBtn, "SecureHandlerBaseTemplate")
-tplList:SetPoint("BOTTOMLEFT", tplBtn, "TOPLEFT", 0, 4)
+-- Die Vorlagen-Liste öffnet sich per Rechtsklick auf den Griff links an der Leiste
+-- (gesicherter Klick: funktioniert auch im Kampf)
+local tplList = CreateFrame("Frame", nil, grip, "SecureHandlerBaseTemplate")
+tplList:SetPoint("BOTTOMLEFT", grip, "TOPLEFT", 0, 4)
 tplList:SetFrameStrata("DIALOG")
 tplList:Hide()
 tplList.bg = tplList:CreateTexture(nil, "BACKGROUND")
 tplList.bg:SetAllPoints(); tplList.bg:SetColorTexture(0.03, 0.03, 0.04, 0.92)
 tplList.rows = {}
-tplBtn:SetFrameRef("list", tplList)
-tplBtn:SetAttribute("_onclick", [[
+grip:SetFrameRef("list", tplList)
+grip:SetAttribute("_onclick", [[
+  if button ~= "RightButton" then return end
   local l = self:GetFrameRef("list")
   if l:IsShown() then l:Hide() else l:Show() end
 ]])
-tplBtn:SetScript("OnEnter", function(self)
-  GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-  GameTooltip:AddLine(L["Templates"], 1, 1, 1)
-  local tp = TotemWatchDB.activeTemplate and ns.TemplateById(TotemWatchDB.activeTemplate)
-  if tp then GameTooltip:AddLine(L["Template: "] .. tp.name, 0.6, 0.85, 1) end
-  GameTooltip:AddLine(L["Click: choose a template – its totems go on your TotemWatch buttons (also in combat)."], 0.8, 0.8, 0.8, true)
-  GameTooltip:AddLine(L["Create templates under /tw > Calls."], 0.5, 0.5, 0.5, true)
-  GameTooltip:Show()
-end)
-tplBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-ns.tplBtn = tplBtn
 
 -- Liste aufbauen (nur außerhalb des Kampfes: Attribute und Sichtbarkeit geschützter Knöpfe)
 function ns.BuildTemplateList()
   if InCombatLockdown() then state.pendingSecure = true; return end
   local tps = TotemWatchDB.templates or {}
   local want = (TotemWatchDB.showTemplates ~= false) and #tps > 0
-  if want then tplBtn:Show() else tplBtn:Hide(); tplList:Hide() end
+  if not want then tplList:Hide() end
+  ns.gripTemplates = want   -- Griff bleibt dann auch bei gesperrter Leiste sichtbar (für den Rechtsklick)
   for i, tp in ipairs(tps) do
     local row = tplList.rows[i]
     if not row then
@@ -3242,7 +3228,8 @@ local function Refresh()
 
   if state.fearAt and now - state.fearAt > 5 then state.fearAt = nil end
   if ns.FixLayers then ns.FixLayers() end      -- obere Ebene (Leuchten, Zahlen) immer über dem Knopf
-  if ns.grip then ns.grip:SetShown(not TotemWatchDB.locked) end   -- Griff nur, wenn nicht gesperrt
+  -- Griff: zum Verschieben (nicht gesperrt) oder für die Vorlagen; geschützt -> nur außerhalb des Kampfes
+  if ns.grip and not InCombatLockdown() then ns.grip:SetShown((not TotemWatchDB.locked) or ns.gripTemplates and true or false) end
   if ns.CleanPost then ns.CleanPost() end   -- Clean Look: ruhigere Darstellung nachziehen
   if ns.RoundPost then ns.RoundPost() end     -- runde Symbole: Streifen angleichen, Ring einfärben
 end
