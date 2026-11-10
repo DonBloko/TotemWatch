@@ -259,7 +259,7 @@ local function BuildSteps()
     { -- 4 Bedienung
       title = L["How to use the bar"],
       pic = "click",
-      text = L["|cffffd100Left-click|r a totem button to drop that totem.\n|cffffd100Right-click|r it to choose another totem.\nA |cffffd100glowing|r button is what you should press now.\n|cffffd100Red|r = missing, |cffffd100yellow|r = expiring, |cffffd100orange|r = a better totem exists.\nIn the selection menu, |cffffd100right-click|r a totem to put it on your Call of the Elements bar – this also works in combat."],
+      text = L["Left-click a totem button to drop that totem.\nRight-click it to choose another totem.\nA |cffffd933glowing|r button is what you should press now.\n|cffff2020Red|r = missing, |cffffd900yellow|r = expiring, |cffff8000orange|r = a better totem exists.\nIn the selection menu, right-click a totem to put it on your Call of the Elements bar – this also works in combat."],
       onShow = EnsureTestMode,
     },
     { -- 5 Tasten

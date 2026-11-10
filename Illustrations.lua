@@ -15,6 +15,7 @@ local ICON = {   -- Beispiel-Symbole (Zauber-IDs)
 }
 -- Schriftfarbe der Bilder: dasselbe Gold wie das Leuchten
 local GOLD = { 1, 0.85, 0.2 }
+local PLAIN = { 0.92, 0.92, 0.92 }   -- normale Beschriftung
 local STATUS = {
   missing = { 1, 0.1, 0.1 }, expiring = { 1, 0.85, 0 }, wrong = { 1, 0.5, 0 },
   ok = { 0.1, 0.9, 0.1 }, calm = { 0.08, 0.08, 0.08 }, far = { 1, 0.55, 0.1 },
@@ -176,7 +177,7 @@ SCENES.click = function(parent, w)
   ic[#ic + 1] = Icon(f, 98, -60, 32, ICON.water, "ok", false, "2m")
   Mouse(f, 22, -10, "left")
   Arrow(f, 26, -36, "up", 22)
-  Text(f, L["Left-click: cast"], 52, -16, GOLD)
+  Text(f, L["Left-click: cast"], 52, -16, PLAIN)
   Text(f, L["Glowing = cast now"], 14, -110, GOLD, 10)
   -- rechts: Auswahl über dem Knopf (drei kleine Symbole übereinander)
   local x0 = 236
@@ -184,7 +185,7 @@ SCENES.click = function(parent, w)
   ic[#ic + 1] = Icon(f, x0 + 4, -34, 24, ICON.tremor)
   ic[#ic + 1] = Icon(f, x0 + 4, -8, 24, 8071)
   Mouse(f, x0 + 40, -62, "right")
-  local lab = Text(f, L["Right-click: choose another totem"], x0 + 70, -60, GOLD, 10)
+  local lab = Text(f, L["Right-click: choose another totem"], x0 + 70, -60, PLAIN, 10)
   lab:SetWidth(w - (x0 + 70) - 8)
   lab:SetWordWrap(true)
   return f
@@ -225,7 +226,7 @@ SCENES.grip = function(parent, w)
   Mouse(f, gx - 30, -58, "left")
   Arrow(f, gx - 32, -88, "left", 22)
   Arrow(f, gx - 8, -88, "right", 22)
-  Text(f, L["Drag: move the bar"], 10, -14, GOLD)
+  Text(f, L["Drag: move the bar"], 10, -14, PLAIN)
   -- Vorlagen-Liste
   local lx = 210
   Mouse(f, lx - 34, -56, "right")
@@ -241,7 +242,7 @@ SCENES.grip = function(parent, w)
     end
     Text(f, names[r], lx + 72, -41 - (r - 1) * 21, r == 2 and GOLD or nil, 10)
   end
-  Text(f, L["Right-click: your templates"], lx, -14, GOLD)
+  Text(f, L["Right-click: your templates"], lx, -14, PLAIN)
   return f
 end
 
