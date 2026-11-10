@@ -183,6 +183,9 @@ function ns.CreateOptions()
   AddCheck(P, LX + 56, -110, "cleanLook", L["Clean look"],
     L["Thin dark frames, color only where you have to act, calmer icons, smaller glow and no mini icons (they are in the tooltip). Works with every design."],
     function() if ns.ApplySkin then ns.ApplySkin() end; if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end end, true)
+  AddCheck(P, RX + 40, -110, "roundIcons", L["Round icons (beta)"],
+    L["Shows the totem, weapon and shield icons as circles with a thin ring. The ring shows the status color."],
+    function() if ns.ApplySkin then ns.ApplySkin() end; if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end end, true)
 
   local y = -150
 

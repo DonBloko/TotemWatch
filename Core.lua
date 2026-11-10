@@ -41,6 +41,7 @@ local DEFAULTS = {
   diseaseButton = true, -- Notfall-Knopf Disease Cleansing
   groundingButton = true, -- Notfall-Knopf Grounding
   cleanLook = true,     -- Clean Look: dünne Rahmen, Farbe nur bei Problemen, ruhige Symbole
+  roundIcons = false,   -- runde Symbole (Beta)
 }
 
 ---------------------------------------------------------------------------
@@ -2039,6 +2040,7 @@ function ns.ApplySkin()
   end
   hintBg:SetWidth(math.max(frame:GetWidth(), 380))
   for _, fs in ipairs(hints) do fs:SetWidth(hintBg:GetWidth() - 12) end
+  if ns.ApplyRound then ns.ApplyRound() end   -- runde Symbole an/aus
 end
 
 -- Clean Look, nach jeder Aktualisierung: Mini-Symbole aus (stehen im Tooltip),
@@ -2049,7 +2051,7 @@ function ns.CleanPost()
   for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }) do
     b.rec:Hide(); b.other:Hide(); b.cur:Hide()
     SetGlow(b.recGlow, false)
-    local tex = b.icon.round and b.icon.roundSrc or b.icon:GetTexture()
+    local tex = b.icon:GetTexture()
     local empty = tex == nil or tex == 134400 or (type(tex) == "string" and tex:find("QuestionMark") ~= nil)
     b.icon:SetAlpha(empty and 0 or 1)
     local v = CALM[b.statusKey or "NONE"] and 0.72 or 1
@@ -2057,66 +2059,111 @@ function ns.CleanPost()
   end
 end
 
--- Runde Symbole (TEST): SetPortraitToTexture rechnet ein Symbol in ein rundes Bild um –
--- ohne Masken-Texturen (Masken haben bei WoW Forever einen Absturz ausgelöst).
--- Wird bewusst NICHT gespeichert: Stürzt das Spiel ab, ist nach dem Neustart alles wie vorher.
-local function SetRound(b, on)
-  local icon = b.icon
-  if on and not icon.origSetTexture then
-    icon.origSetTexture = icon.SetTexture
-    icon.SetTexture = function(self, tex, ...)
-      if self.round and tex and SetPortraitToTexture then
-        if tex ~= self.roundSrc then
-          self.roundSrc = tex
-          if not pcall(SetPortraitToTexture, self, tex) then
-            self.round = false
-            return self.origSetTexture(self, tex, ...)
-          end
-        end
-        return
-      end
-      self.roundSrc = nil
-      return self.origSetTexture(self, tex, ...)
-    end
+-- Runde Symbole: das Symbol wird aus schmalen waagerechten Streifen zusammengesetzt,
+-- deren Breite einem Kreis folgt; ein feiner Ring deckt die Stufen am Rand ab.
+-- Nur normale Texturen – keine Masken (Masken haben bei WoW Forever einen Absturz ausgelöst).
+local MEDIA = "Interface\\AddOns\\" .. ADDON .. "\\media\\"
+local ROUND_ROWS = 20
+
+local function LayoutRound(r)
+  local w, h = r:GetWidth(), r:GetHeight()
+  if not w or w <= 0 or not h or h <= 0 then return end
+  for i, t in ipairs(r.strips) do
+    local y0, y1 = (i - 1) / ROUND_ROWS, i / ROUND_ROWS
+    local yc = (y0 + y1) / 2 - 0.5
+    local hw = math.sqrt(math.max(0, 0.25 - yc * yc))
+    local x0, x1 = 0.5 - hw, 0.5 + hw
+    t:ClearAllPoints()
+    t:SetPoint("TOPLEFT", r, "TOPLEFT", x0 * w, -y0 * h)
+    t:SetSize(math.max(0.1, (x1 - x0) * w), h / ROUND_ROWS + 0.05)   -- minimal überlappen: keine Lücken
+    t:SetTexCoord(0.08 + x0 * 0.84, 0.08 + x1 * 0.84, 0.08 + y0 * 0.84, 0.08 + y1 * 0.84)
   end
-  local cur = icon.roundSrc or icon:GetTexture()
-  icon.round = on and true or false
-  icon.roundSrc = nil
-  if on then
-    icon:SetTexCoord(0, 1, 0, 1)
-  else
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    b.border:SetAlpha(1)
-  end
-  if cur then icon:SetTexture(cur) end
 end
 
--- nach jeder Aktualisierung: eckigen Hintergrund/Rahmen runder Knöpfe ausblenden
+local function EnsureRound(b)
+  if b.roundIcon then return b.roundIcon end
+  local r = CreateFrame("Frame", nil, b)
+  r:SetPoint("TOPLEFT", b.icon, "TOPLEFT")
+  r:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT")
+  r.strips = {}
+  for i = 1, ROUND_ROWS do r.strips[i] = r:CreateTexture(nil, "ARTWORK") end
+  r:SetScript("OnSizeChanged", LayoutRound)
+  r.ring = b.over:CreateTexture(nil, "OVERLAY", nil, 1)
+  r.ring:SetTexture(MEDIA .. "round_ring")
+  r.ring:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -1, 1)
+  r.ring:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, -1)
+  r:Hide(); r.ring:Hide()
+  b.roundIcon = r
+  return r
+end
+
+local function SetRound(b, on)
+  if not on and not b.roundIcon then return end
+  local r = EnsureRound(b)
+  local hl = b:GetHighlightTexture()
+  if on then
+    r.src = nil
+    r:Show(); r.ring:Show(); b.icon:Hide()
+    LayoutRound(r)
+    pcall(b.cd.SetSwipeTexture, b.cd, MEDIA .. "round_disc")
+    b:SetHighlightTexture(MEDIA .. "round_disc", "ADD")
+    hl = b:GetHighlightTexture()
+    if hl then hl:ClearAllPoints(); hl:SetAllPoints(r); hl:SetVertexColor(1, 1, 1, 0.3) end
+  else
+    r:Hide(); r.ring:Hide(); b.icon:Show()
+    b.border:SetAlpha(1)
+    pcall(b.cd.SetSwipeTexture, b.cd, "Interface\\Buttons\\WHITE8X8")
+    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    hl = b:GetHighlightTexture()
+    if hl then hl:ClearAllPoints(); hl:SetAllPoints(b); hl:SetVertexColor(1, 1, 1, 1) end
+  end
+end
+
+local ROUND_BUTTONS
+local function RoundButtons()
+  ROUND_BUTTONS = ROUND_BUTTONS or { slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }
+  return ROUND_BUTTONS
+end
+
+-- Ein/aus laut Einstellung (aus ApplySkin, außerhalb des Kampfes)
+function ns.ApplyRound()
+  local on = TotemWatchDB and TotemWatchDB.roundIcons and not ns.masqueGroup
+  for _, b in ipairs(RoundButtons()) do SetRound(b, on) end
+end
+
+-- Nach jeder Aktualisierung: Streifen an das echte Symbol angleichen (Bild, Farbe, Helligkeit),
+-- eckigen Rahmen ausblenden, Status als Farbe des Rings zeigen.
 function ns.RoundPost()
-  for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }) do
-    if b.icon.round then
+  for _, b in ipairs(RoundButtons()) do
+    local r = b.roundIcon
+    if r and r:IsShown() then
+      local icon = b.icon
+      local tex = icon:GetTexture()
+      if tex ~= r.src then
+        r.src = tex
+        for _, t in ipairs(r.strips) do t:SetTexture(tex) end
+      end
+      local vr, vg, vb = icon:GetVertexColor()
+      local a = icon:GetAlpha()
+      local desat = icon.IsDesaturated and icon:IsDesaturated() or false
+      for _, t in ipairs(r.strips) do
+        t:SetVertexColor(vr, vg, vb); t:SetAlpha(a); t:SetDesaturated(desat)
+      end
       if b.pulse:IsPlaying() then b.pulse:Stop() end
       b.border:SetAlpha(0)
+      if b.cleanLine then b.cleanLine:Hide() end
+      local c = b.statusColor
+      if c and b.statusKey and not CALM[b.statusKey] then
+        r.ring:SetVertexColor(c[1], c[2], c[3], 1)
+      elseif TotemWatchDB.cleanLook then
+        r.ring:SetVertexColor(0.08, 0.08, 0.08, 0.95)
+      elseif c then
+        r.ring:SetVertexColor(c[1], c[2], c[3], 1)
+      else
+        r.ring:SetVertexColor(0.3, 0.3, 0.3, 1)
+      end
     end
   end
-end
-
--- /tw roundtest       -> nur der Feuer-Knopf wird rund
--- /tw roundtest all   -> alle Totem-Knöpfe, Waffe und Schild
--- /tw roundtest off   -> wieder eckig
-function ns.RoundTest(arg)
-  if not SetPortraitToTexture then return "missing" end
-  local list
-  if arg == "all" then
-    list = { slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }
-  elseif arg == "off" then
-    for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], weaponBtn, shieldBtn }) do SetRound(b, false) end
-    return "off"
-  else
-    list = { slots[1] }
-  end
-  for _, b in ipairs(list) do SetRound(b, true) end
-  return (arg == "all") and "all" or "one"
 end
 
 local function UpdateCooldown(b, spellName)
@@ -2763,8 +2810,8 @@ local function Refresh()
   end
 
   if state.fearAt and now - state.fearAt > 5 then state.fearAt = nil end
-  if ns.RoundPost then ns.RoundPost() end     -- runde Symbole (Test): eckigen Rahmen ausblenden
   if ns.CleanPost then ns.CleanPost() end   -- Clean Look: ruhigere Darstellung nachziehen
+  if ns.RoundPost then ns.RoundPost() end     -- runde Symbole: Streifen angleichen, Ring einfärben
 end
 
 ---------------------------------------------------------------------------
@@ -3404,11 +3451,13 @@ SlashCmdList.TOTEMWATCH = function(msg)
     end
   elseif cmd == "soundtest" or cmd == "testsound" then
     ns.TestWarnings()
-  elseif cmd == "roundtest" then
-    local r = ns.RoundTest(arg)
-    if r == "missing" then p(L["Round icons are not supported by this client."])
-    elseif r == "off" then p(L["Round icons off."])
-    else p(L["Round icons test on. If the game stays stable, try /tw roundtest all. /tw roundtest off switches back. (Not saved – after a /reload everything is square again.)"]) end
+  elseif cmd == "round" or cmd == "roundtest" then
+    if InCombatLockdown() then p(L["Not possible in combat."]) return end
+    if arg == "off" then TotemWatchDB.roundIcons = false
+    elseif arg == "on" then TotemWatchDB.roundIcons = true
+    else TotemWatchDB.roundIcons = not TotemWatchDB.roundIcons end
+    ns.ApplySkin(); SafeCall("Display", Refresh)
+    p(L["Round icons: "] .. (TotemWatchDB.roundIcons and L["on"] or L["off"]))
   elseif cmd == "clean" then
     if InCombatLockdown() then p(L["Not possible in combat."]) return end
     TotemWatchDB.cleanLook = not TotemWatchDB.cleanLook
