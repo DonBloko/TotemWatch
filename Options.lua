@@ -111,12 +111,101 @@ local function RefreshSkinButtons()
   end
 end
 
+local dropdowns = {}
+
 local function RefreshPanel()
   for _, c in ipairs(checks) do c.cb:SetChecked(TotemWatchDB[c.key] and true or false) end
   for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider }) do
     if s then s.Refresh() end
   end
+  for _, d in ipairs(dropdowns) do d.Refresh() end
   RefreshSkinButtons()
+end
+
+-- Eigene Auswahlliste (Blizzards UIDropDownMenu kann im Optionsmenü Taint-Fehler auslösen).
+-- items = { { value = ..., text = "..." }, ... }
+local openList
+local function AddDropdown(parent, x, y, label, width, items, getter, setter, tooltip, needsOOC)
+  local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  title:SetPoint("TOPLEFT", x, y)
+  title:SetText(label)
+
+  local b = CreateFrame("Button", nil, parent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+  b:SetSize(width, 24)
+  b:SetPoint("TOPLEFT", x, y - 18)
+  if b.SetBackdrop then
+    b:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8",
+      edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+    b:SetBackdropColor(0.06, 0.06, 0.07, 0.95)
+    b:SetBackdropBorderColor(0.35, 0.35, 0.38, 1)
+  end
+  b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  b.text:SetPoint("LEFT", 8, 0); b.text:SetPoint("RIGHT", -22, 0); b.text:SetJustifyH("LEFT")
+  b.arrow = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  b.arrow:SetPoint("RIGHT", -8, 0); b.arrow:SetText("v")
+  b:SetHighlightTexture("Interface\\Buttons\\WHITE8X8", "ADD")
+  b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
+
+  -- Liste
+  local list = CreateFrame("Frame", nil, b, BackdropTemplateMixin and "BackdropTemplate" or nil)
+  list:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2)
+  list:SetSize(width, #items * 22 + 6)
+  list:SetFrameStrata("FULLSCREEN_DIALOG")
+  list:SetFrameLevel(b:GetFrameLevel() + 20)
+  if list.SetBackdrop then
+    list:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8",
+      edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+    list:SetBackdropColor(0.04, 0.04, 0.05, 0.98)
+    list:SetBackdropBorderColor(0.35, 0.35, 0.38, 1)
+  end
+  list:Hide()
+  list:EnableMouse(true)
+
+  local function Refresh()
+    local cur = getter()
+    for _, it in ipairs(items) do
+      if it.value == cur then b.text:SetText(it.text) end
+    end
+  end
+  b.Refresh = Refresh
+
+  for i, it in ipairs(items) do
+    local row = CreateFrame("Button", nil, list)
+    row:SetSize(width - 6, 22)
+    row:SetPoint("TOPLEFT", 3, -3 - (i - 1) * 22)
+    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    row.text:SetPoint("LEFT", 6, 0)
+    row.text:SetText(it.text)
+    row:SetHighlightTexture("Interface\\Buttons\\WHITE8X8", "ADD")
+    row:GetHighlightTexture():SetVertexColor(0.2, 0.5, 1, 0.35)
+    row:SetScript("OnClick", function()
+      list:Hide(); openList = nil
+      local apply = function() setter(it.value) end
+      if needsOOC then OutOfCombat(apply) else apply() end
+      Refresh()
+    end)
+  end
+
+  b:SetScript("OnClick", function()
+    if list:IsShown() then
+      list:Hide(); openList = nil
+    else
+      if openList then openList:Hide() end
+      list:Show(); openList = list
+    end
+  end)
+  if tooltip then
+    b:SetScript("OnEnter", function(self)
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(label, 1, 1, 1)
+      GameTooltip:AddLine(tooltip, 0.8, 0.8, 0.8, true)
+      GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  end
+  b:SetScript("OnHide", function() list:Hide(); if openList == list then openList = nil end end)
+  dropdowns[#dropdowns + 1] = b
+  return b
 end
 
 
@@ -181,7 +270,7 @@ function ns.CreateOptions()
 
   -- Reiter
   local TABS = {
-    { key = "look",      label = L["Look"],      height = 300 },
+    { key = "look",      label = L["Look"],      height = 330 },
     { key = "bar",       label = L["Bar"],       height = 280 },
     { key = "alerts",    label = L["Warnings"],  height = 300 },
     { key = "emergency", label = L["Emergency"], height = 260 },
@@ -222,44 +311,64 @@ function ns.CreateOptions()
   -- Aussehen
   -----------------------------------------------------------------------
   local p = pages.look
-  AddHeader(p, LX, -8, L["Design"])
-  for i, key in ipairs(ns.SKIN_ORDER) do
-    local b = AddButton(p, LX + ((i - 1) % 4) * 128, -28 - math.floor((i - 1) / 4) * 26, L[ns.SKINS[key].name], 124, function()
-      OutOfCombat(function()
-        TotemWatchDB.skin = key
-        ApplyLook()
-        RefreshSkinButtons()
-      end)
-    end)
-    skinButtons[key] = b
-  end
-  AddCheck(p, LX, -90, "cleanLook", L["Clean look"],
-    L["Thin dark frames, color only where you have to act, calmer icons, smaller glow and no mini icons (they are in the tooltip). Works with every design."],
-    ApplyLook, true)
-  AddCheck(p, RX, -90, "roundIcons", L["Round icons (beta)"],
-    L["Shows the totem, weapon and shield icons as circles with a thin ring. The ring shows the status color."],
-    ApplyLook, true)
+  AddHeader(p, LX, -8, L["Appearance"])
 
-  AddHeader(p, LX, -134, L["Hints below the bar"])
-  AddCheck(p, LX, -154, "showHints", L["Show hint texts"],
+  local designItems = {}
+  for _, key in ipairs(ns.SKIN_ORDER) do
+    designItems[#designItems + 1] = { value = key, text = L[ns.SKINS[key].name] }
+  end
+  AddDropdown(p, LX, -30, L["Design"], 230, designItems,
+    function() return TotemWatchDB.skin or "classic" end,
+    function(v) TotemWatchDB.skin = v; ApplyLook() end,
+    L["Layout of the bar. You can also use /tw skin <name>."], true)
+
+  AddDropdown(p, LX, -84, L["Style"], 230, {
+      { value = true,  text = L["Clean"] },
+      { value = false, text = L["Blizzard (frames and title)"] },
+    },
+    function() return TotemWatchDB.cleanLook and true or false end,
+    function(v) TotemWatchDB.cleanLook = v; ApplyLook() end,
+    L["Thin dark frames, color only where you have to act, calmer icons, smaller glow and no mini icons (they are in the tooltip). Works with every design."], true)
+
+  AddDropdown(p, LX, -138, L["Icon shape"], 230, {
+      { value = false, text = L["Square"] },
+      { value = true,  text = L["Round"] },
+    },
+    function() return TotemWatchDB.roundIcons and true or false end,
+    function(v) TotemWatchDB.roundIcons = v; ApplyLook() end,
+    L["Shows the totem, weapon and shield icons as circles with a thin ring. The ring shows the status color."], true)
+
+  AddDropdown(p, LX, -192, L["Hints below the bar"], 230, {
+      { value = "short", text = L["One line (next step)"] },
+      { value = "full",  text = L["Full list"] },
+      { value = "off",   text = L["Off"] },
+    },
+    function()
+      if not TotemWatchDB.showHints then return "off" end
+      return TotemWatchDB.shortHints and "short" or "full"
+    end,
+    function(v)
+      TotemWatchDB.showHints = (v ~= "off")
+      TotemWatchDB.shortHints = (v == "short")
+      if ns.Refresh then ns.SafeCall("Display", ns.Refresh) end
+    end,
     L["Explanations below the bar: what is missing and why."])
-  AddCheck(p, LX, -180, "shortHints", L["Short hints (one line)"],
-    L["Only the next step below the bar, plus how many more there are. Details are in the button tooltips."])
-  AddCheck(p, LX, -206, "glow", L["Glow recommended totems"],
+
+  AddCheck(p, LX, -248, "glow", L["Glow recommended totems"],
     L["The button (or the totem in the selection) that you should press glows."])
 
-  AddHeader(p, RX, -134, L["Sizes"])
-  scaleSlider = AddSlider(p, RX, -154, L["Size"], 0.5, 2.0, 0.05,
+  AddHeader(p, RX, -8, L["Sizes"])
+  scaleSlider = AddSlider(p, RX, -30, L["Size"], 0.5, 2.0, 0.05,
     function() return TotemWatchDB.scale or 1 end,
     function(v)
       if InCombatLockdown() then return end
       TotemWatchDB.scale = v
       ns.ApplyPosition()
     end)
-  hintSlider = AddSlider(p, RX, -199, L["Hint text size"], 9, 20, 1,
+  hintSlider = AddSlider(p, RX, -84, L["Hint text size"], 9, 20, 1,
     function() return TotemWatchDB.hintSize or 13 end,
     function(v) TotemWatchDB.hintSize = v; if ns.ApplyHintFont then ns.ApplyHintFont() end end)
-  msgSlider = AddSlider(p, RX, -244, L["Message size"], 14, 40, 1,
+  msgSlider = AddSlider(p, RX, -138, L["Message size"], 14, 40, 1,
     function() return TotemWatchDB.messageSize or 24 end,
     function(v)
       TotemWatchDB.messageSize = v
