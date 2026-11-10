@@ -101,7 +101,7 @@ local function AddSlider(parent, x, y, label, minV, maxV, step, getter, setter)
   return s
 end
 
-local scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider
+local scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider, afterSlider
 local skinButtons = {}
 
 -- Gewähltes Design im Menü hervorheben
@@ -115,7 +115,7 @@ local dropdowns = {}
 
 local function RefreshPanel()
   for _, c in ipairs(checks) do c.cb:SetChecked(TotemWatchDB[c.key] and true or false) end
-  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider }) do
+  for _, s in ipairs({ scaleSlider, warnSlider, hintSlider, msgSlider, tremorSlider, dimSlider, afterSlider }) do
     if s then s.Refresh() end
   end
   for _, d in ipairs(dropdowns) do d.Refresh() end
@@ -271,7 +271,7 @@ function ns.CreateOptions()
   -- Reiter
   local TABS = {
     { key = "look",      label = L["Look"],      height = 330 },
-    { key = "bar",       label = L["Bar"],       height = 280 },
+    { key = "bar",       label = L["Bar"],       height = 300 },
     { key = "alerts",    label = L["Warnings"],  height = 300 },
     { key = "emergency", label = L["Emergency"], height = 260 },
     { key = "help",      label = L["Help"],      height = 140 },
@@ -408,13 +408,16 @@ function ns.CreateOptions()
     function() if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end end)
   AddCheck(p, RX, -158, "useMasque", L["Use Masque (if installed)"],
     L["Styles the buttons with your Masque skin. Changes need a /reload."])
-  AddButton(p, LX + 4, -226, L["Test display (on/off)"], 180, function()
+  afterSlider = AddSlider(p, RX, -192, L["Keep visible after combat (sec.)"], 0, 30, 1,
+    function() return TotemWatchDB.afterCombat or 0 end,
+    function(v) TotemWatchDB.afterCombat = v end)
+  AddButton(p, LX + 4, -248, L["Test display (on/off)"], 180, function()
     OutOfCombat(function()
       ns.ToggleTest()
       Note(L["Test mode "] .. (ns.state.test and L["on"] or L["off"]))
     end)
   end)
-  AddButton(p, LX + 194, -226, L["Reset position"], 180, function()
+  AddButton(p, LX + 194, -248, L["Reset position"], 180, function()
     OutOfCombat(function() ns.ResetPosition(); RefreshPanel() end)
   end)
 

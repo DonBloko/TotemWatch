@@ -43,6 +43,7 @@ local DEFAULTS = {
   cleanLook = true,     -- Clean Look: dünne Rahmen, Farbe nur bei Problemen, ruhige Symbole
   roundIcons = false,   -- runde Symbole (Beta)
   shortHints = true,    -- nur eine Hinweiszeile (nächster Schritt)
+  afterCombat = 8,      -- Sekunden, die die Leiste nach dem Kampf sichtbar bleibt
 }
 
 ---------------------------------------------------------------------------
@@ -3372,6 +3373,17 @@ ev:SetScript("OnEvent", function(_, event, ...)
     wipe(state.lastRec)   -- Empfehlungen neu auf die Knöpfe legen
     wipe(state.slotMsg)   -- im nächsten Kampf wieder melden
     if state.pendingSecure then ApplyPosition(); SetupSecure(); ApplyVisibilityDriver() end
+    -- Leiste nach dem Kampf noch ein paar Sekunden zeigen (z. B. für Totemic Recall)
+    local linger = TotemWatchDB.afterCombat or 0
+    if linger > 0 then
+      state.pullUntil = math.max(state.pullUntil, GetTime() + linger)
+      -- kurz warten: der Sichtbarkeits-Treiber blendet beim Kampfende selbst aus
+      if C_Timer then
+        C_Timer.After(0.3, function()
+          if not InCombatLockdown() and GetTime() < state.pullUntil and not frame:IsShown() then frame:Show() end
+        end)
+      end
+    end
     UpdateVisibility()
   elseif event == "GROUP_ROSTER_UPDATE" then
     ScanGroup()
