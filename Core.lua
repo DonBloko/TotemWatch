@@ -2238,6 +2238,9 @@ function ns.RoundPost()
         r.ring:SetVertexColor(c[1], c[2], c[3], 1)
       elseif TotemWatchDB.cleanLook then
         r.ring:SetVertexColor(0.08, 0.08, 0.08, 0.95)
+      elseif b.statusKey == "COVERED" or b.statusKey == "NONE" then
+        -- Ruf der Elemente / Totemruf / Rückruf "bereit": neutraler Ring statt Blau
+        r.ring:SetVertexColor(0.22, 0.22, 0.22, 1)
       elseif c then
         r.ring:SetVertexColor(c[1], c[2], c[3], 1)
       else
@@ -3499,6 +3502,19 @@ SlashCmdList.TOTEMWATCH = function(msg)
     local id = tonumber(arg)
     if id then SetBoss(id) else ClearBoss() end
     p("Boss: " .. (state.bossName or L["none"]))
+  elseif cmd == "look" then
+    -- Diagnose der Darstellung: Status, Linie, Leuchten, runde Symbole je Knopf
+    print(format("|cff0070deTotemWatch|r look: skin=%s clean=%s round=%s glowOpt=%s",
+      tostring(TotemWatchDB.skin), tostring(TotemWatchDB.cleanLook), tostring(TotemWatchDB.roundIcons), tostring(TotemWatchDB.glow)))
+    for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], shieldBtn }) do
+      local line, g, r = b.cleanLine, b.glow, b.roundIcon
+      print(format("  %s: status=%s line=%s/%.2f glow=%s/%.2f over=%s round=%s border=%.2f icon=%s",
+        b:GetName() or "?", tostring(b.statusKey),
+        line and tostring(line:IsShown()) or "-", line and line:GetAlpha() or 0,
+        g and tostring(g:IsShown()) or "-", g and g:GetAlpha() or 0,
+        b.over and tostring(b.over:IsVisible()) or "-",
+        r and tostring(r:IsShown()) or "-", b.border:GetAlpha(), tostring(b.icon:IsShown())))
+    end
   elseif cmd == "debug" then
     local known = {}
     for key in pairs(ns.TOTEMS) do if IsKnown(key) then known[#known + 1] = TotemName(key) end end
