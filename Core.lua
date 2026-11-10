@@ -1231,6 +1231,7 @@ moreBtn:RegisterForClicks("AnyUp")
 moreBtn:Hide()
 do
   local bg = moreBtn:CreateTexture(nil, "BACKGROUND")
+  moreBtn.bg = bg
   bg:SetAllPoints(); bg:SetColorTexture(0.15, 0.15, 0.15, 1)
   local t = moreBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   t:SetPoint("CENTER", 0, 2); t:SetText("...")
@@ -1969,7 +1970,8 @@ function ns.ApplySkin()
       end
     end
     width = x + pad
-    height = top + size + ((S.timer == "below") and 16 or 4)
+    -- unten Platz für die Restzeit unter den kleinen Waffe-/Schild-Knöpfen
+    height = top + size + ((S.timer == "below") and 16 or 13)
   elseif S.extrasBelow or S.vertical then
     -- Zwei Ebenen / Senkrecht: alle Zusatzknöpfe als kleine Reihe darunter
     local y = S.vertical and (-top - nVis * (size + gap) - 2) or (-top - size - 4)
@@ -2183,6 +2185,21 @@ function ns.ApplyRound()
     castAll.bg:SetColorTexture(0.05, 0.25, 0.55, 1)
     castAll:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     hl = castAll:GetHighlightTexture()
+    if hl then hl:SetVertexColor(1, 1, 1, 1) end
+  end
+
+  -- "..."-Knopf (Kompakt): ebenfalls rund
+  if on then
+    moreBtn.bg:SetTexture(MEDIA .. "round_disc")
+    moreBtn.bg:SetVertexColor(0.15, 0.15, 0.15, 1)
+    moreBtn:SetHighlightTexture(MEDIA .. "round_disc", "ADD")
+    hl = moreBtn:GetHighlightTexture()
+    if hl then hl:SetVertexColor(1, 1, 1, 0.3) end
+  else
+    moreBtn.bg:SetVertexColor(1, 1, 1, 1)
+    moreBtn.bg:SetColorTexture(0.15, 0.15, 0.15, 1)
+    moreBtn:SetHighlightTexture("Interface\Buttons\ButtonHilight-Square", "ADD")
+    hl = moreBtn:GetHighlightTexture()
     if hl then hl:SetVertexColor(1, 1, 1, 1) end
   end
 
