@@ -1012,7 +1012,7 @@ local function CreateCastButton(name, x)
   b.strip = over:CreateTexture(nil, "OVERLAY", nil, 2)   -- Status-Farbstreifen (Minimal)
   b.strip:SetHeight(3); b.strip:Hide()
   -- Clean Look: feine Statuslinie am unteren Rand (nur sichtbar, wenn etwas zu tun ist)
-  b.cleanLine = over:CreateTexture(nil, "OVERLAY", nil, 3)
+  b.cleanLine = b:CreateTexture(nil, "OVERLAY", nil, 7)   -- direkt am Knopf: liegt sicher über dem Symbol
   b.cleanLine:SetHeight(3)
   b.cleanLine:SetPoint("BOTTOMLEFT", 1, 1); b.cleanLine:SetPoint("BOTTOMRIGHT", -1, 1)
   b.cleanLine:Hide()
@@ -1788,11 +1788,9 @@ local function SetBorder(b, status, pulse)
     else
       b.cleanLine:SetColorTexture(c[1], c[2], c[3], 1)
       b.cleanLine:Show()
-      if pulse then
-        if not b.cleanPulse:IsPlaying() then b.cleanPulse:Play() end
-      elseif b.cleanPulse:IsPlaying() then
-        b.cleanPulse:Stop(); b.cleanLine:SetAlpha(1)
-      end
+      -- ruhige, durchgehende Linie (das Pulsieren machte sie zeitweise fast unsichtbar)
+      if b.cleanPulse:IsPlaying() then b.cleanPulse:Stop() end
+      b.cleanLine:SetAlpha(1)
     end
     return
   end
@@ -3508,9 +3506,10 @@ SlashCmdList.TOTEMWATCH = function(msg)
       tostring(TotemWatchDB.skin), tostring(TotemWatchDB.cleanLook), tostring(TotemWatchDB.roundIcons), tostring(TotemWatchDB.glow)))
     for _, b in ipairs({ slots[1], slots[2], slots[3], slots[4], shieldBtn }) do
       local line, g, r = b.cleanLine, b.glow, b.roundIcon
-      print(format("  %s: status=%s line=%s/%.2f glow=%s/%.2f over=%s round=%s border=%.2f icon=%s",
+      print(format("  %s: status=%s line=%s/%.2f(%dx%d) glow=%s/%.2f over=%s round=%s border=%.2f icon=%s",
         b:GetName() or "?", tostring(b.statusKey),
         line and tostring(line:IsShown()) or "-", line and line:GetAlpha() or 0,
+        line and math.floor(line:GetWidth() or 0) or 0, line and math.floor(line:GetHeight() or 0) or 0,
         g and tostring(g:IsShown()) or "-", g and g:GetAlpha() or 0,
         b.over and tostring(b.over:IsVisible()) or "-",
         r and tostring(r:IsShown()) or "-", b.border:GetAlpha(), tostring(b.icon:IsShown())))
