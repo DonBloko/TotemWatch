@@ -3529,7 +3529,8 @@ SlashCmdList.TOTEMWATCH = function(msg)
         g and tostring(g:IsShown()) or "-", g and g:GetAlpha() or 0,
         b.over and tostring(b.over:IsVisible()) or "-",
         r and tostring(r:IsShown()) or "-", b.border:GetAlpha(), tostring(b.icon:IsShown())))
-      print(format("    levels: button=%d over=%d cd=%d", b:GetFrameLevel(), b.over and b.over:GetFrameLevel() or -1, b.cd and b.cd:GetFrameLevel() or -1))
+      print(format("    levels: button=%d over=%d cd=%d strip=%s/%.2f glowSize=%d", b:GetFrameLevel(), b.over and b.over:GetFrameLevel() or -1, b.cd and b.cd:GetFrameLevel() or -1,
+        b.strip and tostring(b.strip:IsShown()) or "-", b.strip and b.strip:GetAlpha() or 0, b.glow and math.floor(b.glow:GetWidth() or 0) or 0))
     end
   elseif cmd == "debug" then
     local known = {}
