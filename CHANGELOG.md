@@ -10,6 +10,7 @@
 - Template editor shows totem icons and only lists totems you have learned.
 - **Smarter weapon enchant**: chosen by your role (talents) and weapon – Windfury for melee from level 30, Rockbiter before that, Flametongue for casters and healers. The tooltip and the hint say why; your own choice is kept.
 - Flametongue Totem is only recommended when it helps: at least 2 melee without rogue poisons and no Windfury Totem yet (both are weapon enchants and overwrite each other). Healers (by their group role) do not count as melee. Otherwise Searing Totem.
+- Not enough mana: the button turns blue-grey like on the Blizzard action bars (totems, weapon enchant, shield, calls and emergency buttons).
 - **Reasons with numbers**: recommendations say why, e.g. "Strength for melee (3 melee)".
 - **Most urgent first**: the hint line now shows missing totems before out-of-range, wrong and expiring ones.
 - **New Forever dungeons**: bosses are also recognized by name (target or boss frame), because the game reports no encounter IDs in 5-player dungeons. First, provisional rules for Ruins of Lordaeron: Poison Cleansing for Witherfang and Viktor the Vile, Frost Resistance for The Abandoned, Fire Resistance for Rath'mael. `/tw debug` shows the detected boss.

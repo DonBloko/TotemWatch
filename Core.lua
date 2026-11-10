@@ -162,6 +162,30 @@ local function IsSecret(v)
   return issecretvalue ~= nil and issecretvalue(v) or false
 end
 
+-- Nicht genug Mana für diesen Zauber? (gesperrte Werte im Kampf -> lieber nichts anzeigen)
+local function NoMana(spell)
+  if not spell or spell == "" then return false end
+  local f = (C_Spell and C_Spell.IsSpellUsable) or IsUsableSpell
+  if not f then return false end
+  local ok, _, noMana = pcall(f, spell)
+  if not ok or noMana == nil or IsSecret(noMana) then return false end
+  return noMana and true or false
+end
+
+-- Symbol blaugrau tönen wie bei den Blizzard-Aktionsleisten; reset = vorherige Tönung zurücknehmen
+local function ManaTint(b, reset)
+  if reset then
+    if b.manaTinted then b.manaTinted = nil; b.icon:SetVertexColor(1, 1, 1) end
+    return
+  end
+  if b:IsShown() and NoMana(b:GetAttribute("spell1")) then
+    local r, g, bl = b.icon:GetVertexColor()
+    b.icon:SetVertexColor(0.4 * (r or 1), 0.45 * (g or 1), 1 * (bl or 1))
+    b.manaTinted = true
+  end
+end
+ns.ManaTint = ManaTint
+
 -- Gelernten Zauber finden: erst über IDs, dann über Namen im Zauberbuch. Liefert den Namen.
 local function FindKnownSpell(ids, names)
   for _, id in ipairs(ids) do
@@ -1577,6 +1601,7 @@ local function CreateEmergencyButton(def)
       SetGlow(self.glow, false)
       self.text:SetText("")
     end
+    if ns.ManaTint then ns.ManaTint(self, true); ns.ManaTint(self) end   -- zu wenig Mana: blaugrau
     if self.roundIcon and ns.RoundEmergency then ns.RoundEmergency(self) end
     -- Nur wegen einer Warnung außerhalb des Kampfes eingeblendet: danach wieder normale Sichtbarkeit
     if self.tempShown and not level and not InCombatLockdown() then
@@ -2397,6 +2422,8 @@ function ns.RoundEmergency(b)
     for _, t in ipairs(r.strips) do t:SetTexture(tex) end
   end
   b.border:SetAlpha(0)
+  local vr, vg, vb = b.icon:GetVertexColor()
+  for _, t in ipairs(r.strips) do t:SetVertexColor(vr, vg, vb) end
   r.ring:SetVertexColor(b.rr or 0.08, b.rg or 0.08, b.rb or 0.08, 1)
 end
 
@@ -3388,7 +3415,9 @@ local function Refresh()
   if ns.FixLayers then ns.FixLayers() end      -- obere Ebene (Leuchten, Zahlen) immer über dem Knopf
   -- Griff: zum Verschieben (nicht gesperrt) oder für die Vorlagen; geschützt -> nur außerhalb des Kampfes
   if ns.grip and not InCombatLockdown() then ns.grip:SetShown((not TotemWatchDB.locked) or ns.gripTemplates and true or false) end
+  for _, b in ipairs(RoundButtons()) do ManaTint(b, true) end
   if ns.CleanPost then ns.CleanPost() end   -- Clean Look: ruhigere Darstellung nachziehen
+  for _, b in ipairs(RoundButtons()) do ManaTint(b) end   -- zu wenig Mana: blaugrau
   if ns.RoundPost then ns.RoundPost() end     -- runde Symbole: Streifen angleichen, Ring einfärben
 end
 
