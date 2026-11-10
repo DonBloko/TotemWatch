@@ -1836,8 +1836,8 @@ function ns.ApplySkin()
     frame:SetBackdropColor(unpack(S.bg))
     frame:SetBackdropBorderColor(unpack(S.edge))
     if clean then
-      -- flacher, dunkler Hintergrund mit 1-px-Rand (durchsichtige Designs bleiben durchsichtig)
-      local a = math.min(S.bg[4] or 0, 0.55)
+      -- kein Kasten: Hintergrund und Rand unsichtbar, nur die Knöpfe stehen frei
+      local a = 0
       frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8",
         tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
       frame:SetBackdropColor(0.04, 0.04, 0.05, a)
@@ -2018,7 +2018,7 @@ function ns.ApplySkin()
     hintBg:SetBackdropBorderColor(unpack(S.hintEdge))
     if clean then
       hintBg:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", tile = false, insets = { left = 0, right = 0, top = 0, bottom = 0 } })
-      hintBg:SetBackdropColor(0, 0, 0, 0.45)
+      hintBg:SetBackdropColor(0, 0, 0, 0.35)   -- nur ein Hauch Hintergrund, damit der Text auf hellem Boden lesbar bleibt
     end
   end
   -- Schrift: im Clean Look eine schlichte Schrift mit Schatten statt dicker Umrandung
