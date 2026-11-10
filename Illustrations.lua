@@ -167,22 +167,24 @@ local SCENES = {}
 
 -- Bedienung: Linksklick stellt, Rechtsklick öffnet die Auswahl
 SCENES.click = function(parent, w)
-  local f = Panel(parent, w, 118)
+  local f = Panel(parent, w, 128)
   local ic = f.icons
-  ic[#ic + 1] = Icon(f, 18, -64, 32, ICON.fire, "missing", true)
-  ic[#ic + 1] = Icon(f, 56, -64, 32, ICON.earth, "ok", false, "4m")
-  ic[#ic + 1] = Icon(f, 94, -64, 32, ICON.water, "ok", false, "2m")
-  Mouse(f, 22, -14, "left")
-  Arrow(f, 26, -40, "up", 22)
-  Text(f, L["Left-click: cast"], 52, -20, { 0.62, 0.88, 0.8 })
-  -- Auswahl über Erde (drei kleine Symbole übereinander)
-  local x0 = 220
-  ic[#ic + 1] = Icon(f, x0, -64, 32, ICON.earth, "ok", false)
-  ic[#ic + 1] = Icon(f, x0 + 4, -38, 24, ICON.tremor)
-  ic[#ic + 1] = Icon(f, x0 + 4, -12, 24, 8071)
-  Mouse(f, x0 + 40, -66, "right")
-  Text(f, L["Right-click: choose another totem"], x0 + 70, -72, { 0.52, 0.72, 0.92 })
-  Text(f, L["Glowing = cast now"], 14, -102, { 1, 0.82, 0 }, 10)
+  ic[#ic + 1] = Icon(f, 18, -60, 32, ICON.fire, "missing", true)
+  ic[#ic + 1] = Icon(f, 58, -60, 32, ICON.earth, "ok", false, "4m")
+  ic[#ic + 1] = Icon(f, 98, -60, 32, ICON.water, "ok", false, "2m")
+  Mouse(f, 22, -10, "left")
+  Arrow(f, 26, -36, "up", 22)
+  Text(f, L["Left-click: cast"], 52, -16, { 0.62, 0.88, 0.8 })
+  Text(f, L["Glowing = cast now"], 14, -110, { 1, 0.82, 0 }, 10)
+  -- rechts: Auswahl über dem Knopf (drei kleine Symbole übereinander)
+  local x0 = 236
+  ic[#ic + 1] = Icon(f, x0, -60, 32, ICON.earth, "ok", false)
+  ic[#ic + 1] = Icon(f, x0 + 4, -34, 24, ICON.tremor)
+  ic[#ic + 1] = Icon(f, x0 + 4, -8, 24, 8071)
+  Mouse(f, x0 + 40, -62, "right")
+  local lab = Text(f, L["Right-click: choose another totem"], x0 + 70, -60, { 0.52, 0.72, 0.92 }, 10)
+  lab:SetWidth(w - (x0 + 70) - 8)
+  lab:SetWordWrap(true)
   return f
 end
 
