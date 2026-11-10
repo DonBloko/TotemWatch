@@ -568,3 +568,4 @@ L["Spoken warnings, Masque support, always show in dungeons and raids."] = "Gesp
 L["Four designs, movable messages, minimap button and a guided tour."] = "Vier Designs, verschiebbare Meldungen, Minimap-Knopf und eine Einführung."
 L["English interface, Call of the Elements, Totemic Call and Totemic Recall, distance to your totems."] = "Englische Oberfläche, Ruf der Elemente, Totemruf und Totemischer Rückruf, Abstand zu deinen Totems."
 L["First version: missing totems in combat, recommendations from guides and DBM / BigWigs."] = "Erste Version: fehlende Totems im Kampf, Empfehlungen aus Guides und DBM / BigWigs."
+L["made by DonBloko"] = "made by DonBloko"

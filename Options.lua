@@ -280,6 +280,11 @@ function ns.CreateOptions()
   end)
   tourBtn:ClearAllPoints()
   tourBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -16)
+n  -- Hinweis auf den Autor, ganz klein unten rechts
+  local credit = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  credit:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -20, 8)
+  credit:SetText(L["made by DonBloko"])
+  credit:SetAlpha(0.7)
 
   -- Inhalt: scrollbar (falls das Fenster klein ist), darin eine Seite je Reiter
   local scroll
@@ -290,7 +295,7 @@ function ns.CreateOptions()
     scroll = CreateFrame("ScrollFrame", "TotemWatchOptionsScroll", panel)
   end
   scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -96)
-  scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 4)
+  scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -28, 22)   -- unten Platz für den Autor-Hinweis
   local P = CreateFrame("Frame", nil, scroll)
   P:SetSize(640, 400)
   scroll:SetScrollChild(P)
