@@ -4316,6 +4316,10 @@ SlashCmdList.TOTEMWATCH = function(msg)
     end
     probe(L["Own health"], function() return UnitHealth("player") end)
     probe(L["Own mana"], function() return UnitPower("player") end)
+    probe(L["Enough mana for a spell (IsSpellUsable)"], function()
+      if C_Spell and C_Spell.IsSpellUsable then return C_Spell.IsSpellUsable(earthSpell) end
+      return IsUsableSpell(earthSpell)
+    end)
     probe(L["Weapon enchant"], function() return GetWeaponEnchantInfo() end)
     if UnitExists("nameplate1") then
       probe(L["Enemy nameplate"], function() return UnitAffectingCombat("nameplate1") end)
