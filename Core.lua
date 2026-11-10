@@ -3522,6 +3522,9 @@ end)
 ---------------------------------------------------------------------------
 local function SetBoss(encounterID, name)
   local data = encounterID and ns.BOSSES[tonumber(encounterID)]
+  -- ohne bekannte ID: über den Namen (neue Forever-Dungeons)
+  if not data and type(name) == "string" and not IsSecret(name) and ns.BOSS_NAMES then data = ns.BOSS_NAMES[lower(name)] end
+  state.lastEncounter = encounterID and (tostring(encounterID) .. " " .. tostring(name or "")) or state.lastEncounter
   state.boss = data
   state.bossName = (data and data.name) or name
   if data then
@@ -3529,7 +3532,29 @@ local function SetBoss(encounterID, name)
   end
 end
 
+-- Bosse über den Namen finden: Ziel und Boss-Einheiten (boss1-5) prüfen
+local function ScanBossByName()
+  if not ns.BOSS_NAMES or (state.boss and not state.bossByName) then return end
+  for _, u in ipairs({ "target", "boss1", "boss2", "boss3", "boss4", "boss5" }) do
+    if UnitExists(u) then
+      local ok, nm = pcall(UnitName, u)
+      if ok and type(nm) == "string" and not IsSecret(nm) then
+        local data = ns.BOSS_NAMES[lower(nm)]
+        if data then
+          if state.boss ~= data then
+            state.boss, state.bossName, state.bossByName = data, data.name, true
+            print(format(L["|cff0070deTotemWatch|r: boss detected – %s"], data.name))
+          end
+          return
+        end
+      end
+    end
+  end
+end
+ns.ScanBossByName = ScanBossByName
+
 local function ClearBoss()
+  state.bossByName = nil
   state.boss, state.bossName, state.fearAt = nil, nil, nil
 end
 
@@ -3613,6 +3638,7 @@ ev:RegisterEvent("ADDON_LOADED")
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:RegisterEvent("SPELLS_CHANGED")
 ev:RegisterEvent("PLAYER_REGEN_DISABLED")
+ev:RegisterEvent("PLAYER_TARGET_CHANGED")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 ev:RegisterEvent("PLAYER_TOTEM_UPDATE")
@@ -3777,7 +3803,10 @@ ev:SetScript("OnEvent", function(_, event, ...)
     if state.setupDone then SetupSecure() end
   elseif event == "PLAYER_EQUIPMENT_CHANGED" then
     if state.setupDone and not InCombatLockdown() then AutoWeapon() end   -- andere Waffe: Empfehlung neu prüfen
+  elseif event == "PLAYER_TARGET_CHANGED" then
+    if state.inCombat then SafeCall("Boss", ScanBossByName) end
   elseif event == "PLAYER_REGEN_DISABLED" then
+    SafeCall("Boss", ScanBossByName)
     state.inCombat = true
     -- Dieses Ereignis kommt kurz VOR der Kampfsperre: Anzeigen ist hier noch erlaubt.
     if not InCombatLockdown() and not frame:IsShown() then frame:Show() end
@@ -3976,6 +4005,7 @@ SlashCmdList.TOTEMWATCH = function(msg)
           L[", in combat: "] .. (InCombatLockdown() and L["yes"] or L["no"]))
     print(format(L["  Known totems (%d): %s"], #known, table.concat(known, ", ")))
     print("  DBM: " .. (DBM and L["yes"] or L["no"]) .. ", BigWigs: " .. (BigWigsLoader and L["yes"] or L["no"]))
+    print("  Boss: " .. tostring(state.bossName or "-") .. (state.bossByName and " (name)" or "") .. "  ·  last encounter: " .. tostring(state.lastEncounter or "-"))
     for s = 1, 4 do
       local have, n, st, du, _, fromTracked = TotemData(s)
       local left = (du and du > 0) and floor(st + du - GetTime()) or 0

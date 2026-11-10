@@ -195,6 +195,17 @@ ns.BOSSES = {
   [1120] = { name = L["Thaddius"],  air   = { T("NATURE_RES", "Chain Lightning / Polarity") } },
 }
 
+-- Bosse ohne bekannte Encounter-ID (z. B. die neuen WoW-Forever-Dungeons): Erkennung über den
+-- Namen des Ziels bzw. der Boss-Einheit. Schlüssel = Name klein geschrieben (englisch und deutsch).
+-- VORLÄUFIG: Mechaniken aus ersten Guides nach dem Start (November 2026), noch nicht überall bestätigt.
+ns.BOSS_NAMES = {
+  ---------------------------------------------------------------- Ruins of Lordaeron (15-22)
+  ["witherfang"]       = { name = "Witherfang",       water = { T("POISON_CLEANSE", "Leech Poison on the tank") } },
+  ["viktor the vile"]  = { name = "Viktor the Vile",  water = { T("POISON_CLEANSE", "Leech Poison on the tank") } },
+  ["the abandoned"]    = { name = "The Abandoned",    fire = { T("FROST_RES", "Frost Nova") } },
+  ["rath'mael"]        = { name = "Rath'mael",        water = { T("FIRE_RES", "Flamestrike") } },
+}
+
 -- Designs (Skins) der Leiste. Auswahl im Menü oder mit /tw skin <name>.
 --   btn      Knopfgröße          gap      Abstand zwischen Knöpfen
 --   inset    Rahmenbreite um das Icon

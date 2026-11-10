@@ -11,6 +11,7 @@
 - **Smarter weapon enchant**: chosen by your role (talents) and weapon – Windfury for melee from level 30, Rockbiter before that, Flametongue for casters and healers. The tooltip and the hint say why; your own choice is kept.
 - **Reasons with numbers**: recommendations say why, e.g. "Strength for melee (3 melee)".
 - **Most urgent first**: the hint line now shows missing totems before out-of-range, wrong and expiring ones.
+- **New Forever dungeons**: bosses are also recognized by name (target or boss frame), because the game reports no encounter IDs in 5-player dungeons. First, provisional rules for Ruins of Lordaeron: Poison Cleansing for Witherfang and Viktor the Vile, Frost Resistance for The Abandoned, Fire Resistance for Rath'mael. `/tw debug` shows the detected boss.
 - `/tw bar` shows all three pages of the totem bar.
 - **Pictures that explain the bar**: the guided tour shows small pictures for moving the bar, clicking and the status colors, and the **Help** tab is now a reference page with an annotated overview of the bar and pictures for every feature (casting and choosing, colors, templates, calls, emergency buttons). The pictures follow your icon shape (round or square).
 - The guided tour shows the TotemWatch logo.
