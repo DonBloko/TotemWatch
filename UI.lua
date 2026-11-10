@@ -393,7 +393,22 @@ local NEWS = {
     L["Clearer options menu with tabs."],
     L["Elements without a learned totem are hidden."],
   } },
+  { version = "1.2.1", items = {
+    L["Emergency buttons for Tremor, Poison Cleansing, Disease Cleansing and Grounding – they light up when danger is coming."],
+    L["Spoken warnings, Masque support, always show in dungeons and raids."],
+  } },
+  { version = "1.2.0", items = {
+    L["Four designs, movable messages, minimap button and a guided tour."],
+  } },
+  { version = "1.1.0", items = {
+    L["English interface, Call of the Elements, Totemic Call and Totemic Recall, distance to your totems."],
+  } },
+  { version = "1.0.0", items = {
+    L["First version: missing totems in combat, recommendations from guides and DBM / BigWigs."],
+  } },
 }
+
+ns.NEWS = NEWS
 
 local function VersionNumber(v)
   local a, b, c = tostring(v or ""):match("(%d+)%.(%d+)%.?(%d*)")

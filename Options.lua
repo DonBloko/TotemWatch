@@ -313,6 +313,7 @@ function ns.CreateOptions()
     { key = "alerts",    label = L["Warnings"],  height = 300 },
     { key = "emergency", label = L["Emergency"], height = 260 },
     { key = "help",      label = L["Help"],      height = 140 },
+    { key = "changes",   label = L["Changelog"], height = 400 },
   }
   local pages, tabButtons = {}, {}
   local function ShowTab(key)
@@ -337,7 +338,7 @@ function ns.CreateOptions()
     page:SetAllPoints(P)
     page:Hide()
     pages[t.key] = page
-    local b = AddButton(panel, 16 + (i - 1) * 104, -60, t.label, 100, function() ShowTab(t.key) end)
+    local b = AddButton(panel, 16 + (i - 1) * 92, -60, t.label, 88, function() ShowTab(t.key) end)
     tabButtons[t.key] = b
   end
   -- Trennlinie unter den Reitern
@@ -791,13 +792,34 @@ function ns.CreateOptions()
   help:SetSpacing(4)
   help:SetText(L["Key bindings: Esc > Key Bindings > AddOns > TotemWatch.\n"] ..
     L["Commands: /tw help · /tw check · /tw probe · /tw boss <ID> · /tw other <totem>"] .. "\n" ..
-    L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"] .. "
-" ..
-    L["News: /tw news"])
+    L["Designs: /tw skin <name> · Clean look: /tw clean · Round icons: /tw round · Emergency: /tw sos test"])
   hy = hy - (help:GetStringHeight() or 60) - 20
   for _, t in ipairs(TABS) do
     if t.key == "help" then t.height = -hy + 10 end
   end
+
+  -----------------------------------------------------------------------
+  -- Changelog: was ist neu in welcher Version
+  -----------------------------------------------------------------------
+  p = pages.changes
+  AddHeader(p, LX, -8, L["What's new in TotemWatch"])
+  local chg = p:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  chg:SetPoint("TOPLEFT", LX, -30)
+  chg:SetWidth(590)
+  chg:SetJustifyH("LEFT")
+  chg:SetSpacing(4)
+  dropdowns[#dropdowns + 1] = { Refresh = function()
+    local lines = {}
+    for _, n in ipairs(ns.NEWS or {}) do
+      if #lines > 0 then lines[#lines + 1] = " " end
+      lines[#lines + 1] = "|cffffd100" .. format(L["Version %s"], n.version) .. "|r"
+      for _, it in ipairs(n.items) do lines[#lines + 1] = "|cffffd100•|r " .. it end
+    end
+    chg:SetText(table.concat(lines, "\n"))
+    for _, t in ipairs(TABS) do
+      if t.key == "changes" then t.height = 50 + (chg:GetStringHeight() or 300) end
+    end
+  end }
 
   -- Solange das Menü offen ist: Leiste im Testmodus zeigen und über das Optionsfenster legen,
   -- damit jede Änderung sofort sichtbar ist. Beim Schließen wieder wie vorher.

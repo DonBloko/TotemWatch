@@ -3911,8 +3911,6 @@ SlashCmdList.TOTEMWATCH = function(msg)
     else
       print(L["  No errors so far."])
     end
-  elseif cmd == "news" or cmd == "neu" or cmd == "changelog" then
-    if not (ns.ShowNews and ns.ShowNews()) then p(L["No news."]) end
   elseif cmd == "tutorial" or cmd == "tour" or cmd == "einführung" then
     if ns.StartTutorial then ns.StartTutorial() end
   elseif cmd == "minimap" then
