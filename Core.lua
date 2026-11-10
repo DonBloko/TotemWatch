@@ -1965,7 +1965,8 @@ function ns.ApplySkin()
         b:SetSize(esize + 6, esize + 6)
         if b.glow then b.glow:SetSize((esize + 6) * gf, (esize + 6) * gf) end
         b:ClearAllPoints()
-        b:SetPoint("BOTTOMRIGHT", moreBtn, "TOPRIGHT", -i * (esize + 9), 4)
+        -- rechts neben dem "..." aufklappen (oben liegt die Notfall-Reihe)
+        b:SetPoint("LEFT", moreBtn, "RIGHT", 4 + i * (esize + 9), 0)
         i = i + 1
       end
     end
