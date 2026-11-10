@@ -219,7 +219,7 @@ ns.SKINS = {
     hintBg = { 0.08, 0.10, 0.12, 0.90 }, hintEdge = { 0.22, 0.26, 0.30, 1 },
   },
   bars = {
-    name = "Bars", btn = 24, gap = 3, inset = 1, title = false, timer = "none", bar = "right", barWidth = 200,
+    name = "Bars", btn = 24, gap = 3, inset = 1, title = false, timer = "none", bar = "right", barWidth = 200, hints = 0,   -- Balken zeigen den Status schon als Text
     extraBtn = 34,   -- Größe der Zusatzknöpfe (ALLE, Call, Recall, Waffe, Schild) unter den Balken
     bg = { 0, 0, 0, 0.55 }, edge = { 0, 0, 0, 1 }, edgeFile = WHITE, edgeSize = 1,
     hintBg = { 0, 0, 0, 0.75 }, hintEdge = { 0, 0, 0, 1 },

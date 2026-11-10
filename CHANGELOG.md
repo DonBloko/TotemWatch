@@ -6,6 +6,7 @@
 - **Round icons (beta)** (options menu → Design, or `/tw round`): icons built from thin circular strips with a ring that shows the status color and a soft round glow – also for Call, Totemic Call, Recall, the ALL button (round blue disc) and the emergency buttons; in Pillars the element color becomes a small dot above the circle – no mask textures, so no crash risk.
 - Emergency buttons are smaller by default (44 instead of 64; adjustable in the options).
 - **The bar stays visible for a few seconds after combat** (default 8 s, options → Bar), e.g. for Totemic Recall.
+- Bars design: no extra hint line below (the bars already say what is missing).
 - **Elements without a learned totem are hidden** (e.g. Air before level 30); the other buttons move together. They appear automatically when you learn the first totem.
 - **Short hints** (on by default, options → Recommendations): one line with the next step, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Turn it off for the full list.
 - Pillars: no empty gray time bar under a slot without a totem; with round icons the time bar is thinner.
