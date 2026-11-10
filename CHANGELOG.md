@@ -9,7 +9,7 @@
 - **Short hints** (on by default, options → Recommendations): one line with the next step, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Turn it off for the full list.
 - Pillars: no empty gray time bar under a slot without a totem; with round icons the time bar is thinner.
 - Clean look: counts (shield charges, players out of range) are a small badge at the bottom right and no longer overlap "far" or the remaining time.
-- Options menu: fixed overlapping checkboxes between the Warnings and Bar sections.
+- **Clearer options menu** (`/tw`): five tabs – Look, Bar, Warnings, Emergency, Help – instead of one long page; related settings grouped in two columns. The menu remembers the last tab.
 - **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
   - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
   - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.
