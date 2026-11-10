@@ -8,6 +8,7 @@
 - **Elements without a learned totem are hidden** (e.g. Air before level 30); the other buttons move together. They appear automatically when you learn the first totem.
 - **Short hints** (on by default, options → Recommendations): one line with the next step, e.g. "Next: Searing Totem (Fire) – Extra damage (+2)". Turn it off for the full list.
 - Pillars: no empty gray time bar under a slot without a totem; with round icons the time bar is thinner.
+- Clean look: counts (shield charges, players out of range) are a small badge at the bottom right and no longer overlap "far" or the remaining time.
 - Options menu: fixed overlapping checkboxes between the Warnings and Bar sections.
 - **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
   - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.

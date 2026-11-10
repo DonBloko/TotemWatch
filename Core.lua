@@ -2041,7 +2041,17 @@ function ns.ApplySkin()
         fs:SetFontObject("NumberFontNormal"); fs:SetTextColor(1, 1, 1)
       end
     end
-    b.farText:SetFont(STANDARD_TEXT_FONT, clean and 12 or 14, clean and "" or "OUTLINE")
+    b.farText:SetFont(STANDARD_TEXT_FONT, clean and 11 or 14, "OUTLINE")
+    -- Zahl (Aufladungen / Spieler außer Reichweite): im Clean Look als kleines Abzeichen unten rechts,
+    -- damit sie nicht mit "far" oder der Restzeit kollidiert
+    b.label:ClearAllPoints()
+    if clean then
+      b.label:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE")
+      b.label:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 1, -1)
+    else
+      b.label:SetPoint("BOTTOMLEFT", 2, 2)
+    end
+    if clean then b.farText:ClearAllPoints(); b.farText:SetPoint("CENTER", b, "CENTER", 0, 1) end
     b.farText:SetShadowOffset(1, -1); b.farText:SetShadowColor(0, 0, 0, 1)
     if not clean then b.icon:SetVertexColor(1, 1, 1); b.icon:SetAlpha(1) end
     if b.glow then b.glow:SetVertexColor(1, 0.85, 0.2, clean and 0.5 or 1) end
