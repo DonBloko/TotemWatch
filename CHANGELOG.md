@@ -3,7 +3,7 @@
 ## 1.3.0 (beta)
 
 - **Clean look** (options menu → Design, or `/tw clean`, on by default in this beta): no box around the bar (transparent background), thin dark frames, status color only as a fine line where you have to act, calmer icons, softer glow, plain font with shadow, no mini icons (they are in the tooltip), empty slots as dark fields. Works with every design.
-- **Round icons (beta)** (options menu → Design, or `/tw round`): icons built from thin circular strips with a ring that shows the status color – no mask textures, so no crash risk.
+- **Round icons (beta)** (options menu → Design, or `/tw round`): icons built from thin circular strips with a ring that shows the status color and a soft round glow – no mask textures, so no crash risk.
 - **Four new designs to try** (options menu → Design, or `/tw skin <name>`):
   - **Compact** (`compact`) – small bar: only the 4 totems are big, weapon and shield small, ALL/Call/Totemic Call/Recall behind a "..." button (opens in combat, too). One hint line with the next step.
   - **Focus** (`focus`) – no background; buttons that need nothing are almost invisible, only the ones you have to press light up.

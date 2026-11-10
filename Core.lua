@@ -2106,6 +2106,7 @@ local function SetRound(b, on)
     r:Show(); r.ring:Show(); b.icon:Hide()
     LayoutRound(r)
     pcall(b.cd.SetSwipeTexture, b.cd, MEDIA .. "round_disc")
+    if b.glow then b.glow:SetTexture(MEDIA .. "round_glow") end      -- weicher runder Leucht-Kreis
     b:SetHighlightTexture(MEDIA .. "round_disc", "ADD")
     hl = b:GetHighlightTexture()
     if hl then hl:ClearAllPoints(); hl:SetAllPoints(r); hl:SetVertexColor(1, 1, 1, 0.3) end
@@ -2113,6 +2114,7 @@ local function SetRound(b, on)
     r:Hide(); r.ring:Hide(); b.icon:Show()
     b.border:SetAlpha(1)
     pcall(b.cd.SetSwipeTexture, b.cd, "Interface\\Buttons\\WHITE8X8")
+    if b.glow then b.glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border") end
     b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
     hl = b:GetHighlightTexture()
     if hl then hl:ClearAllPoints(); hl:SetAllPoints(b); hl:SetVertexColor(1, 1, 1, 1) end
