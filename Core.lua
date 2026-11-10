@@ -3045,7 +3045,7 @@ ns.AlwaysShowHere = AlwaysShowHere
 
 local function ApplyVisibilityDriver()
   if InCombatLockdown() then state.pendingSecure = true; return end
-  local always = state.test or TotemWatchDB.showOOC or AlwaysShowHere()
+  local always = state.test or TotemWatchDB.showOOC or AlwaysShowHere() or GetTime() < (state.lingerUntil or 0)
   RegisterStateDriver(frame, "visibility", always and "show" or "[combat] show; hide")
   -- Notfall-Knöpfe: gleiche Sichtbarkeit wie die Leiste (beim Verschieben immer sichtbar)
   for _, e in ipairs(ns.emergency or {}) do
@@ -3059,6 +3059,7 @@ end
 
 local function UpdateVisibility()
   if InCombatLockdown() or state.test or TotemWatchDB.showOOC or AlwaysShowHere() then return end
+  if GetTime() < (state.lingerUntil or 0) then return end   -- kurz nach dem Kampf: sichtbar lassen
   if GetTime() < state.pullUntil then
     if not frame:IsShown() then frame:Show() end
   elseif frame:IsShown() then
@@ -3478,14 +3479,17 @@ ev:SetScript("OnEvent", function(_, event, ...)
     wipe(state.lastRec)   -- Empfehlungen neu auf die Knöpfe legen
     wipe(state.slotMsg)   -- im nächsten Kampf wieder melden
     if state.pendingSecure then ApplyPosition(); SetupSecure(); ApplyVisibilityDriver() end
-    -- Leiste nach dem Kampf noch ein paar Sekunden zeigen (z. B. für Totemic Recall)
+    -- Leiste nach dem Kampf noch ein paar Sekunden zeigen (z. B. für Totemic Recall):
+    -- der Sichtbarkeits-Treiber selbst sagt in dieser Zeit "anzeigen", danach wieder "nur im Kampf"
     local linger = TotemWatchDB.afterCombat or 0
     if linger > 0 then
-      state.pullUntil = math.max(state.pullUntil, GetTime() + linger)
-      -- kurz warten: der Sichtbarkeits-Treiber blendet beim Kampfende selbst aus
+      state.lingerUntil = GetTime() + linger
+      ApplyVisibilityDriver()
+      if not frame:IsShown() then frame:Show() end
       if C_Timer then
-        C_Timer.After(0.3, function()
-          if not InCombatLockdown() and GetTime() < state.pullUntil and not frame:IsShown() then frame:Show() end
+        C_Timer.After(linger + 0.1, function()
+          if InCombatLockdown() then return end   -- neuer Kampf: beim nächsten Kampfende neu
+          ApplyVisibilityDriver(); UpdateVisibility()
         end)
       end
     end
