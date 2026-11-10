@@ -429,7 +429,7 @@ end
 local GROUP_UNITS = { "player", "party1", "party2", "party3", "party4" }
 
 local function ScanGroup()
-  local melee, caster, size = 0, 0, 0
+  local melee, caster, size, rogues = 0, 0, 0, 0
   wipe(state.partyShamans)
   for _, u in ipairs(GROUP_UNITS) do
     if u ~= "player" and UnitExists(u) and select(2, UnitClass(u)) == "SHAMAN" then
@@ -443,6 +443,7 @@ local function ScanGroup()
         local power = UnitPowerType(u)
         if cls == "WARRIOR" or cls == "ROGUE" or cls == "PALADIN" then
           melee = melee + 1
+          if cls == "ROGUE" then rogues = rogues + 1 end
         elseif cls == "DRUID" and (power == 1 or power == 3) then
           melee = melee + 1
         elseif cls == "HUNTER" then
@@ -454,6 +455,7 @@ local function ScanGroup()
     end
   end
   state.melee, state.caster, state.groupSize = melee, caster, size
+  state.rogues = rogues   -- Schurken: ihre Gifte belegen die Waffe (Flammenzunge-Totem bringt ihnen nichts)
 end
 
 -- Zentrale Aura-Abfrage. Sperrt der Client Auren im Kampf, wird bis Kampfende nicht mehr gefragt.
@@ -847,7 +849,10 @@ local function Recommend(slot)
       add("FIRE_NOVA", format(L["%d enemies – AoE"], state.enemies))
     end
     if caster >= melee and not solo then add("TOTEM_OF_WRATH", C(L["Spell crit for casters"])) end
-    if melee >= 2 then add("FLAMETONGUE", M(L["Weapon proc for melee"])) end
+    -- Flammenzunge-Totem ist eine Waffenverzauberung: Windzorn-Totem überschreibt sie, Schurken-Gifte
+    -- ebenso. Nur sinnvoll mit mind. 2 Nahkämpfern ohne Gifte und solange es kein Windzorn-Totem gibt.
+    local weaponMelee = melee - (state.rogues or 0)
+    if weaponMelee >= 2 and not IsKnown("WINDFURY") then add("FLAMETONGUE", M(L["Weapon proc for melee"])) end
     add("SEARING", L["Extra damage"])
   elseif slot == ns.EARTH then
     if melee >= 1 or solo then add("STRENGTH", M(L["Strength for melee"])) end
